@@ -24,10 +24,20 @@ function BFUF:GetConfig(section)
     return nil
 end
 
--- В будущем выведет обычное сообщение аддона.
+-- Выводит сообщение в стандартное окно чата, если оно доступно.
 function BFUF:Print(...)
+    local message = ...
+
+    if message ~= nil and DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then
+        DEFAULT_CHAT_FRAME:AddMessage(tostring(message))
+    end
 end
 
--- В будущем выведет отладочное сообщение аддона.
+-- Выводит отладочное сообщение только при включённом режиме отладки.
 function BFUF:Debug(...)
+    if not self.DebugEnabled then
+        return
+    end
+
+    self:Print(...)
 end

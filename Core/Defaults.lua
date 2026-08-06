@@ -84,3 +84,11 @@ BFUF.Defaults = {
         show = true,
     },
 }
+
+-- Модуль инициализации значений по умолчанию отделён от самих данных.
+local Defaults = {}
+BFUF.Core.Defaults = Defaults
+
+-- Значения создаются при загрузке файла; отдельное действие пока не требуется.
+function Defaults:Initialize()
+end
