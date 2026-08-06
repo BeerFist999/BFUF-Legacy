@@ -197,24 +197,25 @@ function Player:Create()
         nameText:SetText(UnitName("player") or "")
     end
 
-    -- Обновляет строку здоровья для unit, уже сохранённого в HealthBar.
-    local function updateHealthText(unit)
-        unit = unit or healthBar.unit
+    -- Обновляет строку здоровья игрока актуальными значениями Blizzard API.
+    local function updateHealthText()
+        local currentHealth = UnitHealth("player")
+        local maxHealth = UnitHealthMax("player")
+        local healthPercent = UnitHealthPercent("player")
 
-        if not unit then
-            return
+        -- SetFormattedText выполняет форматирование на стороне интерфейса и не требует
+        -- арифметики Lua над защищёнными значениями здоровья.
+        if HEALTH_TEXT_FORMAT == HEALTH_TEXT_FORMATS.CURRENT then
+            healthText:SetFormattedText("%d", currentHealth)
+        elseif HEALTH_TEXT_FORMAT == HEALTH_TEXT_FORMATS.CURRENT_MAX then
+            healthText:SetFormattedText("%d / %d", currentHealth, maxHealth)
+        elseif HEALTH_TEXT_FORMAT == HEALTH_TEXT_FORMATS.PERCENT then
+            healthText:SetFormattedText("%d%%", healthPercent)
+        elseif HEALTH_TEXT_FORMAT == HEALTH_TEXT_FORMATS.CURRENT_PERCENT then
+            healthText:SetFormattedText("%d (%d%%)", currentHealth, healthPercent)
+        else
+            healthText:SetFormattedText("%d / %d (%d%%)", currentHealth, maxHealth, healthPercent)
         end
-
-        -- Значения API сразу приводятся к обычным Lua-числам.
-        local currentHealth = tonumber(UnitHealth(unit)) or 0
-        local maxHealth = tonumber(UnitHealthMax(unit)) or 0
-
-        healthText:SetText(formatStatusText(
-            currentHealth,
-            maxHealth,
-            HEALTH_TEXT_FORMAT,
-            HEALTH_TEXT_FORMATS
-        ))
     end
 
 
@@ -246,7 +247,7 @@ function Player:Create()
 
     healthBar:SetUnit("player")
     healthBar:Update()
-    updateHealthText(healthBar.unit)
+    updateHealthText()
     BFUF:Debug("Health updated")
 
     powerBar:SetUnit("player")
@@ -284,7 +285,7 @@ function Player:Create()
 
         if event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" then
             healthBar:Update()
-            updateHealthText(unit)
+            updateHealthText()
             BFUF:Debug("Health updated from event.")
         elseif event == "UNIT_POWER_UPDATE" or event == "UNIT_MAXPOWER" or event == "UNIT_DISPLAYPOWER" then
             powerBar:Update()
