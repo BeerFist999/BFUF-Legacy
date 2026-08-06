@@ -1,13 +1,25 @@
 local addonName, BFUF = ...
 
--- Размеры и отступы базового фрейма игрока.
-local FRAME_WIDTH = 240
-local FRAME_HEIGHT = 50
-local FRAME_OFFSET_X = 0
-local FRAME_OFFSET_Y = 0
-local HEALTH_BAR_INSET = 3
+-- Временный Layout базового фрейма игрока.
+-- Все размеры элементов хранятся здесь до появления LayoutEngine.
+local PLAYER_LAYOUT = {
+    frame = {
+        width = 240,
+        height = 50,
+        offsetX = 0,
+        offsetY = 0,
+    },
+    health = {
+        inset = 3,
+        bottomOffset = 13,
+    },
+    power = {
+        height = 8,
+        inset = 3,
+    },
+}
 
--- Модуль создаёт базовый защищённый фрейм игрока с фоном и полосой здоровья.
+-- Модуль создаёт базовый защищённый фрейм игрока с фоном и полосами ресурсов.
 BFUF.Frames = BFUF.Frames or {}
 
 local Player = {}
@@ -26,8 +38,8 @@ function Player:Create()
 
     -- Один главный защищённый фрейм служит родителем для всех будущих частей Player Frame.
     local frame = factory:CreateUnitFrame("player")
-    frame:SetSize(FRAME_WIDTH, FRAME_HEIGHT)
-    frame:SetPoint("CENTER", UIParent, "CENTER", FRAME_OFFSET_X, FRAME_OFFSET_Y)
+    frame:SetSize(PLAYER_LAYOUT.frame.width, PLAYER_LAYOUT.frame.height)
+    frame:SetPoint("CENTER", UIParent, "CENTER", PLAYER_LAYOUT.frame.offsetX, PLAYER_LAYOUT.frame.offsetY)
 
     -- Background занимает всю область главного фрейма.
     local background = factory:CreateTexture(frame)
@@ -35,42 +47,57 @@ function Player:Create()
     background:SetColorTexture(0, 0, 0, 0.8)
     frame.background = background
 
-    -- HealthBar создаётся непосредственно внутри главного фрейма.
+    -- HealthBar занимает верхнюю часть фрейма и оставляет место для PowerBar.
     local healthBar = BFUF.Elements.Health:Create(frame)
     healthBar:ClearAllPoints()
-    healthBar:SetPoint("TOPLEFT", frame, "TOPLEFT", HEALTH_BAR_INSET, -HEALTH_BAR_INSET)
-    healthBar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -HEALTH_BAR_INSET, -HEALTH_BAR_INSET)
-    healthBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", HEALTH_BAR_INSET, HEALTH_BAR_INSET)
-    healthBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -HEALTH_BAR_INSET, HEALTH_BAR_INSET)
+    healthBar:SetPoint("TOPLEFT", frame, "TOPLEFT", PLAYER_LAYOUT.health.inset, -PLAYER_LAYOUT.health.inset)
+    healthBar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PLAYER_LAYOUT.health.inset, -PLAYER_LAYOUT.health.inset)
+    healthBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", PLAYER_LAYOUT.health.inset, PLAYER_LAYOUT.health.bottomOffset)
+    healthBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PLAYER_LAYOUT.health.inset, PLAYER_LAYOUT.health.bottomOffset)
     frame.healthBar = healthBar
     BFUF:Debug("Health element attached.")
 
-    -- Привязываем HealthBar к игроку и выполняем первое обновление.
+    -- PowerBar создаётся без собственных размеров; их задаёт временный Layout Player Frame.
+    local powerBar = BFUF.Elements.Power:Create(frame)
+    powerBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", PLAYER_LAYOUT.power.inset, PLAYER_LAYOUT.power.inset)
+    powerBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PLAYER_LAYOUT.power.inset, PLAYER_LAYOUT.power.inset)
+    powerBar:SetHeight(PLAYER_LAYOUT.power.height)
+    frame.powerBar = powerBar
+
+    -- Привязываем полосы к игроку и выполняем первое обновление.
     healthBar:SetUnit("player")
-    BFUF:Debug("Health initialized")
     healthBar:Update()
     BFUF:Debug("Health updated")
 
-    -- Подписываемся только на события, необходимые для обновления здоровья игрока.
+    powerBar:SetUnit("player")
+    powerBar:Update()
+
+    -- Подписываемся только на события, необходимые для обновления ресурсов игрока.
     frame:RegisterEvent("PLAYER_ENTERING_WORLD")
     frame:RegisterEvent("UNIT_HEALTH")
     frame:RegisterEvent("UNIT_MAXHEALTH")
+    frame:RegisterEvent("UNIT_POWER_UPDATE")
+    frame:RegisterEvent("UNIT_DISPLAYPOWER")
     frame:SetScript("OnEvent", function(self, event, unit)
-        -- После входа в мир повторяем обновление и отключаем одноразовое событие.
+        -- После входа в мир повторяем обновление обеих полос.
         if event == "PLAYER_ENTERING_WORLD" then
             healthBar:Update()
-            BFUF:Debug("Health updated")
+            powerBar:Update()
             self:UnregisterEvent("PLAYER_ENTERING_WORLD")
             return
         end
 
-        -- UNIT_HEALTH и UNIT_MAXHEALTH содержат юнит первым дополнительным аргументом.
+        -- События других юнитов не относятся к Player Frame.
         if unit ~= "player" then
             return
         end
 
-        healthBar:Update()
-        BFUF:Debug("Health updated from event.")
+        if event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" then
+            healthBar:Update()
+            BFUF:Debug("Health updated from event.")
+        elseif event == "UNIT_POWER_UPDATE" or event == "UNIT_DISPLAYPOWER" then
+            powerBar:Update()
+        end
     end)
 
     -- Registry хранит ссылку на готовый фрейм под именем player.
