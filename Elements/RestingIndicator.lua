@@ -33,10 +33,11 @@ function RestingIndicator:Create(parent, layout)
         end
     end
 
-    -- Регистрирует событие изменения состояния отдыха.
+    -- Регистрирует события изменения отдыха и полной загрузки игрового мира.
     function indicator:RegisterEvents()
         local eventFrame = CreateFrame("Frame")
 
+        eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
         eventFrame:RegisterEvent("PLAYER_UPDATE_RESTING")
         eventFrame:SetScript("OnEvent", function()
             self:Update()
