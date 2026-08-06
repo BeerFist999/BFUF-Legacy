@@ -49,30 +49,23 @@ local HEALTH_TEXT_FORMATS = {
 
 local HEALTH_TEXT_FORMAT = HEALTH_TEXT_FORMATS.CURRENT_MAX_PERCENT
 
--- Форматирует обычные Lua-числа для текста здоровья или ресурса.
--- Преобразование выполняется до любых арифметических операций.
-local function formatStatusText(currentValue, maxValue, displayFormat, formats)
-    currentValue = tonumber(currentValue) or 0
-    maxValue = tonumber(maxValue) or 0
-
-    -- Нулевой максимум имеет единый безопасный вид для всех форматов.
-    if maxValue <= 0 then
-        return "0 / 0 (0%)"
-    end
-
-    local percent = math.floor((currentValue / maxValue) * 100 + 0.5)
-
+-- Форматирует значения здоровья или ресурса без арифметики Lua.
+-- В Retail 12 UnitHealth* и UnitPower* могут возвращать Secret Values:
+-- аддон не имеет права сравнивать, преобразовывать или вычислять их самостоятельно.
+-- Процент заранее рассчитывается нативным API Blizzard, а string.format принимает
+-- Secret Values и возвращает строку, которую FontString может безопасно отобразить.
+local function formatStatusText(currentValue, maxValue, percentValue, displayFormat, formats)
     if displayFormat == formats.CURRENT then
-        return tostring(currentValue)
+        return string.format("%d", currentValue)
     elseif displayFormat == formats.CURRENT_MAX then
         return string.format("%d / %d", currentValue, maxValue)
     elseif displayFormat == formats.PERCENT then
-        return string.format("%d%%", percent)
+        return string.format("%d%%", percentValue)
     elseif displayFormat == formats.CURRENT_PERCENT then
-        return string.format("%d (%d%%)", currentValue, percent)
+        return string.format("%d (%d%%)", currentValue, percentValue)
     end
 
-    return string.format("%d / %d (%d%%)", currentValue, maxValue, percent)
+    return string.format("%d / %d (%d%%)", currentValue, maxValue, percentValue)
 end
 
 -- Форматы текста ресурса подготовлены для будущей настройки без изменения логики обновления.
@@ -197,25 +190,19 @@ function Player:Create()
         nameText:SetText(UnitName("player") or "")
     end
 
-    -- Обновляет строку здоровья игрока актуальными значениями Blizzard API.
+    -- Обновляет текст здоровья через общую функцию форматирования.
     local function updateHealthText()
         local currentHealth = UnitHealth("player")
         local maxHealth = UnitHealthMax("player")
         local healthPercent = UnitHealthPercent("player")
 
-        -- SetFormattedText выполняет форматирование на стороне интерфейса и не требует
-        -- арифметики Lua над защищёнными значениями здоровья.
-        if HEALTH_TEXT_FORMAT == HEALTH_TEXT_FORMATS.CURRENT then
-            healthText:SetFormattedText("%d", currentHealth)
-        elseif HEALTH_TEXT_FORMAT == HEALTH_TEXT_FORMATS.CURRENT_MAX then
-            healthText:SetFormattedText("%d / %d", currentHealth, maxHealth)
-        elseif HEALTH_TEXT_FORMAT == HEALTH_TEXT_FORMATS.PERCENT then
-            healthText:SetFormattedText("%d%%", healthPercent)
-        elseif HEALTH_TEXT_FORMAT == HEALTH_TEXT_FORMATS.CURRENT_PERCENT then
-            healthText:SetFormattedText("%d (%d%%)", currentHealth, healthPercent)
-        else
-            healthText:SetFormattedText("%d / %d (%d%%)", currentHealth, maxHealth, healthPercent)
-        end
+        healthText:SetText(formatStatusText(
+            currentHealth,
+            maxHealth,
+            healthPercent,
+            HEALTH_TEXT_FORMAT,
+            HEALTH_TEXT_FORMATS
+        ))
     end
 
 
@@ -229,13 +216,14 @@ function Player:Create()
             return
         end
 
-        -- Значения API сразу приводятся к обычным Lua-числам.
-        local currentPower = tonumber(UnitPower("player", powerType)) or 0
-        local maxPower = tonumber(UnitPowerMax("player", powerType)) or 0
+        local currentPower = UnitPower("player", powerType)
+        local maxPower = UnitPowerMax("player", powerType)
+        local powerPercent = UnitPowerPercent("player", powerType)
 
         powerText:SetText(formatStatusText(
             currentPower,
             maxPower,
+            powerPercent,
             POWER_TEXT_FORMAT,
             POWER_TEXT_FORMATS
         ))
