@@ -26,7 +26,44 @@ local PLAYER_LAYOUT = {
         size = 12,
         color = { r = 1, g = 1, b = 1, a = 1 },
     },
+    healthText = {
+        inset = 4,
+        size = 12,
+        color = { r = 1, g = 1, b = 1, a = 1 },
+    },
 }
+
+-- Форматы текста здоровья подготовлены для будущей настройки без изменения логики обновления.
+local HEALTH_TEXT_FORMATS = {
+    CURRENT = "current",
+    CURRENT_MAX = "currentMax",
+    PERCENT = "percent",
+    CURRENT_PERCENT = "currentPercent",
+    CURRENT_MAX_PERCENT = "currentMaxPercent",
+}
+
+local HEALTH_TEXT_FORMAT = HEALTH_TEXT_FORMATS.CURRENT_MAX_PERCENT
+
+-- Формирует строку здоровья в выбранном формате.
+local function formatHealthText(currentHealth, maxHealth)
+    local percent = 0
+
+    if maxHealth > 0 then
+        percent = math.floor((currentHealth / maxHealth) * 100 + 0.5)
+    end
+
+    if HEALTH_TEXT_FORMAT == HEALTH_TEXT_FORMATS.CURRENT then
+        return tostring(currentHealth)
+    elseif HEALTH_TEXT_FORMAT == HEALTH_TEXT_FORMATS.CURRENT_MAX then
+        return string.format("%d / %d", currentHealth, maxHealth)
+    elseif HEALTH_TEXT_FORMAT == HEALTH_TEXT_FORMATS.PERCENT then
+        return string.format("%d%%", percent)
+    elseif HEALTH_TEXT_FORMAT == HEALTH_TEXT_FORMATS.CURRENT_PERCENT then
+        return string.format("%d (%d%%)", currentHealth, percent)
+    end
+
+    return string.format("%d / %d (%d%%)", currentHealth, maxHealth, percent)
+end
 
 -- Модуль создаёт базовый защищённый фрейм игрока с фоном и полосами ресурсов.
 BFUF.Frames = BFUF.Frames or {}
@@ -83,7 +120,7 @@ function Player:Create()
     powerBar:SetHeight(PLAYER_LAYOUT.power.height)
     frame.powerBar = powerBar
 
-    -- Text Element в Player Frame пока используется только для имени игрока.
+    -- Text Element в Player Frame отображает имя игрока.
     local nameText = BFUF.Elements.Text:Create(healthBar, {
         font = STANDARD_TEXT_FONT,
         size = PLAYER_LAYOUT.text.size,
@@ -93,8 +130,32 @@ function Player:Create()
     })
     nameText:SetPoint("TOPLEFT", healthBar, "TOPLEFT", PLAYER_LAYOUT.text.inset, 0)
     nameText:SetPoint("BOTTOMRIGHT", healthBar, "BOTTOMRIGHT", -PLAYER_LAYOUT.text.inset, 0)
-    nameText:SetText(UnitName("player") or "")
     frame.nameText = nameText
+
+    -- Второй Text Element показывает текущий, максимальный и процент здоровья.
+    local healthText = BFUF.Elements.Text:Create(healthBar, {
+        font = STANDARD_TEXT_FONT,
+        size = PLAYER_LAYOUT.healthText.size,
+        color = PLAYER_LAYOUT.healthText.color,
+        justifyH = "RIGHT",
+        justifyV = "MIDDLE",
+    })
+    healthText:SetPoint("TOPLEFT", healthBar, "TOPLEFT", PLAYER_LAYOUT.healthText.inset, 0)
+    healthText:SetPoint("BOTTOMRIGHT", healthBar, "BOTTOMRIGHT", -PLAYER_LAYOUT.healthText.inset, 0)
+    frame.healthText = healthText
+
+    -- Обновляет имя через единое место, используемое при создании и событиях.
+    local function updateNameText()
+        nameText:SetText(UnitName("player") or "")
+    end
+
+    -- Обновляет строку здоровья в выбранном формате.
+    local function updateHealthText()
+        local currentHealth = UnitHealth("player") or 0
+        local maxHealth = UnitHealthMax("player") or 0
+
+        healthText:SetText(formatHealthText(currentHealth, maxHealth))
+    end
 
     -- Привязываем элементы к игроку и выполняем первое обновление.
     portrait:SetUnit("player")
@@ -102,10 +163,13 @@ function Player:Create()
 
     healthBar:SetUnit("player")
     healthBar:Update()
+    updateHealthText()
     BFUF:Debug("Health updated")
 
     powerBar:SetUnit("player")
     powerBar:Update()
+
+    updateNameText()
 
     -- Подписываемся только на события, необходимые для обновления ресурсов и модели игрока.
     frame:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -114,13 +178,15 @@ function Player:Create()
     frame:RegisterEvent("UNIT_POWER_UPDATE")
     frame:RegisterEvent("UNIT_DISPLAYPOWER")
     frame:RegisterEvent("UNIT_MODEL_CHANGED")
+    frame:RegisterEvent("UNIT_NAME_UPDATE")
     frame:SetScript("OnEvent", function(self, event, unit)
         -- После входа в мир повторяем обновление всех элементов.
         if event == "PLAYER_ENTERING_WORLD" then
             portrait:Update()
             healthBar:Update()
             powerBar:Update()
-            nameText:SetText(UnitName("player") or "")
+            updateNameText()
+            updateHealthText()
             self:UnregisterEvent("PLAYER_ENTERING_WORLD")
             return
         end
@@ -132,11 +198,14 @@ function Player:Create()
 
         if event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" then
             healthBar:Update()
+            updateHealthText()
             BFUF:Debug("Health updated from event.")
         elseif event == "UNIT_POWER_UPDATE" or event == "UNIT_DISPLAYPOWER" then
             powerBar:Update()
         elseif event == "UNIT_MODEL_CHANGED" then
             portrait:Update()
+        elseif event == "UNIT_NAME_UPDATE" then
+            updateNameText()
         end
     end)
 
