@@ -6,6 +6,7 @@
 
 Core\Init.lua
 Core\Bootstrap.lua
+Core\API.lua
 Core\Database.lua
 Core\Events.lua
 Core\Localization.lua
