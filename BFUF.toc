@@ -26,5 +26,6 @@ Elements\Castbar.lua
 Elements\Auras.lua
 Elements\Text.lua
 Elements\CombatIndicator.lua
+Elements\RestingIndicator.lua
 Options\Options.lua
 Utils\Helpers.lua

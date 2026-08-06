@@ -43,6 +43,13 @@ local PLAYER_LAYOUT = {
         offsetX = 3,
         offsetY = -3,
     },
+    restingIndicator = {
+        size = 16,
+        point = "TOPLEFT",
+        relativePoint = "TOPLEFT",
+        offsetX = 21,
+        offsetY = -3,
+    },
 }
 
 -- Blizzard API возвращает процент здоровья и ресурса в диапазоне от 0.0 до 1.0.
@@ -147,6 +154,10 @@ function Player:Create()
     -- Combat Indicator получает положение из временного Layout Player Frame.
     local combatIndicator = BFUF.Elements.CombatIndicator:Create(frame, PLAYER_LAYOUT.combatIndicator)
     frame.combatIndicator = combatIndicator
+
+    -- Resting Indicator также получает положение из временного Layout Player Frame.
+    local restingIndicator = BFUF.Elements.RestingIndicator:Create(frame, PLAYER_LAYOUT.restingIndicator)
+    frame.restingIndicator = restingIndicator
 
     -- Смещение полос рассчитывается из размера портрета, заданного Layout.
     local contentLeftOffset = PLAYER_LAYOUT.portrait.inset + PLAYER_LAYOUT.portrait.width + PLAYER_LAYOUT.health.inset
