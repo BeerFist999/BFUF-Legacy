@@ -37,20 +37,32 @@ function Player:Create()
     health:SetPoint("BOTTOMRIGHT", container, "BOTTOMRIGHT")
     BFUF:Debug("Health element attached.")
 
-    -- Привязываем элемент к игроку и выполняем первое обновление без игровых событий.
+    -- Привязываем элемент к игроку и выполняем первое обновление.
     health:SetUnit("player")
     BFUF:Debug("Health initialized")
     health:Update()
     BFUF:Debug("Health updated")
 
-    -- После входа в мир один раз повторяем обновление доступных значений здоровья.
+    -- Подписываемся только на события, необходимые для обновления здоровья игрока.
     frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-    frame:SetScript("OnEvent", function(self, event)
+    frame:RegisterEvent("UNIT_HEALTH")
+    frame:RegisterEvent("UNIT_MAXHEALTH")
+    frame:SetScript("OnEvent", function(self, event, unit)
+        -- После входа в мир повторяем обновление и отключаем одноразовое событие.
         if event == "PLAYER_ENTERING_WORLD" then
             health:Update()
             BFUF:Debug("Health updated")
             self:UnregisterEvent("PLAYER_ENTERING_WORLD")
+            return
         end
+
+        -- UNIT_HEALTH и UNIT_MAXHEALTH содержат юнит первым дополнительным аргументом.
+        if unit ~= "player" then
+            return
+        end
+
+        health:Update()
+        BFUF:Debug("Health updated from event.")
     end)
 
     -- Registry хранит ссылку на готовый фрейм под именем player.
