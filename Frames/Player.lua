@@ -123,8 +123,9 @@ function Player:Create()
     frame:SetSize(PLAYER_LAYOUT.frame.width, PLAYER_LAYOUT.frame.height)
     frame:SetPoint("CENTER", UIParent, "CENTER", PLAYER_LAYOUT.frame.offsetX, PLAYER_LAYOUT.frame.offsetY)
 
-    -- Background занимает всю область главного фрейма.
+    -- Background занимает всю область главного фрейма и всегда находится ниже Portrait.
     local background = factory:CreateTexture(frame)
+    background:SetDrawLayer("BACKGROUND")
     background:SetAllPoints(frame)
     background:SetColorTexture(0, 0, 0, 0.8)
     frame.background = background
