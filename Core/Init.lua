@@ -17,7 +17,7 @@ eventFrame:RegisterEvent("ADDON_LOADED")
 
 eventFrame:SetScript("OnEvent", function(_, event, loadedAddonName)
     -- Инициализируем только этот аддон после его загрузки.
-    if event == "ADDON_LOADED" and loadedAddonName == "BFUF-Legacy" then
+    if event == "ADDON_LOADED" and loadedAddonName == "BFUF" then
         BFUF:Initialize()
     end
 end)
@@ -26,16 +26,16 @@ end)
 function BFUF:Initialize()
     -- Подготавливаем статические значения по умолчанию.
     BFUF.Core.Defaults:Initialize()
-    BFUF:Debug("BFUF-Legacy: Defaults initialized.")
+    BFUF:Debug("BFUF: Defaults initialized.")
 
     -- Создаём рабочую копию конфигурации.
     BFUF.DB:Initialize()
-    BFUF:Debug("BFUF-Legacy: Database initialized.")
+    BFUF:Debug("BFUF: Database initialized.")
 
     -- Передаём управление следующему этапу загрузки.
     BFUF.Core.Bootstrap:Initialize()
-    BFUF:Debug("BFUF-Legacy: Bootstrap initialized.")
+    BFUF:Debug("BFUF: Bootstrap initialized.")
 
     -- Сообщаем об успешном завершении минимальной загрузки.
-    BFUF:Print("BFUF-Legacy Alpha 0.0.1 loaded.")
+    BFUF:Print("BFUF Alpha 0.0.1 loaded.")
 end
