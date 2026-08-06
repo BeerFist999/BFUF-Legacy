@@ -7,10 +7,16 @@ BFUF.Framework = BFUF.Framework or {}
 local Factory = {}
 BFUF.Framework.Factory = Factory
 
--- Создаёт пустой фрейм для указанного юнита.
--- Параметр unit зарезервирован для будущей привязки к Unit Frame и пока не используется.
+-- Создаёт защищённый базовый Unit Frame для указанного юнита.
+-- Фрейм не получает визуальные элементы и используется только как основа для дальнейшей сборки.
 function Factory:CreateUnitFrame(unit)
-    return CreateFrame("Frame", nil, UIParent)
+    local frame = CreateFrame("Button", nil, UIParent, "SecureUnitButtonTemplate")
+
+    -- Атрибут unit нужен защищённому шаблону Blizzard для связи с игровым юнитом.
+    frame:SetAttribute("unit", unit)
+    frame.unit = unit
+
+    return frame
 end
 
 -- Создаёт пустой контейнер с указанным родительским объектом.
