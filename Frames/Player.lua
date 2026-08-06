@@ -214,10 +214,21 @@ function Player:Create()
         nameText:SetText(UnitName("player") or "")
     end
 
-    -- Обновляет строку здоровья в выбранном формате.
-    local function updateHealthText()
-        local currentHealth = UnitHealth("player") or 0
-        local maxHealth = UnitHealthMax("player") or 0
+    -- Обновляет строку здоровья для unit, уже сохранённого в HealthBar.
+    local function updateHealthText(unit)
+        unit = unit or healthBar.unit
+
+        if not unit then
+            return
+        end
+
+        local currentHealth = UnitHealth(unit)
+        local maxHealth = UnitHealthMax(unit)
+
+        -- До готовности данных не заменяем текст временным значением 0 / 0.
+        if currentHealth == nil or maxHealth == nil or maxHealth <= 0 then
+            return
+        end
 
         healthText:SetText(formatHealthText(currentHealth, maxHealth))
     end
@@ -245,7 +256,7 @@ function Player:Create()
 
     healthBar:SetUnit("player")
     healthBar:Update()
-    updateHealthText()
+    updateHealthText(healthBar.unit)
     BFUF:Debug("Health updated")
 
     powerBar:SetUnit("player")
@@ -271,7 +282,7 @@ function Player:Create()
             powerBar:Update()
             updateNameText()
             updatePowerText()
-            updateHealthText()
+            updateHealthText(healthBar.unit)
             self:UnregisterEvent("PLAYER_ENTERING_WORLD")
             return
         end
@@ -283,7 +294,7 @@ function Player:Create()
 
         if event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" then
             healthBar:Update()
-            updateHealthText()
+            updateHealthText(unit)
             BFUF:Debug("Health updated from event.")
         elseif event == "UNIT_POWER_UPDATE" or event == "UNIT_MAXPOWER" or event == "UNIT_DISPLAYPOWER" then
             powerBar:Update()
