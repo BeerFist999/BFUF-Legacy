@@ -1,12 +1,19 @@
 local addonName, BFUF = ...
 
--- Модуль создаёт базовый защищённый фрейм игрока с элементом здоровья.
+-- Размеры и отступы базового фрейма игрока.
+local FRAME_WIDTH = 240
+local FRAME_HEIGHT = 50
+local FRAME_OFFSET_X = 0
+local FRAME_OFFSET_Y = 0
+local HEALTH_BAR_INSET = 3
+
+-- Модуль создаёт базовый защищённый фрейм игрока с фоном и полосой здоровья.
 BFUF.Frames = BFUF.Frames or {}
 
 local Player = {}
 BFUF.Frames.Player = Player
 
--- Создаёт и регистрирует временный Unit Frame игрока для проверки Alpha-сборки.
+-- Создаёт и регистрирует основной Unit Frame игрока.
 function Player:Create()
     local registry = BFUF.Framework.Registry
     local factory = BFUF.Framework.Factory
@@ -17,30 +24,31 @@ function Player:Create()
         return existingFrame
     end
 
-    -- Factory отвечает за создание защищённого базового фрейма.
+    -- Один главный защищённый фрейм служит родителем для всех будущих частей Player Frame.
     local frame = factory:CreateUnitFrame("player")
+    frame:SetSize(FRAME_WIDTH, FRAME_HEIGHT)
+    frame:SetPoint("CENTER", UIParent, "CENTER", FRAME_OFFSET_X, FRAME_OFFSET_Y)
 
-    -- Временные размеры и положение используются только для тестирования Alpha.
-    frame:SetSize(220, 40)
-    frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    -- Background занимает всю область главного фрейма.
+    local background = factory:CreateTexture(frame)
+    background:SetAllPoints(frame)
+    background:SetColorTexture(0, 0, 0, 0.8)
+    frame.background = background
 
-    -- Контейнер занимает весь фрейм и служит родителем для будущих элементов.
-    local container = factory:CreateContainer(frame)
-    container:SetAllPoints(frame)
-
-    -- Создаём базовый элемент здоровья внутри контейнера.
-    local health = BFUF.Elements.Health:Create(container)
-    health:ClearAllPoints()
-    health:SetPoint("TOPLEFT", container, "TOPLEFT")
-    health:SetPoint("TOPRIGHT", container, "TOPRIGHT")
-    health:SetPoint("BOTTOMLEFT", container, "BOTTOMLEFT")
-    health:SetPoint("BOTTOMRIGHT", container, "BOTTOMRIGHT")
+    -- HealthBar создаётся непосредственно внутри главного фрейма.
+    local healthBar = BFUF.Elements.Health:Create(frame)
+    healthBar:ClearAllPoints()
+    healthBar:SetPoint("TOPLEFT", frame, "TOPLEFT", HEALTH_BAR_INSET, -HEALTH_BAR_INSET)
+    healthBar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -HEALTH_BAR_INSET, -HEALTH_BAR_INSET)
+    healthBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", HEALTH_BAR_INSET, HEALTH_BAR_INSET)
+    healthBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -HEALTH_BAR_INSET, HEALTH_BAR_INSET)
+    frame.healthBar = healthBar
     BFUF:Debug("Health element attached.")
 
-    -- Привязываем элемент к игроку и выполняем первое обновление.
-    health:SetUnit("player")
+    -- Привязываем HealthBar к игроку и выполняем первое обновление.
+    healthBar:SetUnit("player")
     BFUF:Debug("Health initialized")
-    health:Update()
+    healthBar:Update()
     BFUF:Debug("Health updated")
 
     -- Подписываемся только на события, необходимые для обновления здоровья игрока.
@@ -50,7 +58,7 @@ function Player:Create()
     frame:SetScript("OnEvent", function(self, event, unit)
         -- После входа в мир повторяем обновление и отключаем одноразовое событие.
         if event == "PLAYER_ENTERING_WORLD" then
-            health:Update()
+            healthBar:Update()
             BFUF:Debug("Health updated")
             self:UnregisterEvent("PLAYER_ENTERING_WORLD")
             return
@@ -61,7 +69,7 @@ function Player:Create()
             return
         end
 
-        health:Update()
+        healthBar:Update()
         BFUF:Debug("Health updated from event.")
     end)
 
