@@ -36,6 +36,13 @@ local PLAYER_LAYOUT = {
         size = 12,
         color = { r = 1, g = 1, b = 1, a = 1 },
     },
+    combatIndicator = {
+        size = 16,
+        point = "TOPLEFT",
+        relativePoint = "TOPLEFT",
+        offsetX = 3,
+        offsetY = -3,
+    },
 }
 
 -- Blizzard API возвращает процент здоровья и ресурса в диапазоне от 0.0 до 1.0.
@@ -136,6 +143,10 @@ function Player:Create()
     portrait:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", PLAYER_LAYOUT.portrait.inset, PLAYER_LAYOUT.portrait.inset)
     portrait:SetWidth(PLAYER_LAYOUT.portrait.width)
     frame.portrait = portrait
+
+    -- Combat Indicator получает положение из временного Layout Player Frame.
+    local combatIndicator = BFUF.Elements.CombatIndicator:Create(frame, PLAYER_LAYOUT.combatIndicator)
+    frame.combatIndicator = combatIndicator
 
     -- Смещение полос рассчитывается из размера портрета, заданного Layout.
     local contentLeftOffset = PLAYER_LAYOUT.portrait.inset + PLAYER_LAYOUT.portrait.width + PLAYER_LAYOUT.health.inset

@@ -25,5 +25,6 @@ Elements\Portrait.lua
 Elements\Castbar.lua
 Elements\Auras.lua
 Elements\Text.lua
+Elements\CombatIndicator.lua
 Options\Options.lua
 Utils\Helpers.lua
