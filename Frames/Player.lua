@@ -9,6 +9,10 @@ local PLAYER_LAYOUT = {
         offsetX = 0,
         offsetY = 0,
     },
+    portrait = {
+        width = 44,
+        inset = 3,
+    },
     health = {
         inset = 3,
         bottomOffset = 13,
@@ -47,24 +51,37 @@ function Player:Create()
     background:SetColorTexture(0, 0, 0, 0.8)
     frame.background = background
 
+    -- Portrait располагается слева и использует 2D-вариант до реализации PlayerModel.
+    local portrait = BFUF.Elements.Portrait:Create(frame, BFUF.Elements.Portrait.Types.TEXTURE)
+    portrait:SetPoint("TOPLEFT", frame, "TOPLEFT", PLAYER_LAYOUT.portrait.inset, -PLAYER_LAYOUT.portrait.inset)
+    portrait:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", PLAYER_LAYOUT.portrait.inset, PLAYER_LAYOUT.portrait.inset)
+    portrait:SetWidth(PLAYER_LAYOUT.portrait.width)
+    frame.portrait = portrait
+
+    -- Смещение полос рассчитывается из размера портрета, заданного Layout.
+    local contentLeftOffset = PLAYER_LAYOUT.portrait.inset + PLAYER_LAYOUT.portrait.width + PLAYER_LAYOUT.health.inset
+
     -- HealthBar занимает верхнюю часть фрейма и оставляет место для PowerBar.
     local healthBar = BFUF.Elements.Health:Create(frame)
     healthBar:ClearAllPoints()
-    healthBar:SetPoint("TOPLEFT", frame, "TOPLEFT", PLAYER_LAYOUT.health.inset, -PLAYER_LAYOUT.health.inset)
+    healthBar:SetPoint("TOPLEFT", frame, "TOPLEFT", contentLeftOffset, -PLAYER_LAYOUT.health.inset)
     healthBar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PLAYER_LAYOUT.health.inset, -PLAYER_LAYOUT.health.inset)
-    healthBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", PLAYER_LAYOUT.health.inset, PLAYER_LAYOUT.health.bottomOffset)
+    healthBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", contentLeftOffset, PLAYER_LAYOUT.health.bottomOffset)
     healthBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PLAYER_LAYOUT.health.inset, PLAYER_LAYOUT.health.bottomOffset)
     frame.healthBar = healthBar
     BFUF:Debug("Health element attached.")
 
     -- PowerBar создаётся без собственных размеров; их задаёт временный Layout Player Frame.
     local powerBar = BFUF.Elements.Power:Create(frame)
-    powerBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", PLAYER_LAYOUT.power.inset, PLAYER_LAYOUT.power.inset)
+    powerBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", contentLeftOffset, PLAYER_LAYOUT.power.inset)
     powerBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PLAYER_LAYOUT.power.inset, PLAYER_LAYOUT.power.inset)
     powerBar:SetHeight(PLAYER_LAYOUT.power.height)
     frame.powerBar = powerBar
 
-    -- Привязываем полосы к игроку и выполняем первое обновление.
+    -- Привязываем элементы к игроку и выполняем первое обновление.
+    portrait:SetUnit("player")
+    portrait:Update()
+
     healthBar:SetUnit("player")
     healthBar:Update()
     BFUF:Debug("Health updated")
@@ -72,15 +89,17 @@ function Player:Create()
     powerBar:SetUnit("player")
     powerBar:Update()
 
-    -- Подписываемся только на события, необходимые для обновления ресурсов игрока.
+    -- Подписываемся только на события, необходимые для обновления ресурсов и модели игрока.
     frame:RegisterEvent("PLAYER_ENTERING_WORLD")
     frame:RegisterEvent("UNIT_HEALTH")
     frame:RegisterEvent("UNIT_MAXHEALTH")
     frame:RegisterEvent("UNIT_POWER_UPDATE")
     frame:RegisterEvent("UNIT_DISPLAYPOWER")
+    frame:RegisterEvent("UNIT_MODEL_CHANGED")
     frame:SetScript("OnEvent", function(self, event, unit)
-        -- После входа в мир повторяем обновление обеих полос.
+        -- После входа в мир повторяем обновление всех элементов.
         if event == "PLAYER_ENTERING_WORLD" then
+            portrait:Update()
             healthBar:Update()
             powerBar:Update()
             self:UnregisterEvent("PLAYER_ENTERING_WORLD")
@@ -97,6 +116,8 @@ function Player:Create()
             BFUF:Debug("Health updated from event.")
         elseif event == "UNIT_POWER_UPDATE" or event == "UNIT_DISPLAYPOWER" then
             powerBar:Update()
+        elseif event == "UNIT_MODEL_CHANGED" then
+            portrait:Update()
         end
     end)
 
