@@ -21,6 +21,11 @@ local PLAYER_LAYOUT = {
         height = 8,
         inset = 3,
     },
+    text = {
+        inset = 4,
+        size = 12,
+        color = { r = 1, g = 1, b = 1, a = 1 },
+    },
 }
 
 -- Модуль создаёт базовый защищённый фрейм игрока с фоном и полосами ресурсов.
@@ -78,6 +83,19 @@ function Player:Create()
     powerBar:SetHeight(PLAYER_LAYOUT.power.height)
     frame.powerBar = powerBar
 
+    -- Text Element в Player Frame пока используется только для имени игрока.
+    local nameText = BFUF.Elements.Text:Create(healthBar, {
+        font = STANDARD_TEXT_FONT,
+        size = PLAYER_LAYOUT.text.size,
+        color = PLAYER_LAYOUT.text.color,
+        justifyH = "LEFT",
+        justifyV = "MIDDLE",
+    })
+    nameText:SetPoint("TOPLEFT", healthBar, "TOPLEFT", PLAYER_LAYOUT.text.inset, 0)
+    nameText:SetPoint("BOTTOMRIGHT", healthBar, "BOTTOMRIGHT", -PLAYER_LAYOUT.text.inset, 0)
+    nameText:SetText(UnitName("player") or "")
+    frame.nameText = nameText
+
     -- Привязываем элементы к игроку и выполняем первое обновление.
     portrait:SetUnit("player")
     portrait:Update()
@@ -102,6 +120,7 @@ function Player:Create()
             portrait:Update()
             healthBar:Update()
             powerBar:Update()
+            nameText:SetText(UnitName("player") or "")
             self:UnregisterEvent("PLAYER_ENTERING_WORLD")
             return
         end
