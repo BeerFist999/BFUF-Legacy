@@ -16,6 +16,7 @@ eventFrame:SetScript("OnEvent", function(_, event, loadedAddonName)
     -- Инициализируем только этот аддон после его загрузки.
     if event == "ADDON_LOADED" and loadedAddonName == "BFUF-Legacy" then
         BFUF:Initialize()
+        BFUF.Core.Bootstrap:Initialize()
     end
 end)
 
