@@ -253,7 +253,9 @@ function Player:Create()
     updateNameText()
 
     -- Подписываемся только на события, необходимые для обновления ресурсов и модели игрока.
+    frame:RegisterEvent("PLAYER_LOGIN")
     frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    frame:RegisterEvent("UNIT_PORTRAIT_UPDATE")
     frame:RegisterEvent("UNIT_HEALTH")
     frame:RegisterEvent("UNIT_MAXHEALTH")
     frame:RegisterEvent("UNIT_POWER_UPDATE")
@@ -262,6 +264,13 @@ function Player:Create()
     frame:RegisterEvent("UNIT_MODEL_CHANGED")
     frame:RegisterEvent("UNIT_NAME_UPDATE")
     frame:SetScript("OnEvent", function(self, event, unit)
+        -- PLAYER_LOGIN наступает после полной загрузки персонажа и его внешнего вида.
+        if event == "PLAYER_LOGIN" then
+            portrait:Update()
+            self:UnregisterEvent("PLAYER_LOGIN")
+            return
+        end
+
         -- После входа в мир повторяем обновление всех элементов.
         if event == "PLAYER_ENTERING_WORLD" then
             portrait:Update()
@@ -286,7 +295,8 @@ function Player:Create()
         elseif event == "UNIT_POWER_UPDATE" or event == "UNIT_MAXPOWER" or event == "UNIT_DISPLAYPOWER" then
             powerBar:Update()
             updatePowerText()
-        elseif event == "UNIT_MODEL_CHANGED" then
+        elseif event == "UNIT_MODEL_CHANGED" or event == "UNIT_PORTRAIT_UPDATE" then
+            -- UNIT_PORTRAIT_UPDATE сообщает, что клиент подготовил актуальный 2D-портрет.
             portrait:Update()
         elseif event == "UNIT_NAME_UPDATE" then
             updateNameText()
