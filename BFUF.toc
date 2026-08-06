@@ -11,6 +11,10 @@ Core\Defaults.lua
 Core\Database.lua
 Core\Events.lua
 Core\Localization.lua
+Framework\Registry.lua
+Framework\Builder.lua
+Framework\LayoutEngine.lua
+Framework\Factory.lua
 Frames\Player.lua
 Frames\Target.lua
 Frames\TargetTarget.lua
