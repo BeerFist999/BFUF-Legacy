@@ -1,6 +1,6 @@
 local addonName, BFUF = ...
 
--- Модуль создаёт только базовый защищённый фрейм игрока без визуальных элементов.
+-- Модуль создаёт базовый защищённый фрейм игрока с элементом здоровья.
 BFUF.Frames = BFUF.Frames or {}
 
 local Player = {}
@@ -23,6 +23,19 @@ function Player:Create()
     -- Временные размеры и положение используются только для тестирования Alpha.
     frame:SetSize(220, 40)
     frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+
+    -- Контейнер занимает весь фрейм и служит родителем для будущих элементов.
+    local container = factory:CreateContainer(frame)
+    container:SetAllPoints(frame)
+
+    -- Создаём базовый элемент здоровья внутри контейнера.
+    local health = BFUF.Elements.Health:Create(container)
+    health:ClearAllPoints()
+    health:SetPoint("TOPLEFT", container, "TOPLEFT")
+    health:SetPoint("TOPRIGHT", container, "TOPRIGHT")
+    health:SetPoint("BOTTOMLEFT", container, "BOTTOMLEFT")
+    health:SetPoint("BOTTOMRIGHT", container, "BOTTOMRIGHT")
+    BFUF:Debug("Health element attached.")
 
     -- Registry хранит ссылку на готовый фрейм под именем player.
     if registry:RegisterFrame("player", frame) then
