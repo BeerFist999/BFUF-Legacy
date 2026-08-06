@@ -49,27 +49,31 @@ local HEALTH_TEXT_FORMATS = {
 
 local HEALTH_TEXT_FORMAT = HEALTH_TEXT_FORMATS.CURRENT_MAX_PERCENT
 
--- Формирует строку здоровья в выбранном формате.
-local function formatHealthText(currentHealth, maxHealth)
-    local percent = 0
+-- Форматирует обычные Lua-числа для текста здоровья или ресурса.
+-- Преобразование выполняется до любых арифметических операций.
+local function formatStatusText(currentValue, maxValue, displayFormat, formats)
+    currentValue = tonumber(currentValue) or 0
+    maxValue = tonumber(maxValue) or 0
 
-    if maxHealth > 0 then
-        percent = math.floor((currentHealth / maxHealth) * 100 + 0.5)
+    -- Нулевой максимум имеет единый безопасный вид для всех форматов.
+    if maxValue <= 0 then
+        return "0 / 0 (0%)"
     end
 
-    if HEALTH_TEXT_FORMAT == HEALTH_TEXT_FORMATS.CURRENT then
-        return tostring(currentHealth)
-    elseif HEALTH_TEXT_FORMAT == HEALTH_TEXT_FORMATS.CURRENT_MAX then
-        return string.format("%d / %d", currentHealth, maxHealth)
-    elseif HEALTH_TEXT_FORMAT == HEALTH_TEXT_FORMATS.PERCENT then
+    local percent = math.floor((currentValue / maxValue) * 100 + 0.5)
+
+    if displayFormat == formats.CURRENT then
+        return tostring(currentValue)
+    elseif displayFormat == formats.CURRENT_MAX then
+        return string.format("%d / %d", currentValue, maxValue)
+    elseif displayFormat == formats.PERCENT then
         return string.format("%d%%", percent)
-    elseif HEALTH_TEXT_FORMAT == HEALTH_TEXT_FORMATS.CURRENT_PERCENT then
-        return string.format("%d (%d%%)", currentHealth, percent)
+    elseif displayFormat == formats.CURRENT_PERCENT then
+        return string.format("%d (%d%%)", currentValue, percent)
     end
 
-    return string.format("%d / %d (%d%%)", currentHealth, maxHealth, percent)
+    return string.format("%d / %d (%d%%)", currentValue, maxValue, percent)
 end
-
 
 -- Форматы текста ресурса подготовлены для будущей настройки без изменения логики обновления.
 local POWER_TEXT_FORMATS = {
@@ -95,27 +99,6 @@ local SUPPORTED_POWER_TYPES = {
     FURY = true,
     LUNAR_POWER = true,
 }
-
--- Формирует строку ресурса в выбранном формате.
-local function formatPowerText(currentPower, maxPower)
-    local percent = 0
-
-    if maxPower > 0 then
-        percent = math.floor((currentPower / maxPower) * 100 + 0.5)
-    end
-
-    if POWER_TEXT_FORMAT == POWER_TEXT_FORMATS.CURRENT then
-        return tostring(currentPower)
-    elseif POWER_TEXT_FORMAT == POWER_TEXT_FORMATS.CURRENT_MAX then
-        return string.format("%d / %d", currentPower, maxPower)
-    elseif POWER_TEXT_FORMAT == POWER_TEXT_FORMATS.PERCENT then
-        return string.format("%d%%", percent)
-    elseif POWER_TEXT_FORMAT == POWER_TEXT_FORMATS.CURRENT_PERCENT then
-        return string.format("%d (%d%%)", currentPower, percent)
-    end
-
-    return string.format("%d / %d (%d%%)", currentPower, maxPower, percent)
-end
 
 -- Модуль создаёт базовый защищённый фрейм игрока с фоном и полосами ресурсов.
 BFUF.Frames = BFUF.Frames or {}
@@ -222,15 +205,16 @@ function Player:Create()
             return
         end
 
-        local currentHealth = UnitHealth(unit)
-        local maxHealth = UnitHealthMax(unit)
+        -- Значения API сразу приводятся к обычным Lua-числам.
+        local currentHealth = tonumber(UnitHealth(unit)) or 0
+        local maxHealth = tonumber(UnitHealthMax(unit)) or 0
 
-        -- До готовности данных не заменяем текст временным значением 0 / 0.
-        if currentHealth == nil or maxHealth == nil or maxHealth <= 0 then
-            return
-        end
-
-        healthText:SetText(formatHealthText(currentHealth, maxHealth))
+        healthText:SetText(formatStatusText(
+            currentHealth,
+            maxHealth,
+            HEALTH_TEXT_FORMAT,
+            HEALTH_TEXT_FORMATS
+        ))
     end
 
 
@@ -244,10 +228,16 @@ function Player:Create()
             return
         end
 
-        local currentPower = UnitPower("player", powerType) or 0
-        local maxPower = UnitPowerMax("player", powerType) or 0
+        -- Значения API сразу приводятся к обычным Lua-числам.
+        local currentPower = tonumber(UnitPower("player", powerType)) or 0
+        local maxPower = tonumber(UnitPowerMax("player", powerType)) or 0
 
-        powerText:SetText(formatPowerText(currentPower, maxPower))
+        powerText:SetText(formatStatusText(
+            currentPower,
+            maxPower,
+            POWER_TEXT_FORMAT,
+            POWER_TEXT_FORMATS
+        ))
     end
 
     -- Привязываем элементы к игроку и выполняем первое обновление.
