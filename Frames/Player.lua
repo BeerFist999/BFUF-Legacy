@@ -31,6 +31,11 @@ local PLAYER_LAYOUT = {
         size = 12,
         color = { r = 1, g = 1, b = 1, a = 1 },
     },
+    powerText = {
+        inset = 4,
+        size = 12,
+        color = { r = 1, g = 1, b = 1, a = 1 },
+    },
 }
 
 -- Форматы текста здоровья подготовлены для будущей настройки без изменения логики обновления.
@@ -63,6 +68,53 @@ local function formatHealthText(currentHealth, maxHealth)
     end
 
     return string.format("%d / %d (%d%%)", currentHealth, maxHealth, percent)
+end
+
+
+-- Форматы текста ресурса подготовлены для будущей настройки без изменения логики обновления.
+local POWER_TEXT_FORMATS = {
+    CURRENT = "current",
+    CURRENT_MAX = "currentMax",
+    PERCENT = "percent",
+    CURRENT_PERCENT = "currentPercent",
+    CURRENT_MAX_PERCENT = "currentMaxPercent",
+}
+
+local POWER_TEXT_FORMAT = POWER_TEXT_FORMATS.CURRENT_MAX_PERCENT
+
+-- Поддерживаемые типы ресурсов для текстового отображения.
+local SUPPORTED_POWER_TYPES = {
+    MANA = true,
+    RAGE = true,
+    ENERGY = true,
+    FOCUS = true,
+    RUNIC_POWER = true,
+    MAELSTROM = true,
+    INSANITY = true,
+    ESSENCE = true,
+    FURY = true,
+    LUNAR_POWER = true,
+}
+
+-- Формирует строку ресурса в выбранном формате.
+local function formatPowerText(currentPower, maxPower)
+    local percent = 0
+
+    if maxPower > 0 then
+        percent = math.floor((currentPower / maxPower) * 100 + 0.5)
+    end
+
+    if POWER_TEXT_FORMAT == POWER_TEXT_FORMATS.CURRENT then
+        return tostring(currentPower)
+    elseif POWER_TEXT_FORMAT == POWER_TEXT_FORMATS.CURRENT_MAX then
+        return string.format("%d / %d", currentPower, maxPower)
+    elseif POWER_TEXT_FORMAT == POWER_TEXT_FORMATS.PERCENT then
+        return string.format("%d%%", percent)
+    elseif POWER_TEXT_FORMAT == POWER_TEXT_FORMATS.CURRENT_PERCENT then
+        return string.format("%d (%d%%)", currentPower, percent)
+    end
+
+    return string.format("%d / %d (%d%%)", currentPower, maxPower, percent)
 end
 
 -- Модуль создаёт базовый защищённый фрейм игрока с фоном и полосами ресурсов.
@@ -144,6 +196,19 @@ function Player:Create()
     healthText:SetPoint("BOTTOMRIGHT", healthBar, "BOTTOMRIGHT", -PLAYER_LAYOUT.healthText.inset, 0)
     frame.healthText = healthText
 
+
+    -- Text Element показывает текущий, максимальный и процент основного ресурса.
+    local powerText = BFUF.Elements.Text:Create(powerBar, {
+        font = STANDARD_TEXT_FONT,
+        size = PLAYER_LAYOUT.powerText.size,
+        color = PLAYER_LAYOUT.powerText.color,
+        justifyH = "RIGHT",
+        justifyV = "MIDDLE",
+    })
+    powerText:SetPoint("TOPLEFT", powerBar, "TOPLEFT", PLAYER_LAYOUT.powerText.inset, 0)
+    powerText:SetPoint("BOTTOMRIGHT", powerBar, "BOTTOMRIGHT", -PLAYER_LAYOUT.powerText.inset, 0)
+    frame.powerText = powerText
+
     -- Обновляет имя через единое место, используемое при создании и событиях.
     local function updateNameText()
         nameText:SetText(UnitName("player") or "")
@@ -157,6 +222,23 @@ function Player:Create()
         healthText:SetText(formatHealthText(currentHealth, maxHealth))
     end
 
+
+
+    -- Обновляет текст текущего основного ресурса в выбранном формате.
+    local function updatePowerText()
+        local powerType, powerToken = UnitPowerType("player")
+
+        if not SUPPORTED_POWER_TYPES[powerToken] then
+            powerText:SetText("")
+            return
+        end
+
+        local currentPower = UnitPower("player", powerType) or 0
+        local maxPower = UnitPowerMax("player", powerType) or 0
+
+        powerText:SetText(formatPowerText(currentPower, maxPower))
+    end
+
     -- Привязываем элементы к игроку и выполняем первое обновление.
     portrait:SetUnit("player")
     portrait:Update()
@@ -168,6 +250,7 @@ function Player:Create()
 
     powerBar:SetUnit("player")
     powerBar:Update()
+    updatePowerText()
 
     updateNameText()
 
@@ -176,6 +259,7 @@ function Player:Create()
     frame:RegisterEvent("UNIT_HEALTH")
     frame:RegisterEvent("UNIT_MAXHEALTH")
     frame:RegisterEvent("UNIT_POWER_UPDATE")
+    frame:RegisterEvent("UNIT_MAXPOWER")
     frame:RegisterEvent("UNIT_DISPLAYPOWER")
     frame:RegisterEvent("UNIT_MODEL_CHANGED")
     frame:RegisterEvent("UNIT_NAME_UPDATE")
@@ -186,6 +270,7 @@ function Player:Create()
             healthBar:Update()
             powerBar:Update()
             updateNameText()
+            updatePowerText()
             updateHealthText()
             self:UnregisterEvent("PLAYER_ENTERING_WORLD")
             return
@@ -200,8 +285,9 @@ function Player:Create()
             healthBar:Update()
             updateHealthText()
             BFUF:Debug("Health updated from event.")
-        elseif event == "UNIT_POWER_UPDATE" or event == "UNIT_DISPLAYPOWER" then
+        elseif event == "UNIT_POWER_UPDATE" or event == "UNIT_MAXPOWER" or event == "UNIT_DISPLAYPOWER" then
             powerBar:Update()
+            updatePowerText()
         elseif event == "UNIT_MODEL_CHANGED" then
             portrait:Update()
         elseif event == "UNIT_NAME_UPDATE" then
