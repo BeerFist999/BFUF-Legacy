@@ -1,0 +1,22 @@
+## Interface: 11507
+## Title: BFUF
+## Author: BeerFist999
+## Version: 0.0.1
+## SavedVariables: BFUFDB
+
+Core\Init.lua
+Core\Database.lua
+Core\Events.lua
+Core\Localization.lua
+Frames\Player.lua
+Frames\Target.lua
+Frames\TargetTarget.lua
+Frames\Boss.lua
+Elements\Health.lua
+Elements\Power.lua
+Elements\Portrait.lua
+Elements\Castbar.lua
+Elements\Auras.lua
+Elements\Text.lua
+Options\Options.lua
+Utils\Helpers.lua
