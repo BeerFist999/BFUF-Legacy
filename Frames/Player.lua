@@ -38,6 +38,14 @@ local PLAYER_LAYOUT = {
     },
 }
 
+-- Blizzard API возвращает процент здоровья и ресурса в диапазоне от 0.0 до 1.0.
+-- Curve выполняет преобразование в диапазон от 0 до 100 внутри клиента, поэтому
+-- не требуется выполнять запрещённую арифметику над Secret Values в Lua-коде.
+local PERCENT_TO_HUNDRED_CURVE = C_CurveUtil.CreateCurve()
+PERCENT_TO_HUNDRED_CURVE:SetType(Enum.LuaCurveType.Linear)
+PERCENT_TO_HUNDRED_CURVE:AddPoint(0.0, 0)
+PERCENT_TO_HUNDRED_CURVE:AddPoint(1.0, 100)
+
 -- Форматы текста здоровья подготовлены для будущей настройки без изменения логики обновления.
 local HEALTH_TEXT_FORMATS = {
     CURRENT = "current",
@@ -60,12 +68,12 @@ local function formatStatusText(currentValue, maxValue, percentValue, displayFor
     elseif displayFormat == formats.CURRENT_MAX then
         return string.format("%d / %d", currentValue, maxValue)
     elseif displayFormat == formats.PERCENT then
-        return string.format("%d%%", percentValue)
+        return string.format("%.0f%%", percentValue)
     elseif displayFormat == formats.CURRENT_PERCENT then
-        return string.format("%d (%d%%)", currentValue, percentValue)
+        return string.format("%d (%.0f%%)", currentValue, percentValue)
     end
 
-    return string.format("%d / %d (%d%%)", currentValue, maxValue, percentValue)
+    return string.format("%d / %d (%.0f%%)", currentValue, maxValue, percentValue)
 end
 
 -- Форматы текста ресурса подготовлены для будущей настройки без изменения логики обновления.
@@ -194,7 +202,7 @@ function Player:Create()
     local function updateHealthText()
         local currentHealth = UnitHealth("player")
         local maxHealth = UnitHealthMax("player")
-        local healthPercent = UnitHealthPercent("player")
+        local healthPercent = UnitHealthPercent("player", true, PERCENT_TO_HUNDRED_CURVE)
 
         healthText:SetText(formatStatusText(
             currentHealth,
@@ -218,7 +226,7 @@ function Player:Create()
 
         local currentPower = UnitPower("player", powerType)
         local maxPower = UnitPowerMax("player", powerType)
-        local powerPercent = UnitPowerPercent("player", powerType)
+        local powerPercent = UnitPowerPercent("player", powerType, false, PERCENT_TO_HUNDRED_CURVE)
 
         powerText:SetText(formatStatusText(
             currentPower,
