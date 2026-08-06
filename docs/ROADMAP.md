@@ -1,33 +1,118 @@
-# Roadmap
+# BFUF Development Roadmap
 
-## Alpha 0.0.1
+## Core
 
-- Подготовить каркас аддона и TOC-файл.
-- Определить базовую модульную структуру.
-- Реализовать инициализацию и регистрацию событий.
-- Добавить минимальный unit frame для проверки жизненного цикла.
-- Описать проектные правила и документацию.
+- [x] Addon bootstrap
+- [x] Configuration database
+- [x] Registry
+- [x] Factory
+- [x] Public API
+- [x] Default configuration
 
-## Alpha 0.1
+## Framework
 
-- Реализовать базовые фреймы игрока и цели.
-- Добавить обновление здоровья, ресурса и имени.
-- Подготовить начальные настройки отображения.
-- Обработать различия поддерживаемых клиентов.
-- Провести ручное тестирование основных сценариев.
+- [x] Framework skeleton
+- [x] Registry implementation
+- [x] Factory implementation
 
-## Beta
+## Player Frame
 
-- Расширить набор поддерживаемых unit frames.
-- Добавить пользовательскую настройку внешнего вида и расположения.
-- Улучшить обработку событий и производительность.
-- Провести проверку совместимости со всеми заявленными версиями игры.
-- Стабилизировать публичные интерфейсы модулей.
+- [x] Base frame
+- [x] Health bar
+- [x] Power bar
+- [x] Portrait
+- [x] Reusable text element
+- [x] Player name
+- [x] Health text
+- [ ] Power text
+- [ ] Level
+- [ ] Status icons
+- [ ] Mouse interaction
+- [ ] Drag mode
+- [ ] Lock/Unlock
+- [ ] Combat feedback
+
+## Target Frame
+
+- [ ] Base frame
+- [ ] Portrait
+- [ ] Health
+- [ ] Power
+- [ ] Name
+- [ ] Health text
+- [ ] Power text
+- [ ] Status icons
+
+## Target of Target
+
+- [ ] Base frame
+- [ ] Health
+- [ ] Power
+- [ ] Name
+
+## Focus
+
+- [ ] Full implementation
+
+## Boss Frames
+
+- [ ] Full implementation
+
+## Party Frames
+
+- [ ] Full implementation
+
+## Raid Frames
+
+- [ ] Full implementation
+
+## Cast Bars
+
+- [ ] Player
+- [ ] Target
+- [ ] Focus
+- [ ] Boss
+
+## Auras
+
+- [ ] Buffs
+- [ ] Debuffs
+- [ ] Filtering
+- [ ] Custom filters
+
+## Tags System
+
+- [ ] Tag parser
+- [ ] HP tags
+- [ ] Power tags
+- [ ] Name tags
+- [ ] Custom tags
+
+## Layout Engine
+
+- [ ] Layout manager
+- [ ] Theme support
+- [ ] Profile layouts
+
+## Configuration
+
+- [ ] Options UI
+- [ ] Profiles
+- [ ] Import/Export
+- [ ] Reset profile
+
+## Optimization
+
+- [ ] Event optimization
+- [ ] Update throttling
+- [ ] Memory optimization
 
 ## Release
 
-- Закрыть критические ошибки и завершить регрессионное тестирование.
-- Обновить документацию для пользователей и разработчиков.
-- Подготовить заметки к выпуску.
-- Зафиксировать список поддерживаемых версий World of Warcraft.
-- Опубликовать стабильную версию аддона.
+- [ ] Alpha
+- [ ] Beta
+- [ ] Stable 1.0
+
+## Правила обновления
+
+Новые задачи в дальнейшем только добавляются или отмечаются как выполненные. Существующие задачи и их статусы не изменяются автоматически.
