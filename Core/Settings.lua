@@ -54,6 +54,38 @@ function PageRegistry:ForEach(callback)
     end
 end
 
+-- Normalize the shared binding contract used by interactive settings widgets.
+local function normalizeBinding(labelOrBinding, getValue, setValue)
+    if type(labelOrBinding) == "table" then
+        return labelOrBinding
+    end
+
+    return {
+        label = labelOrBinding,
+        get = getValue,
+        set = setValue,
+    }
+end
+
+local function refreshBinding(widget, binding, applyValue)
+    function widget:Refresh()
+        if binding.disabled then
+            self:SetEnabled(not binding.disabled())
+        end
+
+        if applyValue and binding.get then
+            applyValue(binding.get())
+        end
+
+        if binding.refresh then
+            binding.refresh(self)
+        end
+    end
+
+    widget:Refresh()
+    return widget
+end
+
 local function createTitle(parent, text)
     local title = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
     title:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, 0)
@@ -206,31 +238,36 @@ function UI.SectionPanel:Create(parent, title, y)
 end
 
 -- Create a reusable checkbox row.
-function UI.CheckboxRow:Create(parent, label, y, getValue, setValue)
+function UI.CheckboxRow:Create(parent, labelOrBinding, y, getValue, setValue)
+    local binding = normalizeBinding(labelOrBinding, getValue, setValue)
     local checkbox = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     checkbox:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, y)
-    checkbox:SetChecked(getValue())
 
     local text = parent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     text:SetPoint("LEFT", checkbox, "RIGHT", 2, 0)
-    text:SetText(label)
+    text:SetText(binding.label)
 
     checkbox:SetScript("OnClick", function(self)
-        setValue(self:GetChecked())
+        if binding.set then
+            binding.set(self:GetChecked())
+        end
     end)
 
-    return checkbox
+    return refreshBinding(checkbox, binding, function(value)
+        checkbox:SetChecked(value == true)
+    end)
 end
 
 -- Create a reusable slider row with a numeric edit box.
-function UI.SliderRow:Create(parent, label, y, minValue, maxValue, step, getValue, setValue)
+function UI.SliderRow:Create(parent, labelOrBinding, y, minValue, maxValue, step, getValue, setValue)
+    local binding = normalizeBinding(labelOrBinding, getValue, setValue)
     local slider = CreateFrame("Slider", nil, parent, "OptionsSliderTemplate")
     slider:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, y)
     slider:SetWidth(280)
     slider:SetMinMaxValues(minValue, maxValue)
     slider:SetValueStep(step)
     slider:SetObeyStepOnDrag(true)
-    slider.Text:SetText(label)
+    slider.Text:SetText(binding.label)
     slider.Low:SetText(minValue)
     slider.High:SetText(maxValue)
 
@@ -261,7 +298,7 @@ function UI.SliderRow:Create(parent, label, y, minValue, maxValue, step, getValu
 
         applying = true
         value = normalizeValue(value)
-        setValue(value)
+        binding.set(value)
         slider:SetValue(value)
         input:SetText(formatValue(value))
         applying = false
@@ -276,7 +313,7 @@ function UI.SliderRow:Create(parent, label, y, minValue, maxValue, step, getValu
         if value then
             apply(value)
         else
-            input:SetText(formatValue(getValue()))
+            input:SetText(formatValue(binding.get()))
         end
         input:ClearFocus()
     end
@@ -285,20 +322,32 @@ function UI.SliderRow:Create(parent, label, y, minValue, maxValue, step, getValu
     input:SetScript("OnEditFocusLost", applyInput)
 
     applying = true
-    slider:SetValue(getValue())
-    input:SetText(formatValue(getValue()))
+    slider:SetValue(binding.get())
+    input:SetText(formatValue(binding.get()))
     applying = false
 
-    return {
+    local row = {
         slider = slider,
         input = input,
-        Refresh = function()
-            applying = true
-            slider:SetValue(getValue())
-            input:SetText(formatValue(getValue()))
-            applying = false
-        end,
     }
+
+    function row:Refresh()
+        applying = true
+        slider:SetValue(binding.get())
+        input:SetText(formatValue(binding.get()))
+        applying = false
+
+        local disabled = binding.disabled and binding.disabled() or false
+        slider:SetEnabled(not disabled)
+        input:SetEnabled(not disabled)
+
+        if binding.refresh then
+            binding.refresh(self)
+        end
+    end
+
+    row:Refresh()
+    return row
 end
 
 -- Create a reusable dropdown-style button row.
