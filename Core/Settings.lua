@@ -318,6 +318,30 @@ function UI.ExpandableSection:Create(parent, title, y)
     return header, content
 end
 
+-- Show the existing General settings without changing their profile bindings.
+function SettingsModule:ShowGeneralPage()
+    local function resetGeneral()
+        local general = BFUF.DB:Get("General")
+        general.debugMode = BFUF.Defaults.profile.General.debugMode
+        BFUF.DebugEnabled = general.debugMode
+    end
+
+    self.shell.pages:ShowPage(BFUF.L.SETTINGS_PAGE_GENERAL, nil, true, function(page)
+        UI.CheckboxRow:Create(
+            page,
+            BFUF.L.OPTION_ENABLE_DEBUG_MODE,
+            -42,
+            function()
+                return BFUF.DB:Get("General").debugMode
+            end,
+            function(value)
+                BFUF.DB:Get("General").debugMode = value
+                BFUF.DebugEnabled = value
+            end
+        )
+    end, resetGeneral)
+end
+
 -- Create an informational placeholder page.
 function SettingsModule:ShowPlaceholderPage(title, description)
     self.shell.pages:ShowPage(title, description or BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER, false)
@@ -1009,7 +1033,7 @@ function SettingsModule:Initialize()
             key = "general",
             label = BFUF.L.SETTINGS_PAGE_GENERAL,
             onSelect = function()
-                self:ShowPlaceholderPage(BFUF.L.SETTINGS_PAGE_GENERAL, BFUF.L.DESCRIPTION_GENERAL)
+                self:ShowGeneralPage()
             end,
         },
         {
