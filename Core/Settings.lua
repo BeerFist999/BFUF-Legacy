@@ -36,6 +36,9 @@ function PageRegistry:Register(definition)
     assert(definition.title, "Page definition must have a title")
     assert(type(definition.builder) == "function", "Page definition must have a builder")
 
+    definition.refresh = definition.refresh or function()
+    end
+
     if self.pages[definition.id] then
         return false
     end
@@ -1427,5 +1430,9 @@ end
 -- Open the root BFUF category in Blizzard Settings.
 function SettingsModule:Open()
     self:Initialize()
+
+    local selectedPage = self.shell.navigation.selectedKey or "general"
+    self.shell.navigation:Select(selectedPage)
+
     Settings.OpenToCategory(self.category:GetID())
 end
