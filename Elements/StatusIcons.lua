@@ -15,7 +15,7 @@ local ICON_TEXTURES = {
 }
 
 local function createIcon(parent, layout, texture)
-    local icon = parent:CreateTexture(nil, "OVERLAY")
+    local icon = parent:CreateTexture(nil, "TOOLTIP")
 
     icon:SetTexture(texture)
     icon:SetSize(layout.size, layout.size)
