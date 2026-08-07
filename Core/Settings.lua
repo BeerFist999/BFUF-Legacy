@@ -3,7 +3,18 @@ local addonName, BFUF = ...
 local SettingsModule = {}
 BFUF.Core.Settings = SettingsModule
 
-local UI = {}
+local UI = {
+    PagePanel = {},
+    NavigationList = {},
+    SettingsShell = {},
+    SectionPanel = {},
+    CheckboxRow = {},
+    SliderRow = {},
+    DropdownRow = {},
+    ColorRow = {},
+    ButtonRow = {},
+    ExpandableSection = {},
+}
 SettingsModule.UI = UI
 
 local function createTitle(parent, text)
