@@ -92,7 +92,7 @@ function Player:Create()
     root.interaction:SetAllPoints(root)
     root.interaction:SetAttribute("unit", "player")
     root.interaction:SetAttribute("type1", "target")
-    root.interaction:SetAttribute("type2", "togglemenu")
+    root.interaction:SetAttribute("type2", "menu")
 
     local function refresh()
         root.portrait:Update()
