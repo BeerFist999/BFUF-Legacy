@@ -571,6 +571,168 @@ function SettingsModule:ShowPlayerPowerPage(pages)
     self.playerPowerControls = controls
 end
 
+-- Copy a profile value without sharing nested color tables.
+local function copyProfileValue(source)
+    if type(source) ~= "table" then
+        return source
+    end
+
+    local copy = {}
+    for key, value in pairs(source) do
+        copy[key] = copyProfileValue(value)
+    end
+    return copy
+end
+
+-- Show one existing text object without changing its renderer or display model.
+function SettingsModule:ShowPlayerTextObjectPage(pages, textKey, title)
+    local controls = {}
+    local displayModes = textKey == "name" and {
+        { key = "name", label = "TEXT_MODE_NAME" },
+        { key = "hidden", label = "TEXT_MODE_HIDDEN" },
+    } or {
+        { key = "current", label = "TEXT_MODE_CURRENT" },
+        { key = "currentMax", label = "TEXT_MODE_CURRENT_MAX" },
+        { key = "percent", label = "TEXT_MODE_PERCENT" },
+        { key = "currentPercent", label = "TEXT_MODE_CURRENT_PERCENT" },
+        { key = "missing", label = "TEXT_MODE_MISSING" },
+        { key = "hidden", label = "TEXT_MODE_HIDDEN" },
+    }
+
+    local function updateText()
+        BFUF.Frames.Player:UpdateLayout()
+    end
+
+    local function resetText()
+        BFUF.DB:Get("Player").texts[textKey] = copyProfileValue(BFUF.Defaults.profile.Player.texts[textKey])
+        updateText()
+
+        for _, control in pairs(controls) do
+            control.Refresh()
+        end
+    end
+
+    pages:ShowPage(title, nil, true, function(page)
+        UI.SectionPanel:Create(page, title, -36)
+
+        UI.CheckboxRow:Create(
+            page,
+            BFUF.L.OPTION_SHOW,
+            -66,
+            function()
+                return BFUF.DB:Get("Player").texts[textKey].show
+            end,
+            function(value)
+                BFUF.DB:Get("Player").texts[textKey].show = value
+                updateText()
+            end
+        )
+
+        controls.fontSize = UI.SliderRow:Create(
+            page,
+            BFUF.L.OPTION_FONT_SIZE,
+            -94,
+            6,
+            32,
+            1,
+            function()
+                return BFUF.DB:Get("Player").texts[textKey].fontSize
+            end,
+            function(value)
+                BFUF.DB:Get("Player").texts[textKey].fontSize = value
+                updateText()
+            end
+        )
+
+        controls.offsetX = UI.SliderRow:Create(
+            page,
+            BFUF.L.OPTION_OFFSET_X,
+            -152,
+            -200,
+            200,
+            1,
+            function()
+                return BFUF.DB:Get("Player").texts[textKey].offsetX
+            end,
+            function(value)
+                BFUF.DB:Get("Player").texts[textKey].offsetX = value
+                updateText()
+            end
+        )
+
+        controls.offsetY = UI.SliderRow:Create(
+            page,
+            BFUF.L.OPTION_OFFSET_Y,
+            -210,
+            -200,
+            200,
+            1,
+            function()
+                return BFUF.DB:Get("Player").texts[textKey].offsetY
+            end,
+            function(value)
+                BFUF.DB:Get("Player").texts[textKey].offsetY = value
+                updateText()
+            end
+        )
+
+        if textKey ~= "level" then
+            for index, mode in ipairs(displayModes) do
+                local modeKey = mode.key
+                local row = math.floor((index - 1) / 3)
+                local column = (index - 1) % 3
+                local button = UI.ButtonRow:Create(page, BFUF.L[mode.label], -270, function()
+                    BFUF.DB:Get("Player").texts[textKey].mode = modeKey
+                    updateText()
+                end)
+                button:ClearAllPoints()
+                button:SetPoint("TOPLEFT", page, "TOPLEFT", column * 122, -270 - row * 30)
+                button:SetSize(114, 24)
+            end
+        end
+    end, resetText)
+
+    self.playerTextControls = self.playerTextControls or {}
+    self.playerTextControls[textKey] = controls
+end
+
+-- Show the local navigation for the existing text objects.
+function SettingsModule:ShowPlayerTextPage(pages)
+    local page = pages:ShowPage(BFUF.L.SETTINGS_PLAYER_TEXT, nil, false)
+
+    local navigation = UI.NavigationList:Create(page, 110)
+    navigation.frame:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -34)
+    navigation.frame:SetPoint("BOTTOMLEFT", page, "BOTTOMLEFT", 0, 0)
+
+    local divider = page:CreateTexture(nil, "ARTWORK")
+    divider:SetPoint("TOPLEFT", navigation.frame, "TOPRIGHT", 10, 0)
+    divider:SetPoint("BOTTOMLEFT", navigation.frame, "BOTTOMRIGHT", 10, 0)
+    divider:SetWidth(1)
+    divider:SetColorTexture(0.35, 0.35, 0.35, 0.8)
+
+    local localHost = CreateFrame("Frame", nil, page)
+    localHost:SetPoint("TOPLEFT", divider, "TOPRIGHT", 12, 0)
+    localHost:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", 0, 0)
+    local textPages = UI.PagePanel:Create(localHost)
+
+    local entries = {
+        { key = "name", label = BFUF.L.SECTION_TEXT_NAME },
+        { key = "health", label = BFUF.L.SECTION_TEXT_HEALTH },
+        { key = "power", label = BFUF.L.SECTION_TEXT_POWER },
+        { key = "level", label = BFUF.L.SECTION_TEXT_LEVEL },
+    }
+
+    for _, entry in ipairs(entries) do
+        local currentEntry = entry
+        currentEntry.onSelect = function()
+            self:ShowPlayerTextObjectPage(textPages, currentEntry.key, currentEntry.label)
+        end
+        navigation:AddEntry(currentEntry)
+    end
+
+    navigation:Select("name")
+end
+
 -- Show the Player portrait page using the existing portrait profile fields.
 function SettingsModule:ShowPlayerPortraitPage(pages)
     local controls = {}
@@ -680,6 +842,11 @@ function SettingsModule:ShowPlayerPage()
 
             if currentEntry.key == "power" then
                 self:ShowPlayerPowerPage(pages)
+                return
+            end
+
+            if currentEntry.key == "text" then
+                self:ShowPlayerTextPage(pages)
                 return
             end
 
