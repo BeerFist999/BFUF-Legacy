@@ -36,6 +36,22 @@ local function setBarGeometry(bar, parent, geometry)
     bar:SetHeight(geometry.height)
 end
 
+-- Apply a top-relative region without treating its bottom coordinate as a
+-- BOTTOMRIGHT-relative offset.
+local function setPortraitContainerGeometry(container, parent, region)
+    local height = region.top - region.bottom
+
+    container:ClearAllPoints()
+    container:SetPoint("TOPLEFT", parent, "TOPLEFT", region.left, region.top)
+    container:SetPoint("TOPRIGHT", parent, "TOPRIGHT", region.right, region.top)
+    container:SetHeight(height)
+
+    assert(
+        container:GetHeight() == height,
+        "BFUF PortraitContainer height does not match PortraitRegion height"
+    )
+end
+
 local function setTextGeometry(text, geometry)
     text:ClearAllPoints()
     text:SetPoint(
@@ -279,14 +295,7 @@ function PlayerLayout:ApplyLayout(root, result)
     setRectangle(root.healthBar.healAbsorbBar, root.healthBar, 0, 0, 0, 0)
 
     if result.portrait.visible then
-        setRectangle(
-            root.portraitContainer,
-            root,
-            result.portrait.left,
-            result.portrait.right,
-            result.portrait.top,
-            result.portrait.bottom
-        )
+        setPortraitContainerGeometry(root.portraitContainer, root, result.portrait)
         setRectangle(root.portrait, root.portraitContainer, 0, 0, 0, 0)
         setRectangle(root.portrait.texture, root.portrait, 0, 0, 0, 0)
         setRectangle(root.portrait.model, root.portrait, 0, 0, 0, 0)
