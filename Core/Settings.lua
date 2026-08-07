@@ -14,6 +14,7 @@ local UI = {
     ColorRow = {},
     ButtonRow = {},
     ExpandableSection = {},
+    ScrollablePageHost = {},
 }
 SettingsModule.UI = UI
 
@@ -93,53 +94,133 @@ local function createTitle(parent, text)
     return title
 end
 
--- Create the persistent page container used by all settings pages.
+-- Create the page container with a bounded transient page cache.
 function UI.PagePanel:Create(parent)
-    local frame = CreateFrame("Frame", nil, parent)
-    frame:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, 0)
-    frame:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", 0, 0)
+    local container = parent.scrollChild or parent
+    local frame = CreateFrame("Frame", nil, container)
+    frame:SetAllPoints(container)
 
     local panel = {
         frame = frame,
         currentPage = nil,
+        cache = {},
+        cacheOrder = {},
+        cacheLimit = 5,
     }
 
-    function panel:ShowPage(title, description, hasSettings, buildContent, resetAction)
+    function panel:TrimCache()
+        while #self.cacheOrder > self.cacheLimit do
+            local id = table.remove(self.cacheOrder, 1)
+            local page = self.cache[id]
+            if page and page ~= self.currentPage then
+                page:Hide()
+                page:SetParent(nil)
+                self.cache[id] = nil
+            else
+                table.insert(self.cacheOrder, id)
+                break
+            end
+        end
+    end
+
+    function panel:ClearCache()
+        for id, page in pairs(self.cache) do
+            page:Hide()
+            page:SetParent(nil)
+            self.cache[id] = nil
+        end
+
+        wipe(self.cacheOrder)
+        self.currentPage = nil
+    end
+
+    function panel:ShowDefinition(definition)
         if self.currentPage then
             self.currentPage:Hide()
         end
 
-        local page = CreateFrame("Frame", nil, self.frame)
-        page:SetAllPoints()
+        local page = self.cache[definition.id]
+        if not page then
+            page = CreateFrame("Frame", nil, self.frame)
+            page:SetAllPoints()
+
+            createTitle(page, definition.title)
+
+            if definition.description then
+                local text = page:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+                text:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -30)
+                text:SetPoint("TOPRIGHT", page, "TOPRIGHT", -16, -30)
+                text:SetJustifyH("LEFT")
+                text:SetText(definition.description)
+            end
+
+            local reset = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
+            reset:SetPoint("TOPRIGHT", page, "TOPRIGHT", 0, 0)
+            reset:SetSize(150, 24)
+            reset:SetText(BFUF.L.SETTINGS_RESET_PAGE)
+            reset:SetEnabled(definition.hasSettings == true)
+            if definition.reset then
+                reset:SetScript("OnClick", definition.reset)
+            end
+
+            if definition.builder then
+                definition.builder(page)
+            end
+
+            page._bfufRefresh = definition.refresh
+            self.cache[definition.id] = page
+            table.insert(self.cacheOrder, definition.id)
+            self:TrimCache()
+        end
+
         self.currentPage = page
+        page:Show()
 
-        createTitle(page, title)
-
-        if description then
-            local text = page:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-            text:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -30)
-            text:SetPoint("TOPRIGHT", page, "TOPRIGHT", -16, -30)
-            text:SetJustifyH("LEFT")
-            text:SetText(description)
-        end
-
-        local reset = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
-        reset:SetPoint("TOPRIGHT", page, "TOPRIGHT", 0, 0)
-        reset:SetSize(150, 24)
-        reset:SetText(BFUF.L.SETTINGS_RESET_PAGE)
-        reset:SetEnabled(hasSettings == true)
-        if resetAction then
-            reset:SetScript("OnClick", resetAction)
-        end
-
-        if buildContent then
-            buildContent(page)
+        if page._bfufRefresh then
+            page._bfufRefresh(page)
         end
 
         return page
     end
 
+    -- Preserve the previous API while routing it through the page lifecycle.
+    function panel:ShowPage(title, description, hasSettings, buildContent, resetAction)
+        return self:ShowDefinition({
+            id = "legacy:" .. title,
+            title = title,
+            description = description,
+            hasSettings = hasSettings,
+            builder = buildContent,
+            reset = resetAction,
+        })
+    end
+
     return panel
+end
+
+-- Create the single scrollable host used by the settings shell.
+function UI.ScrollablePageHost:Create(parent)
+    local host = CreateFrame("Frame", nil, parent)
+    host:SetAllPoints()
+
+    local scrollFrame = CreateFrame("ScrollFrame", nil, host, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", host, "TOPLEFT", 0, 0)
+    scrollFrame:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", -26, 0)
+
+    local scrollChild = CreateFrame("Frame", nil, scrollFrame)
+    scrollChild:SetPoint("TOPLEFT", scrollFrame, "TOPLEFT", 0, 0)
+    scrollChild:SetSize(1, 1)
+    scrollFrame:SetScrollChild(scrollChild)
+
+    host:SetScript("OnSizeChanged", function(_, width, height)
+        scrollChild:SetSize(math.max(width - 26, 1), math.max(height, 1))
+    end)
+
+    return {
+        frame = host,
+        scrollFrame = scrollFrame,
+        scrollChild = scrollChild,
+    }
 end
 
 -- Create a generic vertical navigation list.
@@ -216,13 +297,14 @@ function UI.SettingsShell:Create(parent)
     divider:SetWidth(1)
     divider:SetColorTexture(0.35, 0.35, 0.35, 0.8)
 
-    local pageHost = CreateFrame("Frame", nil, shell)
-    pageHost:SetPoint("TOPLEFT", divider, "TOPRIGHT", 16, 0)
-    pageHost:SetPoint("BOTTOMRIGHT", shell, "BOTTOMRIGHT", -16, 12)
+    local pageHost = UI.ScrollablePageHost:Create(shell)
+    pageHost.frame:SetPoint("TOPLEFT", divider, "TOPRIGHT", 16, 0)
+    pageHost.frame:SetPoint("BOTTOMRIGHT", shell, "BOTTOMRIGHT", -16, 12)
 
     return {
         frame = shell,
         navigation = navigation,
+        pageHost = pageHost,
         pages = UI.PagePanel:Create(pageHost),
     }
 end
@@ -1187,6 +1269,9 @@ function SettingsModule:Initialize()
     Settings.RegisterAddOnCategory(self.category)
 
     self.shell = UI.SettingsShell:Create(rootFrame)
+    rootFrame:SetScript("OnHide", function()
+        self.shell.pages:ClearCache()
+    end)
 
     local entries = {
         {
