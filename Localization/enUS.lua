@@ -57,4 +57,13 @@ BFUF.Localization:RegisterLocale("enUS", {
     INDICATOR_PVP = "PvP",
     INDICATOR_AFK = "AFK",
     INDICATOR_DND = "Do Not Disturb",
+    SECTION_TEXT_LEVEL = "Level",
+    OPTION_DISPLAY_MODE = "Display Mode",
+    TEXT_MODE_NAME = "Name",
+    TEXT_MODE_CURRENT = "Current",
+    TEXT_MODE_CURRENT_MAX = "Current / Max",
+    TEXT_MODE_PERCENT = "Percent",
+    TEXT_MODE_CURRENT_PERCENT = "Current (Percent)",
+    TEXT_MODE_MISSING = "Missing",
+    TEXT_MODE_HIDDEN = "Hidden",
 })
