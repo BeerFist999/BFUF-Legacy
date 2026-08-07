@@ -57,4 +57,13 @@ BFUF.Localization:RegisterLocale("ruRU", {
     INDICATOR_PVP = "PvP",
     INDICATOR_AFK = "AFK",
     INDICATOR_DND = "Не беспокоить",
+    SECTION_TEXT_LEVEL = "Уровень",
+    OPTION_DISPLAY_MODE = "Режим отображения",
+    TEXT_MODE_NAME = "Имя",
+    TEXT_MODE_CURRENT = "Текущее значение",
+    TEXT_MODE_CURRENT_MAX = "Текущее / максимум",
+    TEXT_MODE_PERCENT = "Проценты",
+    TEXT_MODE_CURRENT_PERCENT = "Текущее (проценты)",
+    TEXT_MODE_MISSING = "Недостающее",
+    TEXT_MODE_HIDDEN = "Скрыт",
 })
