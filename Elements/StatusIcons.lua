@@ -9,10 +9,11 @@ BFUF.Elements.StatusIcons = StatusIcons
 local ICON_TEXTURES = {
     leader = "Interface\\GroupFrame\\UI-Group-LeaderIcon",
     assistant = "Interface\\GroupFrame\\UI-Group-AssistantIcon",
-    pvp = "Interface\\TargetingFrame\\UI-PVP-FFA",
     afk = "Interface\\FriendsFrame\\StatusIcon-Away",
     dnd = "Interface\\FriendsFrame\\StatusIcon-DnD",
 }
+
+local PVP_ATLAS = "UI-HUD-UnitFrame-Player-PVP-FFAIcon"
 
 -- Shared logical anchor groups for current and future unit frames.
 local StatusLayout = {
@@ -81,10 +82,15 @@ local StatusLayout = {
 }
 StatusIcons.Layout = StatusLayout
 
-local function createIcon(parent, position, texture)
+local function createIcon(parent, position, texture, atlas)
     local icon = parent:CreateTexture(nil, "OVERLAY")
 
-    icon:SetTexture(texture)
+    if atlas then
+        icon:SetAtlas(atlas)
+    else
+        icon:SetTexture(texture)
+    end
+
     icon:SetSize(position.size, position.size)
     icon:SetPoint(
         position.point,
@@ -104,7 +110,7 @@ function StatusIcons:Create(parent, layout)
     local icons = {
         leader = createIcon(parent, StatusLayout.TopCenterGroup.leader, ICON_TEXTURES.leader),
         assistant = createIcon(parent, StatusLayout.TopCenterGroup.assistant, ICON_TEXTURES.assistant),
-        pvp = createIcon(parent, StatusLayout.LeftBottomGroup.pvp, ICON_TEXTURES.pvp),
+        pvp = createIcon(parent, StatusLayout.LeftBottomGroup.pvp, nil, PVP_ATLAS),
         afk = createIcon(parent, StatusLayout.LeftBottomGroup.afk, ICON_TEXTURES.afk),
         dnd = createIcon(parent, StatusLayout.LeftBottomGroup.dnd, ICON_TEXTURES.dnd),
     }
