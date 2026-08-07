@@ -1,19 +1,17 @@
 local addonName, BFUF = ...
 
--- CombatIndicator отображает состояние боя игрока.
--- Модуль самостоятельно обновляет видимость и не содержит логики Player Frame.
+-- CombatIndicator displays the player's combat state.
+-- The module updates its own visibility and contains no Player Frame logic.
 BFUF.Elements = BFUF.Elements or {}
 
 local CombatIndicator = {}
 BFUF.Elements.CombatIndicator = CombatIndicator
 
--- Создаёт текстуру индикатора и применяет положение из переданного Layout.
+-- Creates the indicator texture and applies the supplied Layout position.
 function CombatIndicator:Create(parent, layout)
-    local indicator = parent:CreateTexture(nil, "OVERLAY")
+    local resource = BFUF.Elements.StatusIconResources.ICON_RESOURCES.combat
+    local indicator = BFUF.Elements.StatusIconResources:CreateTexture(parent, resource)
 
-    indicator:SetTexture("Interface\\CharacterFrame\\UI-StateIcon")
-    -- Правая верхняя часть стандартной текстуры Blizzard содержит значок боя.
-    indicator:SetTexCoord(0.5, 1.0, 0.0, 0.5)
     indicator:SetSize(layout.size, layout.size)
     indicator:SetPoint(
         layout.point,
@@ -24,7 +22,7 @@ function CombatIndicator:Create(parent, layout)
     )
     indicator:Hide()
 
-    -- Показывает индикатор только во время боя.
+    -- Shows the indicator only while the player is in combat.
     function indicator:Update()
         if UnitAffectingCombat("player") then
             self:Show()
@@ -33,7 +31,7 @@ function CombatIndicator:Create(parent, layout)
         end
     end
 
-    -- Регистрирует только события начала и завершения боя.
+    -- Registers only combat start and end events.
     function indicator:RegisterEvents()
         local eventFrame = CreateFrame("Frame")
 

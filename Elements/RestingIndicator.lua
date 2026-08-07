@@ -1,19 +1,17 @@
 local addonName, BFUF = ...
 
--- RestingIndicator отображает состояние отдыха игрока.
--- Модуль самостоятельно обновляет видимость и не содержит логики Player Frame.
+-- RestingIndicator displays the player's resting state.
+-- The module updates its own visibility and contains no Player Frame logic.
 BFUF.Elements = BFUF.Elements or {}
 
 local RestingIndicator = {}
 BFUF.Elements.RestingIndicator = RestingIndicator
 
--- Создаёт текстуру индикатора и применяет положение из переданного Layout.
+-- Creates the indicator texture and applies the supplied Layout position.
 function RestingIndicator:Create(parent, layout)
-    local indicator = parent:CreateTexture(nil, "OVERLAY")
+    local resource = BFUF.Elements.StatusIconResources.ICON_RESOURCES.rest
+    local indicator = BFUF.Elements.StatusIconResources:CreateTexture(parent, resource)
 
-    indicator:SetTexture("Interface\\CharacterFrame\\UI-StateIcon")
-    -- Левая верхняя часть стандартной текстуры Blizzard содержит значок отдыха.
-    indicator:SetTexCoord(0.0, 0.5, 0.0, 0.5)
     indicator:SetSize(layout.size, layout.size)
     indicator:SetPoint(
         layout.point,
@@ -24,7 +22,7 @@ function RestingIndicator:Create(parent, layout)
     )
     indicator:Hide()
 
-    -- Показывает индикатор только в состоянии отдыха.
+    -- Shows the indicator only while the player is resting.
     function indicator:Update()
         if IsResting() then
             self:Show()
@@ -33,7 +31,7 @@ function RestingIndicator:Create(parent, layout)
         end
     end
 
-    -- Регистрирует события изменения отдыха и полной загрузки игрового мира.
+    -- Registers resting-state and world-entry events.
     function indicator:RegisterEvents()
         local eventFrame = CreateFrame("Frame")
 
