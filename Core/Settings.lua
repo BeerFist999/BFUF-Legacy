@@ -329,6 +329,20 @@ function UI.ExpandableSection:Create(parent, title, y)
     return header, content
 end
 
+-- Create a legacy placeholder category for fallback Config pages.
+function SettingsModule:CreatePlaceholderCategory(parentCategory, title, description)
+    local frame = CreateFrame("Frame")
+    frame:SetSize(620, 300)
+
+    local text = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    text:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -16)
+    text:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -16, -16)
+    text:SetJustifyH("LEFT")
+    text:SetText(description)
+
+    return Settings.RegisterCanvasLayoutSubcategory(parentCategory, frame, title)
+end
+
 -- Show the existing General settings without changing their profile bindings.
 function SettingsModule:ShowGeneralPage()
     local function resetGeneral()
