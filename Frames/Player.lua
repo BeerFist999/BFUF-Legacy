@@ -55,36 +55,36 @@ local PLAYER_LAYOUT = {
             size = 12,
             point = "TOPRIGHT",
             relativePoint = "TOPRIGHT",
-            offsetX = 0,
-            offsetY = 0,
+            offsetX = -3,
+            offsetY = -3,
         },
         assistant = {
             size = 12,
             point = "TOPRIGHT",
             relativePoint = "TOPRIGHT",
-            offsetX = -14,
-            offsetY = 0,
+            offsetX = -17,
+            offsetY = -3,
         },
         pvp = {
             size = 12,
             point = "TOPRIGHT",
             relativePoint = "TOPRIGHT",
-            offsetX = -28,
-            offsetY = 0,
+            offsetX = -31,
+            offsetY = -3,
         },
         afk = {
             size = 12,
             point = "TOPRIGHT",
             relativePoint = "TOPRIGHT",
-            offsetX = 0,
-            offsetY = -14,
+            offsetX = -3,
+            offsetY = -17,
         },
         dnd = {
             size = 12,
             point = "TOPRIGHT",
             relativePoint = "TOPRIGHT",
-            offsetX = -14,
-            offsetY = -14,
+            offsetX = -17,
+            offsetY = -17,
         },
     },
 }
@@ -196,6 +196,10 @@ function Player:Create()
     local restingIndicator = BFUF.Elements.RestingIndicator:Create(frame, PLAYER_LAYOUT.restingIndicator)
     frame.restingIndicator = restingIndicator
 
+    -- Status Icons only create and update their own icon textures.
+    local statusIcons = BFUF.Elements.StatusIcons:Create(frame, PLAYER_LAYOUT.statusIcons)
+    frame.statusIcons = statusIcons
+
     -- Смещение полос рассчитывается из размера портрета, заданного Layout.
     local contentLeftOffset = PLAYER_LAYOUT.portrait.inset + PLAYER_LAYOUT.portrait.width + PLAYER_LAYOUT.health.inset
 
@@ -215,10 +219,6 @@ function Player:Create()
     powerBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PLAYER_LAYOUT.power.inset, PLAYER_LAYOUT.power.inset)
     powerBar:SetHeight(PLAYER_LAYOUT.power.height)
     frame.powerBar = powerBar
-
-    -- Status Icons are children of HealthBar so they render above the bar.
-    local statusIcons = BFUF.Elements.StatusIcons:Create(healthBar, PLAYER_LAYOUT.statusIcons)
-    frame.statusIcons = statusIcons
 
     -- Text Element в Player Frame отображает имя игрока.
     local nameText = BFUF.Elements.Text:Create(healthBar, {
