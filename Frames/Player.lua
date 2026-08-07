@@ -1,7 +1,7 @@
 local addonName, BFUF = ...
 
--- Временный Layout базового фрейма игрока.
--- Все размеры элементов хранятся здесь до появления LayoutEngine.
+-- Temporary layout for the base player frame.
+-- All element sizes remain here until LayoutEngine is implemented.
 local PLAYER_LAYOUT = {
     frame = {
         width = 240,
@@ -96,15 +96,15 @@ local PLAYER_LAYOUT = {
     },
 }
 
--- Blizzard API возвращает процент здоровья и ресурса в диапазоне от 0.0 до 1.0.
--- Curve выполняет преобразование в диапазон от 0 до 100 внутри клиента, поэтому
--- не требуется выполнять запрещённую арифметику над Secret Values в Lua-коде.
+-- Blizzard returns health and power percentages in the 0.0 to 1.0 range.
+-- Curve converts the result to 0–100 inside the client and avoids forbidden
+-- Lua arithmetic on Secret Values.
 local PERCENT_TO_HUNDRED_CURVE = C_CurveUtil.CreateCurve()
 PERCENT_TO_HUNDRED_CURVE:SetType(Enum.LuaCurveType.Linear)
 PERCENT_TO_HUNDRED_CURVE:AddPoint(0.0, 0)
 PERCENT_TO_HUNDRED_CURVE:AddPoint(1.0, 100)
 
--- Форматы текста здоровья подготовлены для будущей настройки без изменения логики обновления.
+-- Health text formats are prepared for future settings without changing update logic.
 local HEALTH_TEXT_FORMATS = {
     CURRENT = "current",
     CURRENT_MAX = "currentMax",
@@ -115,11 +115,10 @@ local HEALTH_TEXT_FORMATS = {
 
 local HEALTH_TEXT_FORMAT = HEALTH_TEXT_FORMATS.CURRENT_MAX_PERCENT
 
--- Форматирует значения здоровья или ресурса без арифметики Lua.
--- В Retail 12 UnitHealth* и UnitPower* могут возвращать Secret Values:
--- аддон не имеет права сравнивать, преобразовывать или вычислять их самостоятельно.
--- Процент заранее рассчитывается нативным API Blizzard, а string.format принимает
--- Secret Values и возвращает строку, которую FontString может безопасно отобразить.
+-- Format health or power values without Lua arithmetic.
+-- In Retail 12, UnitHealth* and UnitPower* can return Secret Values. Addons
+-- must not compare, convert, or calculate them directly. Blizzard calculates
+-- the percentage natively, and string.format safely produces display text.
 local function formatStatusText(currentValue, maxValue, percentValue, displayFormat, formats)
     if displayFormat == formats.CURRENT then
         return string.format("%d", currentValue)
@@ -134,7 +133,7 @@ local function formatStatusText(currentValue, maxValue, percentValue, displayFor
     return string.format("%d / %d (%.0f%%)", currentValue, maxValue, percentValue)
 end
 
--- Форматы текста ресурса подготовлены для будущей настройки без изменения логики обновления.
+-- Power text formats are prepared for future settings without changing update logic.
 local POWER_TEXT_FORMATS = {
     CURRENT = "current",
     CURRENT_MAX = "currentMax",
@@ -145,7 +144,7 @@ local POWER_TEXT_FORMATS = {
 
 local POWER_TEXT_FORMAT = POWER_TEXT_FORMATS.CURRENT_MAX_PERCENT
 
--- Поддерживаемые типы ресурсов для текстового отображения.
+-- Supported power types for text display.
 local SUPPORTED_POWER_TYPES = {
     MANA = true,
     RAGE = true,
@@ -159,36 +158,48 @@ local SUPPORTED_POWER_TYPES = {
     LUNAR_POWER = true,
 }
 
--- Модуль создаёт базовый защищённый фрейм игрока с фоном и полосами ресурсов.
+-- This module creates the secure player frame with its resource bars.
 BFUF.Frames = BFUF.Frames or {}
 
 local Player = {}
 BFUF.Frames.Player = Player
 
--- Создаёт и регистрирует основной Unit Frame игрока.
+-- Apply the saved portrait visibility to an existing player frame.
+function Player:UpdatePortrait(frame)
+    frame = frame or BFUF.Framework.Registry:GetFrame("player")
+
+    if not frame or not frame.portrait then
+        return
+    end
+
+    local settings = BFUF.DB:Get("Player")
+    frame.portrait:SetShown(settings.showPortrait)
+end
+
+-- Create and register the main player unit frame.
 function Player:Create()
     local registry = BFUF.Framework.Registry
     local factory = BFUF.Framework.Factory
     local existingFrame = registry:GetFrame("player")
 
-    -- Не создаём второй фрейм, если игрок уже был зарегистрирован.
+    -- Do not create a second player frame when one is already registered.
     if existingFrame then
         return existingFrame
     end
 
-    -- Один главный защищённый фрейм служит родителем для всех будущих частей Player Frame.
+    -- The secure main frame is the parent for all player frame elements.
     local frame = factory:CreateUnitFrame("player")
     frame:SetSize(PLAYER_LAYOUT.frame.width, PLAYER_LAYOUT.frame.height)
     frame:SetPoint("CENTER", UIParent, "CENTER", PLAYER_LAYOUT.frame.offsetX, PLAYER_LAYOUT.frame.offsetY)
 
-    -- Background занимает всю область главного фрейма и всегда находится ниже Portrait.
+    -- Background fills the main frame and remains behind the portrait.
     local background = factory:CreateTexture(frame)
     background:SetDrawLayer("BACKGROUND")
     background:SetAllPoints(frame)
     background:SetColorTexture(0, 0, 0, 0.8)
     frame.background = background
 
-    -- Portrait располагается слева и использует 2D-вариант до реализации PlayerModel.
+    -- Portrait is positioned on the left and uses the 2D variant until PlayerModel exists.
     local portrait = BFUF.Elements.Portrait:Create(frame, BFUF.Elements.Portrait.Types.TEXTURE)
     portrait:SetPoint("TOPLEFT", frame, "TOPLEFT", PLAYER_LAYOUT.portrait.inset, -PLAYER_LAYOUT.portrait.inset)
     portrait:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", PLAYER_LAYOUT.portrait.inset, PLAYER_LAYOUT.portrait.inset)
@@ -207,10 +218,10 @@ function Player:Create()
     }
     frame.indicators = indicators
 
-    -- Смещение полос рассчитывается из размера портрета, заданного Layout.
+    -- Bar offsets are derived from portrait size defined by the layout.
     local contentLeftOffset = PLAYER_LAYOUT.portrait.inset + PLAYER_LAYOUT.portrait.width + PLAYER_LAYOUT.health.inset
 
-    -- HealthBar занимает верхнюю часть фрейма и оставляет место для PowerBar.
+    -- HealthBar occupies the upper area and leaves space for PowerBar.
     local healthBar = BFUF.Elements.Health:Create(frame)
     healthBar:ClearAllPoints()
     healthBar:SetPoint("TOPLEFT", frame, "TOPLEFT", contentLeftOffset, -PLAYER_LAYOUT.health.inset)
@@ -220,14 +231,14 @@ function Player:Create()
     frame.healthBar = healthBar
     BFUF:Debug("Health element attached.")
 
-    -- PowerBar создаётся без собственных размеров; их задаёт временный Layout Player Frame.
+    -- PowerBar receives its dimensions exclusively from the Player Frame layout.
     local powerBar = BFUF.Elements.Power:Create(frame)
     powerBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", contentLeftOffset, PLAYER_LAYOUT.power.inset)
     powerBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PLAYER_LAYOUT.power.inset, PLAYER_LAYOUT.power.inset)
     powerBar:SetHeight(PLAYER_LAYOUT.power.height)
     frame.powerBar = powerBar
 
-    -- Text Element в Player Frame отображает имя игрока.
+    -- Text Element displays the player name.
     local nameText = BFUF.Elements.Text:Create(healthBar, {
         font = STANDARD_TEXT_FONT,
         size = PLAYER_LAYOUT.text.size,
@@ -239,7 +250,7 @@ function Player:Create()
     nameText:SetPoint("BOTTOMRIGHT", healthBar, "BOTTOMRIGHT", -PLAYER_LAYOUT.text.inset, 0)
     frame.nameText = nameText
 
-    -- Второй Text Element показывает текущий, максимальный и процент здоровья.
+    -- A second Text Element displays current, maximum, and percentage health.
     local healthText = BFUF.Elements.Text:Create(healthBar, {
         font = STANDARD_TEXT_FONT,
         size = PLAYER_LAYOUT.healthText.size,
@@ -251,8 +262,7 @@ function Player:Create()
     healthText:SetPoint("BOTTOMRIGHT", healthBar, "BOTTOMRIGHT", -PLAYER_LAYOUT.healthText.inset, 0)
     frame.healthText = healthText
 
-
-    -- Text Element показывает текущий, максимальный и процент основного ресурса.
+    -- Text Element displays current, maximum, and percentage primary power.
     local powerText = BFUF.Elements.Text:Create(powerBar, {
         font = STANDARD_TEXT_FONT,
         size = PLAYER_LAYOUT.powerText.size,
@@ -264,12 +274,12 @@ function Player:Create()
     powerText:SetPoint("BOTTOMRIGHT", powerBar, "BOTTOMRIGHT", -PLAYER_LAYOUT.powerText.inset, 0)
     frame.powerText = powerText
 
-    -- Обновляет имя через единое место, используемое при создании и событиях.
+    -- Update the name from one shared function used at creation and on events.
     local function updateNameText()
         nameText:SetText(UnitName("player") or "")
     end
 
-    -- Обновляет текст здоровья через общую функцию форматирования.
+    -- Update health text through the shared formatting function.
     local function updateHealthText()
         local currentHealth = UnitHealth("player")
         local maxHealth = UnitHealthMax("player")
@@ -284,9 +294,7 @@ function Player:Create()
         ))
     end
 
-
-
-    -- Обновляет текст текущего основного ресурса в выбранном формате.
+    -- Update text for the current primary power in the selected format.
     local function updatePowerText()
         local powerType, powerToken = UnitPowerType("player")
 
@@ -308,9 +316,10 @@ function Player:Create()
         ))
     end
 
-    -- Привязываем элементы к игроку и выполняем первое обновление.
+    -- Assign player units and perform their first updates.
     portrait:SetUnit("player")
     portrait:Update()
+    self:UpdatePortrait(frame)
 
     healthBar:SetUnit("player")
     healthBar:Update()
@@ -323,7 +332,7 @@ function Player:Create()
 
     updateNameText()
 
-    -- Подписываемся только на события, необходимые для обновления ресурсов и модели игрока.
+    -- Subscribe only to events needed by player resources and model.
     frame:RegisterEvent("PLAYER_LOGIN")
     frame:RegisterEvent("PLAYER_ENTERING_WORLD")
     frame:RegisterEvent("UNIT_PORTRAIT_UPDATE")
@@ -335,26 +344,26 @@ function Player:Create()
     frame:RegisterEvent("UNIT_MODEL_CHANGED")
     frame:RegisterEvent("UNIT_NAME_UPDATE")
     frame:SetScript("OnEvent", function(self, event, unit)
-        -- PLAYER_LOGIN наступает после полной загрузки персонажа и его внешнего вида.
+        -- PLAYER_LOGIN occurs after the character and appearance are fully loaded.
         if event == "PLAYER_LOGIN" then
             portrait:Update()
             self:UnregisterEvent("PLAYER_LOGIN")
             return
         end
 
-        -- После входа в мир повторяем обновление всех элементов.
+        -- Refresh all elements when the player enters the world.
         if event == "PLAYER_ENTERING_WORLD" then
             portrait:Update()
             healthBar:Update()
             powerBar:Update()
             updateNameText()
             updatePowerText()
-            updateHealthText(healthBar.unit)
+            updateHealthText()
             self:UnregisterEvent("PLAYER_ENTERING_WORLD")
             return
         end
 
-        -- События других юнитов не относятся к Player Frame.
+        -- Events for other units do not affect Player Frame.
         if unit ~= "player" then
             return
         end
@@ -367,18 +376,18 @@ function Player:Create()
             powerBar:Update()
             updatePowerText()
         elseif event == "UNIT_MODEL_CHANGED" or event == "UNIT_PORTRAIT_UPDATE" then
-            -- UNIT_PORTRAIT_UPDATE сообщает, что клиент подготовил актуальный 2D-портрет.
+            -- UNIT_PORTRAIT_UPDATE signals that the current 2D portrait is ready.
             portrait:Update()
         elseif event == "UNIT_NAME_UPDATE" then
             updateNameText()
         end
     end)
 
-    -- Registry хранит ссылку на готовый фрейм под именем player.
+    -- Registry keeps the completed frame under the player name.
     if registry:RegisterFrame("player", frame) then
         return frame
     end
 
-    -- Возвращаем уже зарегистрированный объект, если он появился до регистрации.
+    -- Return the existing object if it was registered before this call.
     return registry:GetFrame("player")
 end

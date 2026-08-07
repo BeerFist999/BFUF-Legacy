@@ -5,12 +5,15 @@ BFUF.Defaults = {
     profile = {
         General = {
             enabled = true,
+            replaceBlizzardUnitFrames = false,
+            debugMode = false,
             scale = 1,
             show = true,
         },
 
         Player = {
             enabled = true,
+            showPortrait = true,
             width = 240,
             height = 50,
             scale = 1,

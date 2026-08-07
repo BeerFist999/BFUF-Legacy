@@ -14,4 +14,9 @@ BFUF.Localization:RegisterLocale("ruRU", {
     DESCRIPTION_INDICATORS = "Настройки индикаторов статуса будут добавлены позже.",
     DESCRIPTION_PROFILES = "Управление профилями будет добавлено позже.",
     DESCRIPTION_ABOUT = "BFUF — настраиваемые рамки юнитов для World of Warcraft.",
+
+    OPTION_ENABLE_BFUF = "Включить BFUF",
+    OPTION_REPLACE_BLIZZARD_UNIT_FRAMES = "Заменять стандартные рамки Blizzard",
+    OPTION_ENABLE_DEBUG_MODE = "Включить режим отладки",
+    OPTION_SHOW_PORTRAIT = "Показывать портрет",
 })

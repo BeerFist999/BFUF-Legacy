@@ -14,4 +14,9 @@ BFUF.Localization:RegisterLocale("enUS", {
     DESCRIPTION_INDICATORS = "Status indicator settings will be added later.",
     DESCRIPTION_PROFILES = "Profile management will be added later.",
     DESCRIPTION_ABOUT = "BFUF provides configurable unit frames for World of Warcraft.",
+
+    OPTION_ENABLE_BFUF = "Enable BFUF",
+    OPTION_REPLACE_BLIZZARD_UNIT_FRAMES = "Replace Blizzard Unit Frames",
+    OPTION_ENABLE_DEBUG_MODE = "Enable Debug Mode",
+    OPTION_SHOW_PORTRAIT = "Show Portrait",
 })
