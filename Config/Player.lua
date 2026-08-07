@@ -202,17 +202,27 @@ function Player:Create(parentCategory)
     end)
 
     createLabel(content, BFUF.L.SECTION_PORTRAIT, -410)
-    createCheckbox(content, BFUF.L.OPTION_SHOW_PORTRAIT, -440,
-        function() return BFUF.DB:Get("Player").portrait.show end,
-        function(value) BFUF.DB:Get("Player").portrait.show = value; BFUF.Frames.Player:UpdateLayout() end)
+    local modeButtons = {
+        { key = BFUF.Elements.Portrait.Modes.HIDDEN, text = BFUF.L.OPTION_PORTRAIT_HIDDEN },
+        { key = BFUF.Elements.Portrait.Modes.TWO_D, text = BFUF.L.OPTION_PORTRAIT_2D },
+        { key = BFUF.Elements.Portrait.Modes.THREE_D, text = BFUF.L.OPTION_PORTRAIT_3D },
+    }
+    for index, mode in ipairs(modeButtons) do
+        local button = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
+        button:SetPoint("TOPLEFT", content, "TOPLEFT", 20 + (index - 1) * 125, -440)
+        button:SetSize(118, 24)
+        button:SetText(mode.text)
+        button:SetScript("OnClick", function()
+            BFUF.DB:Get("Player").portrait.mode = mode.key
+            BFUF.Frames.Player:UpdateLayout()
+        end)
+    end
     local portraitOptions = {
         { key = "width", label = "OPTION_PORTRAIT_WIDTH", minValue = 20, maxValue = 160, step = 1 },
         { key = "height", label = "OPTION_PORTRAIT_HEIGHT", minValue = 20, maxValue = 160, step = 1 },
-        { key = "offsetX", label = "OPTION_OFFSET_X", minValue = -200, maxValue = 200, step = 1 },
-        { key = "offsetY", label = "OPTION_OFFSET_Y", minValue = -200, maxValue = 200, step = 1 },
     }
     for index, option in ipairs(portraitOptions) do
-        createSlider(content, BFUF.L[option.label], -470 - (index - 1) * 60, option,
+        createSlider(content, BFUF.L[option.label], -480 - (index - 1) * 60, option,
             function() return BFUF.DB:Get("Player").portrait[option.key] end,
             function(value) BFUF.DB:Get("Player").portrait[option.key] = value; BFUF.Frames.Player:UpdateLayout() end,
             controls, "portrait" .. option.key)
