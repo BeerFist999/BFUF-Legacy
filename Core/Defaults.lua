@@ -19,13 +19,10 @@ BFUF.Defaults = {
             portrait = {
                 mode = "2d",
                 width = 44,
-                height = 44,
             },
 
             health = {
                 height = 34,
-                offsetX = 3,
-                offsetY = -3,
                 colorMode = "class",
                 customColor = { r = 0.2, g = 0.8, b = 0.2 },
                 showAbsorb = true,
@@ -34,16 +31,14 @@ BFUF.Defaults = {
 
             power = {
                 height = 8,
-                offsetX = 3,
-                offsetY = 3,
                 colorMode = "resource",
                 customColor = { r = 0.2, g = 0.4, b = 1 },
             },
 
             texts = {
-                name = { show = true, fontSize = 12, offsetX = 4, offsetY = 0 },
-                health = { show = true, fontSize = 12, offsetX = -4, offsetY = 0 },
-                power = { show = true, fontSize = 12, offsetX = -4, offsetY = 0 },
+                name = { offsetX = 4, offsetY = 0 },
+                health = { offsetX = -4, offsetY = 0 },
+                power = { offsetX = -4, offsetY = 0 },
             },
 
             indicators = {
