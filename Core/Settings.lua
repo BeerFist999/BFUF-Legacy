@@ -418,8 +418,9 @@ function SettingsModule:ShowPlayerPortraitPage(pages)
         UI.SectionPanel:Create(page, BFUF.L.SECTION_PORTRAIT, -36)
 
         for index, mode in ipairs(modes) do
+            local modeKey = mode.key
             local button = UI.ButtonRow:Create(page, mode.label, -68, function()
-                BFUF.DB:Get("Player").portrait.mode = mode.key
+                BFUF.DB:Get("Player").portrait.mode = modeKey
                 BFUF.Frames.Player:UpdateLayout()
             end)
             button:ClearAllPoints()
