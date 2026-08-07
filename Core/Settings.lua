@@ -349,7 +349,8 @@ function SettingsModule:ShowPlayerGeneralPage(pages)
             )
         end
 
-        local unlockButton = UI.ButtonRow:Create(page, "", -372, function()
+        local unlockButton
+        unlockButton = UI.ButtonRow:Create(page, "", -372, function()
             BFUF.Frames.Player:SetLayoutUnlocked(not BFUF.Frames.Player:IsLayoutUnlocked())
             unlockButton:SetText(
                 BFUF.Frames.Player:IsLayoutUnlocked()
