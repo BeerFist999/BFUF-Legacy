@@ -21,8 +21,80 @@ local function createBorder(parent)
     return border
 end
 
+local function formatValue(mode, current, maximum)
+    if mode == "hidden" then
+        return nil
+    end
+
+    current = current or 0
+    maximum = maximum or 0
+    local percent = maximum > 0 and math.floor(current / maximum * 100 + 0.5) or 0
+
+    if mode == "current" then
+        return tostring(current)
+    elseif mode == "percent" then
+        return string.format("%d%%", percent)
+    elseif mode == "currentPercent" then
+        return string.format("%d (%d%%)", current, percent)
+    elseif mode == "missing" then
+        return tostring(math.max(0, maximum - current))
+    end
+
+    return string.format("%d / %d", current, maximum)
+end
+
+local function applyTextStyle(text, settings, value)
+    local color = settings.color or { r = 1, g = 1, b = 1, a = 1 }
+
+    text:SetFont(settings.font or STANDARD_TEXT_FONT, settings.fontSize or 12, settings.outline or "")
+    text:SetTextColor(color.r or 1, color.g or 1, color.b or 1, color.a or 1)
+    text:SetText(value or "")
+    text:SetShown(settings.show ~= false and value ~= nil)
+end
+
 function Player:UpdateLayout()
-    BFUF.Layouts.Player:Apply(BFUF.Framework.Registry:GetFrame("player"))
+    local root = BFUF.Framework.Registry:GetFrame("player")
+    if not root then
+        return
+    end
+
+    BFUF.Layouts.Player:Apply(root)
+    self:UpdateTextElements(root)
+end
+
+-- Update independent text elements from their own profile sections.
+function Player:UpdateTextElements(root)
+    if not root or not root.levelText then
+        return
+    end
+
+    local settings = BFUF.DB:Get("Player").texts
+    local health = UnitHealth("player")
+    local maxHealth = UnitHealthMax("player")
+    local powerType = UnitPowerType("player")
+    local power = UnitPower("player", powerType)
+    local maxPower = UnitPowerMax("player", powerType)
+
+    applyTextStyle(
+        root.nameText,
+        settings.name,
+        settings.name.mode == "hidden" and nil or (UnitName("player") or "")
+    )
+    applyTextStyle(root.healthText, settings.health, formatValue(settings.health.mode, health, maxHealth))
+    applyTextStyle(root.powerText, settings.power, formatValue(settings.power.mode, power, maxPower))
+
+    local levelSettings = settings.level
+    root.levelText:ClearAllPoints()
+    root.levelText:SetPoint(
+        levelSettings.anchor or "TOPLEFT",
+        root.highFrame,
+        levelSettings.relativePoint or levelSettings.anchor or "TOPLEFT",
+        levelSettings.offsetX or 0,
+        levelSettings.offsetY or 0
+    )
+
+    local level = UnitLevel("player")
+    applyTextStyle(root.levelText, levelSettings, level and level > 0 and tostring(level) or "??")
 end
 
 function Player:IsLayoutUnlocked()
@@ -84,6 +156,7 @@ function Player:Create()
     root.nameText = BFUF.Elements.Text:Create(root.highFrame, { justifyH = "LEFT", justifyV = "MIDDLE" })
     root.healthText = BFUF.Elements.Text:Create(root.highFrame, { justifyH = "RIGHT", justifyV = "MIDDLE" })
     root.powerText = BFUF.Elements.Text:Create(root.highFrame, { justifyH = "RIGHT", justifyV = "MIDDLE" })
+    root.levelText = BFUF.Elements.Text:Create(root.highFrame, { justifyH = "LEFT", justifyV = "MIDDLE" })
 
     root.indicators = {
         combat = BFUF.Elements.Indicators.Combat:Create(root.statusIconsContainer),
@@ -106,10 +179,7 @@ function Player:Create()
         root.portrait:Update()
         root.healthBar:Update()
         root.powerBar:Update()
-        root.nameText:SetText(UnitName("player") or "")
-        root.healthText:SetText(string.format("%d / %d", UnitHealth("player"), UnitHealthMax("player")))
-        local type = UnitPowerType("player")
-        root.powerText:SetText(string.format("%d / %d", UnitPower("player", type), UnitPowerMax("player", type)))
+        self:UpdateTextElements(root)
     end
 
     root:RegisterEvent("PLAYER_ENTERING_WORLD")
