@@ -9,6 +9,7 @@ local GEOMETRY = {
     padding = 3,
     barGap = 2,
     borderThickness = 1,
+    contentPadding = 2,
 }
 
 local INDICATOR_ANCHORS = {
@@ -79,31 +80,40 @@ function PlayerLayout:Apply(root)
     local width = math.max(1, settings.width)
     local height = math.max(1, settings.height)
     local padding = GEOMETRY.padding
-    local borderInset = GEOMETRY.borderThickness
-    local contentHeight = math.max(2, height - borderInset * 2)
+    local contentPadding = GEOMETRY.contentPadding
+    local contentWidth = math.max(1, width - contentPadding * 2)
+    local contentHeight = math.max(2, height - contentPadding * 2)
 
     root:SetSize(width, height)
     root:SetScale(settings.scale)
     applyRootAnchor(root, settings)
 
-    setRectangle(root.background, root, 0, 0, 0, 0)
+    setRectangle(
+        root.contentContainer,
+        root,
+        contentPadding,
+        -contentPadding,
+        -contentPadding,
+        contentPadding
+    )
+    setRectangle(root.background, root.contentContainer, 0, 0, 0, 0)
     applyBorderGeometry(root.border)
-    setRectangle(root.statusIconsContainer, root, 0, 0, 0, 0)
-    setRectangle(root.overlayContainer, root, 0, 0, 0, 0)
+    setRectangle(root.statusIconsContainer, root.contentContainer, 0, 0, 0, 0)
+    setRectangle(root.overlayContainer, root.contentContainer, 0, 0, 0, 0)
 
     local portraitVisible = portrait.mode ~= BFUF.Elements.Portrait.Modes.HIDDEN
     local barsLeft = padding
     if portraitVisible then
-        local portraitWidth = math.min(portrait.width, math.max(1, width - padding * 2))
-        local portraitHeight = math.min(portrait.height, math.max(1, height - padding * 2))
-        local portraitTop = -math.floor((height - portraitHeight) / 2)
+        local portraitWidth = math.min(portrait.width, math.max(1, contentWidth - padding * 2))
+        local portraitHeight = math.min(portrait.height, math.max(1, contentHeight - padding * 2))
+        local portraitTop = -math.floor((contentHeight - portraitHeight) / 2)
         local portraitBottom = portraitTop - portraitHeight
 
         setRectangle(
             root.portraitContainer,
-            root,
+            root.contentContainer,
             padding,
-            -(width - padding - portraitWidth),
+            -(contentWidth - padding - portraitWidth),
             portraitTop,
             portraitBottom
         )
@@ -116,14 +126,7 @@ function PlayerLayout:Apply(root)
         root.portraitContainer:Hide()
     end
 
-    setRectangle(
-        root.barsContainer,
-        root,
-        barsLeft,
-        -borderInset,
-        -borderInset,
-        borderInset
-    )
+    setRectangle(root.barsContainer, root.contentContainer, barsLeft, 0, 0, 0)
     setRectangle(root.textContainer, root.barsContainer, 0, 0, 0, 0)
 
     local availableBarHeight = math.max(2, contentHeight - GEOMETRY.barGap)
