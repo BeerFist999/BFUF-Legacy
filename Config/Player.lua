@@ -132,6 +132,30 @@ local function createModeButtons(parent, y, classText, customText, getMode, setM
     end)
 end
 
+local TEXT_DISPLAY_MODES = {
+    { key = "current", label = "TEXT_MODE_CURRENT" },
+    { key = "currentMax", label = "TEXT_MODE_CURRENT_MAX" },
+    { key = "percent", label = "TEXT_MODE_PERCENT" },
+    { key = "currentPercent", label = "TEXT_MODE_CURRENT_PERCENT" },
+    { key = "missing", label = "TEXT_MODE_MISSING" },
+    { key = "hidden", label = "TEXT_MODE_HIDDEN" },
+}
+
+local function createDisplayModeButtons(parent, y, modes, getMode, setMode)
+    for index, mode in ipairs(modes) do
+        local modeKey = mode.key
+        local row = math.floor((index - 1) / 3)
+        local column = (index - 1) % 3
+        local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+        button:SetPoint("TOPLEFT", parent, "TOPLEFT", 20 + column * 125, y - row * 28)
+        button:SetSize(118, 24)
+        button:SetText(BFUF.L[mode.label])
+        button:SetScript("OnClick", function()
+            setMode(modeKey)
+        end)
+    end
+end
+
 function Player:RefreshLayoutControls()
     if not self.controls then
         return
@@ -150,7 +174,7 @@ function Player:Create(parentCategory)
     scroll:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
     scroll:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -28, 0)
     local content = CreateFrame("Frame", nil, scroll)
-    content:SetSize(620, 4000)
+    content:SetSize(620, 5000)
     scroll:SetScrollChild(content)
 
     local controls = {}
@@ -268,7 +292,12 @@ function Player:Create(parentCategory)
     for _, name in ipairs({ "name", "health", "power" }) do
         local textName = name
         createLabel(content, BFUF.L["SECTION_TEXT_" .. string.upper(textName)], textY)
+        createCheckbox(content, BFUF.L.OPTION_SHOW, textY - 28,
+            function() return BFUF.DB:Get("Player").texts[textName].show end,
+            function(value) BFUF.DB:Get("Player").texts[textName].show = value; BFUF.Frames.Player:UpdateLayout() end)
+
         local textOptions = {
+            { key = "fontSize", label = "OPTION_FONT_SIZE", minValue = 6, maxValue = 32, step = 1 },
             { key = "offsetX", label = "OPTION_OFFSET_X", minValue = -200, maxValue = 200, step = 1 },
             { key = "offsetY", label = "OPTION_OFFSET_Y", minValue = -200, maxValue = 200, step = 1 },
         }
@@ -279,9 +308,36 @@ function Player:Create(parentCategory)
                 function(value) BFUF.DB:Get("Player").texts[textName][optionKey] = value; BFUF.Frames.Player:UpdateLayout() end,
                 controls, "text" .. textName .. optionKey)
         end
-        textY = textY - 250
+
+        local modes = textName == "name" and {
+            { key = "name", label = "TEXT_MODE_NAME" },
+            { key = "hidden", label = "TEXT_MODE_HIDDEN" },
+        } or TEXT_DISPLAY_MODES
+        createDisplayModeButtons(content, textY - 238, modes,
+            function() return BFUF.DB:Get("Player").texts[textName].mode end,
+            function(mode) BFUF.DB:Get("Player").texts[textName].mode = mode; BFUF.Frames.Player:UpdateLayout() end)
+
+        textY = textY - 330
     end
 
+    createLabel(content, BFUF.L.SECTION_TEXT_LEVEL, textY)
+    createCheckbox(content, BFUF.L.OPTION_SHOW, textY - 28,
+        function() return BFUF.DB:Get("Player").texts.level.show end,
+        function(value) BFUF.DB:Get("Player").texts.level.show = value; BFUF.Frames.Player:UpdateLayout() end)
+    local levelOptions = {
+        { key = "fontSize", label = "OPTION_FONT_SIZE", minValue = 6, maxValue = 32, step = 1 },
+        { key = "offsetX", label = "OPTION_OFFSET_X", minValue = -200, maxValue = 200, step = 1 },
+        { key = "offsetY", label = "OPTION_OFFSET_Y", minValue = -200, maxValue = 200, step = 1 },
+    }
+    for index, option in ipairs(levelOptions) do
+        local optionKey = option.key
+        createSlider(content, BFUF.L[option.label], textY - 58 - (index - 1) * 60, option,
+            function() return BFUF.DB:Get("Player").texts.level[optionKey] end,
+            function(value) BFUF.DB:Get("Player").texts.level[optionKey] = value; BFUF.Frames.Player:UpdateLayout() end,
+            controls, "textLevel" .. optionKey)
+    end
+
+    textY = textY - 280
     createLabel(content, BFUF.L.SECTION_INDICATORS, textY)
     local indicatorY = textY - 30
     for _, name in ipairs({ "combat", "resting", "leader", "assistant", "pvp", "afk", "dnd" }) do
