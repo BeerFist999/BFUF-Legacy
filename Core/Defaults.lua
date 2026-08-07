@@ -36,9 +36,9 @@ BFUF.Defaults = {
             },
 
             texts = {
-                name = { offsetX = 4, offsetY = 0 },
-                health = { offsetX = -4, offsetY = 0 },
-                power = { offsetX = -4, offsetY = 0 },
+                name = { show = true, fontSize = 12, offsetX = 4, offsetY = 0 },
+                health = { show = true, fontSize = 12, offsetX = -4, offsetY = 0 },
+                power = { show = true, fontSize = 12, offsetX = -4, offsetY = 0 },
             },
 
             indicators = {
