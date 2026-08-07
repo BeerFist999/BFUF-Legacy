@@ -14,18 +14,86 @@ local ICON_TEXTURES = {
     dnd = "Interface\\FriendsFrame\\StatusIcon-DnD",
 }
 
-local function createIcon(parent, layout, texture)
+-- Shared logical anchor groups for current and future unit frames.
+local StatusLayout = {
+    TopCenterGroup = {
+        leader = {
+            size = 12,
+            point = "TOPRIGHT",
+            relativePoint = "TOP",
+            offsetX = -1,
+            offsetY = -3,
+            enabled = true,
+        },
+        assistant = {
+            size = 12,
+            point = "TOPLEFT",
+            relativePoint = "TOP",
+            offsetX = 1,
+            offsetY = -3,
+            enabled = true,
+        },
+    },
+    TopLeftGroup = {
+        combat = {
+            size = 16,
+            point = "TOPLEFT",
+            relativePoint = "TOPLEFT",
+            offsetX = 3,
+            offsetY = -3,
+            enabled = true,
+        },
+        rest = {
+            size = 16,
+            point = "TOPLEFT",
+            relativePoint = "TOPLEFT",
+            offsetX = 21,
+            offsetY = -3,
+            enabled = true,
+        },
+    },
+    LeftBottomGroup = {
+        pvp = {
+            size = 12,
+            point = "BOTTOMLEFT",
+            relativePoint = "BOTTOMLEFT",
+            offsetX = 3,
+            offsetY = 3,
+            enabled = true,
+        },
+        afk = {
+            size = 12,
+            point = "BOTTOMLEFT",
+            relativePoint = "BOTTOMLEFT",
+            offsetX = 17,
+            offsetY = 3,
+            enabled = false,
+        },
+        dnd = {
+            size = 12,
+            point = "BOTTOMLEFT",
+            relativePoint = "BOTTOMLEFT",
+            offsetX = 31,
+            offsetY = 3,
+            enabled = false,
+        },
+    },
+}
+StatusIcons.Layout = StatusLayout
+
+local function createIcon(parent, position, texture)
     local icon = parent:CreateTexture(nil, "OVERLAY")
 
     icon:SetTexture(texture)
-    icon:SetSize(layout.size, layout.size)
+    icon:SetSize(position.size, position.size)
     icon:SetPoint(
-        layout.point,
+        position.point,
         parent,
-        layout.relativePoint,
-        layout.offsetX,
-        layout.offsetY
+        position.relativePoint,
+        position.offsetX,
+        position.offsetY
     )
+    icon.layoutEnabled = position.enabled
     icon:Hide()
 
     return icon
@@ -34,24 +102,24 @@ end
 -- Creates independent icon objects and registers the required Blizzard events.
 function StatusIcons:Create(parent, layout)
     local icons = {
-        leader = createIcon(parent, layout.leader, ICON_TEXTURES.leader),
-        assistant = createIcon(parent, layout.assistant, ICON_TEXTURES.assistant),
-        pvp = createIcon(parent, layout.pvp, ICON_TEXTURES.pvp),
-        afk = createIcon(parent, layout.afk, ICON_TEXTURES.afk),
-        dnd = createIcon(parent, layout.dnd, ICON_TEXTURES.dnd),
+        leader = createIcon(parent, StatusLayout.TopCenterGroup.leader, ICON_TEXTURES.leader),
+        assistant = createIcon(parent, StatusLayout.TopCenterGroup.assistant, ICON_TEXTURES.assistant),
+        pvp = createIcon(parent, StatusLayout.LeftBottomGroup.pvp, ICON_TEXTURES.pvp),
+        afk = createIcon(parent, StatusLayout.LeftBottomGroup.afk, ICON_TEXTURES.afk),
+        dnd = createIcon(parent, StatusLayout.LeftBottomGroup.dnd, ICON_TEXTURES.dnd),
     }
 
     -- Updates group role indicators.
     function icons:UpdateGroup()
-        self.leader:SetShown(UnitIsGroupLeader("player"))
-        self.assistant:SetShown(UnitIsGroupAssistant("player"))
+        self.leader:SetShown(self.leader.layoutEnabled and UnitIsGroupLeader("player"))
+        self.assistant:SetShown(self.assistant.layoutEnabled and UnitIsGroupAssistant("player"))
     end
 
     -- Updates player flag indicators.
     function icons:UpdateFlags()
-        self.pvp:SetShown(UnitIsPVP("player"))
-        self.afk:SetShown(UnitIsAFK("player"))
-        self.dnd:SetShown(UnitIsDND("player"))
+        self.pvp:SetShown(self.pvp.layoutEnabled and UnitIsPVP("player"))
+        self.afk:SetShown(self.afk.layoutEnabled and UnitIsAFK("player"))
+        self.dnd:SetShown(self.dnd.layoutEnabled and UnitIsDND("player"))
     end
 
     -- Updates all status indicators.
