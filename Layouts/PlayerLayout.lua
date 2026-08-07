@@ -36,18 +36,18 @@ local function setBarGeometry(bar, parent, geometry)
     bar:SetHeight(geometry.height)
 end
 
--- Apply a top-relative region without treating its bottom coordinate as a
--- BOTTOMRIGHT-relative offset.
+-- Apply the LayoutResult dimensions directly to the portrait container.
 local function setPortraitContainerGeometry(container, parent, region)
-    local height = region.top - region.bottom
-
     container:ClearAllPoints()
     container:SetPoint("TOPLEFT", parent, "TOPLEFT", region.left, region.top)
-    container:SetPoint("TOPRIGHT", parent, "TOPRIGHT", region.right, region.top)
-    container:SetHeight(height)
+    container:SetSize(region.width, region.height)
 
     assert(
-        container:GetHeight() == height,
+        container:GetWidth() == region.width,
+        "BFUF PortraitContainer width does not match PortraitRegion width"
+    )
+    assert(
+        container:GetHeight() == region.height,
         "BFUF PortraitContainer height does not match PortraitRegion height"
     )
 end
@@ -223,6 +223,7 @@ function PlayerLayout:ComputeBarGeometry(result)
     if portrait.visible then
         portrait.top = portrait.firstBar.geometry.top
         portrait.bottom = portrait.lastBar.geometry.bottom
+        portrait.height = portrait.top - portrait.bottom
     end
 end
 
@@ -311,7 +312,7 @@ function PlayerLayout:ApplyLayout(root, result)
         end
 
         local groupHeight = compatibleBarHeight + LAYOUT.barSpacing * math.max(0, compatibleBarCount - 1)
-        local regionHeight = result.portrait.top - result.portrait.bottom
+        local regionHeight = result.portrait.height
         BFUF:Print(string.format(
             "[BFUF Portrait] RootH=%.2f HealthH=%.2f PowerH=%.2f Gap=%.2f RegionW=%.2f RegionH=%.2f ContainerH=%.2f GroupH=%.2f Match=%s",
             root:GetHeight(),
