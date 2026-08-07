@@ -236,9 +236,11 @@ function UI.NavigationList:Create(parent, width)
     }
 
     function list:AddEntry(entry)
+        local depth = entry.depth or 0
+        local indent = depth * 14
         local button = CreateFrame("Button", nil, self.frame, "UIPanelButtonTemplate")
-        button:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 0, self.nextOffset)
-        button:SetSize(width, 24)
+        button:SetPoint("TOPLEFT", self.frame, "TOPLEFT", indent, self.nextOffset)
+        button:SetSize(width - indent, 24)
         button:SetText(entry.label)
 
         if entry.disabled then
@@ -259,6 +261,25 @@ function UI.NavigationList:Create(parent, width)
             button = button,
             entry = entry,
         }
+    end
+
+    -- Add a navigation tree while retaining the same entry selection behavior.
+    function list:AddTree(entries, depth)
+        depth = depth or 0
+
+        for _, entry in ipairs(entries) do
+            local item = {}
+            for key, value in pairs(entry) do
+                item[key] = value
+            end
+            item.depth = depth
+
+            self:AddEntry(item)
+
+            if item.children then
+                self:AddTree(item.children, depth + 1)
+            end
+        end
     end
 
     function list:Select(key)
