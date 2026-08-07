@@ -17,6 +17,43 @@ local UI = {
 }
 SettingsModule.UI = UI
 
+-- Store page definitions independently from their navigation and rendering.
+local PageRegistry = {}
+PageRegistry.__index = PageRegistry
+SettingsModule.PageRegistry = PageRegistry
+
+function PageRegistry:Create()
+    return setmetatable({
+        pages = {},
+        order = {},
+    }, self)
+end
+
+function PageRegistry:Register(definition)
+    assert(type(definition) == "table", "Page definition must be a table")
+    assert(definition.id, "Page definition must have an id")
+    assert(definition.title, "Page definition must have a title")
+    assert(type(definition.builder) == "function", "Page definition must have a builder")
+
+    if self.pages[definition.id] then
+        return false
+    end
+
+    self.pages[definition.id] = definition
+    table.insert(self.order, definition.id)
+    return true
+end
+
+function PageRegistry:Get(id)
+    return self.pages[id]
+end
+
+function PageRegistry:ForEach(callback)
+    for _, id in ipairs(self.order) do
+        callback(self.pages[id])
+    end
+end
+
 local function createTitle(parent, text)
     local title = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
     title:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, 0)
