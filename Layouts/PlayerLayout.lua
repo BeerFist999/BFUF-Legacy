@@ -291,6 +291,30 @@ function PlayerLayout:ApplyLayout(root, result)
         setRectangle(root.portrait.texture, root.portrait, 0, 0, 0, 0)
         setRectangle(root.portrait.model, root.portrait, 0, 0, 0, 0)
         root.portraitContainer:Show()
+
+        local compatibleBarCount = 0
+        local compatibleBarHeight = 0
+        for _, bar in ipairs(result.bars) do
+            if bar.portraitCompatible then
+                compatibleBarCount = compatibleBarCount + 1
+                compatibleBarHeight = compatibleBarHeight + bar.geometry.height
+            end
+        end
+
+        local groupHeight = compatibleBarHeight + LAYOUT.barSpacing * math.max(0, compatibleBarCount - 1)
+        local regionHeight = result.portrait.top - result.portrait.bottom
+        BFUF:Print(string.format(
+            "[BFUF Portrait] RootH=%.2f HealthH=%.2f PowerH=%.2f Gap=%.2f RegionW=%.2f RegionH=%.2f ContainerH=%.2f GroupH=%.2f Match=%s",
+            root:GetHeight(),
+            root.healthBar:GetHeight(),
+            root.powerBar:GetHeight(),
+            LAYOUT.barSpacing,
+            result.portrait.width,
+            regionHeight,
+            root.portraitContainer:GetHeight(),
+            groupHeight,
+            tostring(regionHeight == groupHeight)
+        ))
     else
         root.portraitContainer:Hide()
     end
