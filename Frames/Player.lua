@@ -11,7 +11,7 @@ PERCENT_CURVE:AddPoint(1, 100)
 
 local function createBorder(parent)
     local border = CreateFrame("Frame", nil, parent)
-    border:SetFrameLevel(parent:GetFrameLevel() + 2)
+    border:SetFrameLevel(parent:GetFrameLevel() + 1)
     border.lines = {}
     for _, point in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
         local line = border:CreateTexture(nil, "OVERLAY")
