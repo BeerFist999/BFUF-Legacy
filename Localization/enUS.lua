@@ -19,4 +19,11 @@ BFUF.Localization:RegisterLocale("enUS", {
     OPTION_REPLACE_BLIZZARD_UNIT_FRAMES = "Replace Blizzard Unit Frames",
     OPTION_ENABLE_DEBUG_MODE = "Enable Debug Mode",
     OPTION_SHOW_PORTRAIT = "Show Portrait",
+    SECTION_LAYOUT = "Layout",
+    OPTION_FRAME_WIDTH = "Frame Width",
+    OPTION_FRAME_HEIGHT = "Frame Height",
+    OPTION_FRAME_SCALE = "Frame Scale",
+    OPTION_POSITION_X = "Position X",
+    OPTION_POSITION_Y = "Position Y",
+    BUTTON_RESET_LAYOUT = "Reset Layout",
 })

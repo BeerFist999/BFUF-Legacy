@@ -176,6 +176,21 @@ function Player:UpdatePortrait(frame)
     frame.portrait:SetShown(settings.showPortrait)
 end
 
+-- Apply saved size, scale, and position to an existing player frame.
+function Player:UpdateLayout(frame)
+    frame = frame or BFUF.Framework.Registry:GetFrame("player")
+
+    if not frame then
+        return
+    end
+
+    local settings = BFUF.DB:Get("Player")
+    frame:SetSize(settings.width, settings.height)
+    frame:SetScale(settings.scale)
+    frame:ClearAllPoints()
+    frame:SetPoint("CENTER", UIParent, "CENTER", settings.positionX, settings.positionY)
+end
+
 -- Create and register the main player unit frame.
 function Player:Create()
     local registry = BFUF.Framework.Registry
@@ -320,6 +335,7 @@ function Player:Create()
     portrait:SetUnit("player")
     portrait:Update()
     self:UpdatePortrait(frame)
+    self:UpdateLayout(frame)
 
     healthBar:SetUnit("player")
     healthBar:Update()

@@ -17,6 +17,8 @@ BFUF.Defaults = {
             width = 240,
             height = 50,
             scale = 1,
+            positionX = 0,
+            positionY = 0,
             show = true,
         },
 

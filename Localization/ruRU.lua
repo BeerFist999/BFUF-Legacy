@@ -19,4 +19,11 @@ BFUF.Localization:RegisterLocale("ruRU", {
     OPTION_REPLACE_BLIZZARD_UNIT_FRAMES = "Заменять стандартные рамки Blizzard",
     OPTION_ENABLE_DEBUG_MODE = "Включить режим отладки",
     OPTION_SHOW_PORTRAIT = "Показывать портрет",
+    SECTION_LAYOUT = "Расположение",
+    OPTION_FRAME_WIDTH = "Ширина рамки",
+    OPTION_FRAME_HEIGHT = "Высота рамки",
+    OPTION_FRAME_SCALE = "Масштаб рамки",
+    OPTION_POSITION_X = "Позиция по X",
+    OPTION_POSITION_Y = "Позиция по Y",
+    BUTTON_RESET_LAYOUT = "Сбросить расположение",
 })
