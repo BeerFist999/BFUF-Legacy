@@ -54,6 +54,12 @@ function Player:UpdateLayout(frame)
         return
     end
 
+    if InCombatLockdown() then
+        frame.layoutPending = true
+        return
+    end
+
+    frame.layoutPending = false
     local settings = BFUF.DB:Get("Player")
     local portraitSettings = settings.portrait
     local healthSettings = settings.health
@@ -123,10 +129,12 @@ function Player:SavePosition(frame)
         return
     end
 
-    local scale = UIParent:GetEffectiveScale()
+    local parentScale = UIParent:GetEffectiveScale()
     local settings = BFUF.DB:Get("Player")
-    settings.positionX = math.floor((centerX - parentX) / scale + 0.5)
-    settings.positionY = math.floor((centerY - parentY) / scale + 0.5)
+
+    -- GetCenter returns screen coordinates. Convert them back to UIParent units only.
+    settings.positionX = math.floor((centerX - parentX) / parentScale + 0.5)
+    settings.positionY = math.floor((centerY - parentY) / parentScale + 0.5)
     BFUF.Config.Player:RefreshLayoutControls()
 end
 
@@ -247,7 +255,14 @@ function Player:Create()
     frame:RegisterEvent("UNIT_DISPLAYPOWER")
     frame:RegisterEvent("UNIT_MODEL_CHANGED")
     frame:RegisterEvent("UNIT_NAME_UPDATE")
+    frame:RegisterEvent("PLAYER_REGEN_ENABLED")
     frame:SetScript("OnEvent", function(self, event, unit)
+        if event == "PLAYER_REGEN_ENABLED" then
+            if self.layoutPending then
+                Player:UpdateLayout(self)
+            end
+            return
+        end
         if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then
             self.portrait:Update()
             self.healthBar:Update()
