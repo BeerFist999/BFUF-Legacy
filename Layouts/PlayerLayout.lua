@@ -286,6 +286,15 @@ function PlayerLayout:ApplyLayout(root, result)
     root:SetScale(result.root.scale)
     applyRootAnchor(root, result.root.anchor)
 
+    -- Apply the visual layer order without changing layout geometry.
+    local rootLevel = root:GetFrameLevel()
+    root.portraitContainer:SetFrameLevel(rootLevel + 2)
+    root.barsContainer:SetFrameLevel(rootLevel + 3)
+    root.highFrame:SetFrameLevel(rootLevel + 4)
+    root.classResourceContainer:SetFrameLevel(rootLevel + 4)
+    root.indicatorLayer:SetFrameLevel(rootLevel + 5)
+    root.overlayContainer:SetFrameLevel(rootLevel + 6)
+
     setRectangle(root.background, root, 0, 0, 0, 0)
     applyBorderGeometry(root.border)
     setRectangle(root.barsContainer, root, 0, 0, 0, 0)
@@ -306,7 +315,7 @@ function PlayerLayout:ApplyLayout(root, result)
 
     if result.portrait.visible then
         setPortraitContainerGeometry(root.portraitContainer, root, result.portrait)
-        setRectangle(root.portrait, root.portraitContainer, 0, 0, 0, 0)
+        setRectangle(root.portrait, root.portraitContainer, 2, -2, -2, 2)
         setRectangle(root.portrait.texture, root.portrait, 0, 0, 0, 0)
         setRectangle(root.portrait.model, root.portrait, 0, 0, 0, 0)
         root.portraitContainer:Show()
