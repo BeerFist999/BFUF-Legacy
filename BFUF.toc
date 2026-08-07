@@ -26,8 +26,12 @@ Elements\\Castbar.lua
 Elements\\Auras.lua
 Elements\\Text.lua
 Elements\\StatusIconResources.lua
-Elements\\CombatIndicator.lua
-Elements\\RestingIndicator.lua
-Elements\\StatusIcons.lua
+Elements\\Indicators\\Combat.lua
+Elements\\Indicators\\Resting.lua
+Elements\\Indicators\\Leader.lua
+Elements\\Indicators\\Assistant.lua
+Elements\\Indicators\\PvP.lua
+Elements\\Indicators\\AFK.lua
+Elements\\Indicators\\DND.lua
 Options\\Options.lua
 Utils\\Helpers.lua

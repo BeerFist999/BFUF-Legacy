@@ -1,14 +1,13 @@
 local addonName, BFUF = ...
 
--- CombatIndicator displays the player's combat state.
--- The module updates its own visibility and contains no Player Frame logic.
+-- Combat owns the player combat indicator.
 BFUF.Elements = BFUF.Elements or {}
+BFUF.Elements.Indicators = BFUF.Elements.Indicators or {}
 
-local CombatIndicator = {}
-BFUF.Elements.CombatIndicator = CombatIndicator
+local Combat = {}
+BFUF.Elements.Indicators.Combat = Combat
 
--- Creates the indicator texture and applies the supplied Layout position.
-function CombatIndicator:Create(parent, layout)
+function Combat:Create(parent, layout)
     local resource = BFUF.Elements.StatusIconResources.ICON_RESOURCES.combat
     local indicator = BFUF.Elements.StatusIconResources:CreateTexture(parent, resource)
 
@@ -22,16 +21,10 @@ function CombatIndicator:Create(parent, layout)
     )
     indicator:Hide()
 
-    -- Shows the indicator only while the player is in combat.
     function indicator:Update()
-        if UnitAffectingCombat("player") then
-            self:Show()
-        else
-            self:Hide()
-        end
+        indicator:SetShown(layout.enabled and UnitAffectingCombat("player"))
     end
 
-    -- Registers only combat start and end events.
     function indicator:RegisterEvents()
         local eventFrame = CreateFrame("Frame")
 

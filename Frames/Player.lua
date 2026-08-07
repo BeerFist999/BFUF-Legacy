@@ -36,55 +36,62 @@ local PLAYER_LAYOUT = {
         size = 12,
         color = { r = 1, g = 1, b = 1, a = 1 },
     },
-    combatIndicator = {
-        size = 16,
-        point = "TOPLEFT",
-        relativePoint = "TOPLEFT",
-        offsetX = 3,
-        offsetY = -3,
-    },
-    restingIndicator = {
-        size = 16,
-        point = "TOPLEFT",
-        relativePoint = "TOPLEFT",
-        offsetX = 21,
-        offsetY = -3,
-    },
-    statusIcons = {
+    indicators = {
+        combat = {
+            size = 16,
+            point = "TOPLEFT",
+            relativePoint = "TOPLEFT",
+            offsetX = 3,
+            offsetY = -3,
+            enabled = true,
+        },
+        resting = {
+            size = 16,
+            point = "TOPLEFT",
+            relativePoint = "TOPLEFT",
+            offsetX = 21,
+            offsetY = -3,
+            enabled = true,
+        },
         leader = {
             size = 12,
             point = "TOPRIGHT",
-            relativePoint = "TOPRIGHT",
-            offsetX = -3,
+            relativePoint = "TOP",
+            offsetX = -1,
             offsetY = -3,
+            enabled = true,
         },
         assistant = {
             size = 12,
-            point = "TOPRIGHT",
-            relativePoint = "TOPRIGHT",
-            offsetX = -17,
+            point = "TOPLEFT",
+            relativePoint = "TOP",
+            offsetX = 1,
             offsetY = -3,
+            enabled = true,
         },
         pvp = {
             size = 12,
-            point = "TOPRIGHT",
-            relativePoint = "TOPRIGHT",
-            offsetX = -31,
-            offsetY = -3,
+            point = "BOTTOMLEFT",
+            relativePoint = "BOTTOMLEFT",
+            offsetX = 3,
+            offsetY = 3,
+            enabled = true,
         },
         afk = {
             size = 12,
-            point = "TOPRIGHT",
-            relativePoint = "TOPRIGHT",
-            offsetX = -3,
-            offsetY = -17,
+            point = "BOTTOMLEFT",
+            relativePoint = "BOTTOMLEFT",
+            offsetX = 17,
+            offsetY = 3,
+            enabled = false,
         },
         dnd = {
             size = 12,
-            point = "TOPRIGHT",
-            relativePoint = "TOPRIGHT",
-            offsetX = -17,
-            offsetY = -17,
+            point = "BOTTOMLEFT",
+            relativePoint = "BOTTOMLEFT",
+            offsetX = 31,
+            offsetY = 3,
+            enabled = false,
         },
     },
 }
@@ -188,17 +195,17 @@ function Player:Create()
     portrait:SetWidth(PLAYER_LAYOUT.portrait.width)
     frame.portrait = portrait
 
-    -- Combat Indicator получает положение из временного Layout Player Frame.
-    local combatIndicator = BFUF.Elements.CombatIndicator:Create(frame, PLAYER_LAYOUT.combatIndicator)
-    frame.combatIndicator = combatIndicator
-
-    -- Resting Indicator также получает положение из временного Layout Player Frame.
-    local restingIndicator = BFUF.Elements.RestingIndicator:Create(frame, PLAYER_LAYOUT.restingIndicator)
-    frame.restingIndicator = restingIndicator
-
-    -- Status Icons only create and update their own icon textures.
-    local statusIcons = BFUF.Elements.StatusIcons:Create(frame, PLAYER_LAYOUT.statusIcons)
-    frame.statusIcons = statusIcons
+    -- Player Frame only creates independent status indicator modules.
+    local indicators = {
+        combat = BFUF.Elements.Indicators.Combat:Create(frame, PLAYER_LAYOUT.indicators.combat),
+        resting = BFUF.Elements.Indicators.Resting:Create(frame, PLAYER_LAYOUT.indicators.resting),
+        leader = BFUF.Elements.Indicators.Leader:Create(frame, PLAYER_LAYOUT.indicators.leader),
+        assistant = BFUF.Elements.Indicators.Assistant:Create(frame, PLAYER_LAYOUT.indicators.assistant),
+        pvp = BFUF.Elements.Indicators.PvP:Create(frame, PLAYER_LAYOUT.indicators.pvp),
+        afk = BFUF.Elements.Indicators.AFK:Create(frame, PLAYER_LAYOUT.indicators.afk),
+        dnd = BFUF.Elements.Indicators.DND:Create(frame, PLAYER_LAYOUT.indicators.dnd),
+    }
+    frame.indicators = indicators
 
     -- Смещение полос рассчитывается из размера портрета, заданного Layout.
     local contentLeftOffset = PLAYER_LAYOUT.portrait.inset + PLAYER_LAYOUT.portrait.width + PLAYER_LAYOUT.health.inset

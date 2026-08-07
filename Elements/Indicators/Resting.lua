@@ -1,14 +1,13 @@
 local addonName, BFUF = ...
 
--- RestingIndicator displays the player's resting state.
--- The module updates its own visibility and contains no Player Frame logic.
+-- Resting owns the player rest indicator.
 BFUF.Elements = BFUF.Elements or {}
+BFUF.Elements.Indicators = BFUF.Elements.Indicators or {}
 
-local RestingIndicator = {}
-BFUF.Elements.RestingIndicator = RestingIndicator
+local Resting = {}
+BFUF.Elements.Indicators.Resting = Resting
 
--- Creates the indicator texture and applies the supplied Layout position.
-function RestingIndicator:Create(parent, layout)
+function Resting:Create(parent, layout)
     local resource = BFUF.Elements.StatusIconResources.ICON_RESOURCES.rest
     local indicator = BFUF.Elements.StatusIconResources:CreateTexture(parent, resource)
 
@@ -22,16 +21,10 @@ function RestingIndicator:Create(parent, layout)
     )
     indicator:Hide()
 
-    -- Shows the indicator only while the player is resting.
     function indicator:Update()
-        if IsResting() then
-            self:Show()
-        else
-            self:Hide()
-        end
+        indicator:SetShown(layout.enabled and IsResting())
     end
 
-    -- Registers resting-state and world-entry events.
     function indicator:RegisterEvents()
         local eventFrame = CreateFrame("Frame")
 
