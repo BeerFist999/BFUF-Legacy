@@ -158,7 +158,7 @@ function Player:Create(parentCategory)
     scroll:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
     scroll:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -28, 0)
     local content = CreateFrame("Frame", nil, scroll)
-    content:SetSize(620, 2060)
+    content:SetSize(620, 4000)
     scroll:SetScrollChild(content)
 
     local controls = {}

@@ -130,6 +130,11 @@ function Player:SavePosition(frame)
     BFUF.Config.Player:RefreshLayoutControls()
 end
 
+function Player:IsLayoutUnlocked()
+    local frame = BFUF.Framework.Registry:GetFrame("player")
+    return frame and frame.layoutUnlocked or false
+end
+
 function Player:SetLayoutUnlocked(unlocked)
     local frame = BFUF.Framework.Registry:GetFrame("player")
     if not frame then
