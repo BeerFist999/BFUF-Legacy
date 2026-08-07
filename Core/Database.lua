@@ -1,56 +1,49 @@
 local addonName, BFUF = ...
 
--- Модуль хранит рабочую копию настроек в локальной таблице.
--- SavedVariables и профили будут подключены позже, поэтому глобальные данные не используются.
 local Database = BFUF.DB
-local configuration = {}
 
--- Рекурсивно дополняет таблицу назначения отсутствующими значениями из таблицы по умолчанию.
--- Уже заданные значения не заменяются, что позволит сохранить пользовательские настройки в будущем.
+-- Copy values recursively without sharing nested tables.
 function Database:CopyDefaults(source, destination)
-    destination = destination or {}
-
-    -- Нетабличный источник не требует копирования.
-    if type(source) ~= "table" then
-        return destination
-    end
-
     for key, value in pairs(source) do
         if type(value) == "table" then
-            -- Для вложенного раздела всегда создаётся отдельная таблица.
-            if type(destination[key]) ~= "table" then
-                destination[key] = {}
-            end
-
+            destination[key] = destination[key] or {}
             self:CopyDefaults(value, destination[key])
         elseif destination[key] == nil then
-            -- Простое значение добавляется, только если оно отсутствует.
             destination[key] = value
         end
     end
-
-    return destination
 end
 
--- Создаёт рабочую конфигурацию на основе значений BFUF.Defaults.
+-- Create the saved-variable database with AceDB defaults.
 function Database:Initialize()
-    configuration = self:CopyDefaults(BFUF.Defaults or {}, {})
-
-    return configuration
-end
-
--- Возвращает всю конфигурацию или указанный раздел настроек.
-function Database:Get(section)
-    if section == nil then
-        return configuration
+    if self.database then
+        return self.database
     end
 
-    return configuration[section]
+    local AceDB = LibStub("AceDB-3.0")
+    self.database = AceDB:New("BFUFDB", BFUF.Defaults, true)
+
+    return self.database
 end
 
--- Восстанавливает рабочую конфигурацию из исходных значений по умолчанию.
-function Database:Reset()
-    configuration = self:CopyDefaults(BFUF.Defaults or {}, {})
+-- Return either the complete active profile or one requested section.
+function Database:Get(section)
+    if not self.database then
+        return nil
+    end
 
-    return configuration
+    if section == nil then
+        return self.database.profile
+    end
+
+    return self.database.profile[section]
+end
+
+-- Reset the active profile to its default values.
+function Database:Reset()
+    if self.database then
+        self.database:ResetProfile()
+    end
+
+    return self:Get()
 end
