@@ -16,9 +16,16 @@ function Portrait:Create(parent)
     local container = CreateFrame("Frame", nil, parent)
 
     local texture = container:CreateTexture(nil, "ARTWORK")
+    texture:SetAllPoints(container)
     container.texture = texture
 
     local model = CreateFrame("PlayerModel", nil, container)
+    model:SetAllPoints(container)
+    model:SetScript("OnShow", function(self)
+        -- Keep the viewport camera consistent after the renderer becomes visible.
+        self:SetPortraitZoom(1)
+        self:SetPosition(0, 0, 0)
+    end)
     model:Hide()
     container.model = model
     container.mode = Portrait.Modes.TWO_D
@@ -45,8 +52,10 @@ function Portrait:Create(parent)
         self:Show()
         if self.mode == Portrait.Modes.THREE_D then
             self.texture:Hide()
+            self.model:ClearModel()
             self.model:SetUnit(self.unit)
             self.model:SetPortraitZoom(1)
+            self.model:SetPosition(0, 0, 0)
             self.model:Show()
         else
             self.model:Hide()
