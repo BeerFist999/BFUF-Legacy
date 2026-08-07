@@ -156,6 +156,11 @@ function Player:SetLayoutUnlocked(unlocked)
     frame.layoutUnlocked = unlocked
     frame:SetMovable(unlocked)
     frame:EnableMouse(unlocked)
+
+    -- The secure interaction layer must not capture input while layout editing.
+    if not InCombatLockdown() then
+        frame.interaction:EnableMouse(not unlocked)
+    end
 end
 
 function Player:Create()
@@ -167,6 +172,14 @@ function Player:Create()
 
     local frame = BFUF.Framework.Factory:CreateUnitFrame("player")
     frame:SetClampedToScreen(true)
+
+    -- Keep secure interaction separate from the movable layout root.
+    local interaction = CreateFrame("Button", nil, frame, "SecureUnitButtonTemplate")
+    interaction:SetAllPoints(frame)
+    interaction:SetAttribute("unit", "player")
+    interaction:SetAttribute("type1", "target")
+    interaction:SetAttribute("type2", "togglemenu")
+    frame.interaction = interaction
     frame:SetScript("OnMouseDown", function(self, button)
         if button ~= "LeftButton" or not self.layoutUnlocked then
             return
