@@ -49,14 +49,16 @@ function Player:Create()
     root.background:SetColorTexture(0, 0, 0, .8)
     root.border = createBorder(root)
 
-    root.portraitContainer = CreateFrame("Frame", nil, root)
-    root.portraitContainer:SetFrameLevel(rootLevel + 2)
     root.barsContainer = CreateFrame("Frame", nil, root)
     root.barsContainer:SetFrameLevel(rootLevel + 2)
-    root.textContainer = CreateFrame("Frame", nil, root.barsContainer)
-    root.textContainer:SetFrameLevel(rootLevel + 4)
-    root.statusIconsContainer = CreateFrame("Frame", nil, root)
-    root.statusIconsContainer:SetFrameLevel(rootLevel + 4)
+    root.portraitContainer = CreateFrame("Frame", nil, root)
+    root.portraitContainer:SetFrameLevel(rootLevel + 3)
+    root.highFrame = CreateFrame("Frame", nil, root)
+    root.highFrame:SetFrameLevel(rootLevel + 4)
+    root.textContainer = root.highFrame
+    root.indicatorLayer = CreateFrame("Frame", nil, root)
+    root.indicatorLayer:SetFrameLevel(rootLevel + 5)
+    root.statusIconsContainer = root.indicatorLayer
     root.classResourceContainer = CreateFrame("Frame", nil, root)
     root.classResourceContainer:SetFrameLevel(rootLevel + 4)
     root.overlayContainer = CreateFrame("Frame", nil, root)
@@ -66,12 +68,22 @@ function Player:Create()
     root.portrait:SetUnit("player")
     root.healthBar = BFUF.Elements.Health:Create(root.barsContainer)
     root.healthBar:SetUnit("player")
+    root.healthBar.background = root.healthBar:CreateTexture(nil, "BACKGROUND")
+    root.healthBar.background:SetColorTexture(0, 0, 0, 0.2)
+
     root.powerBar = BFUF.Elements.Power:Create(root.barsContainer)
     root.powerBar:SetUnit("player")
+    root.powerBar.background = root.powerBar:CreateTexture(nil, "BACKGROUND")
+    root.powerBar.background:SetColorTexture(0, 0, 0, 0.2)
 
-    root.nameText = BFUF.Elements.Text:Create(root.textContainer, { justifyH = "LEFT", justifyV = "MIDDLE" })
-    root.healthText = BFUF.Elements.Text:Create(root.textContainer, { justifyH = "RIGHT", justifyV = "MIDDLE" })
-    root.powerText = BFUF.Elements.Text:Create(root.textContainer, { justifyH = "RIGHT", justifyV = "MIDDLE" })
+    root.layoutBars = {
+        { key = "health", frame = root.healthBar, settingsKey = "health", order = 10 },
+        { key = "power", frame = root.powerBar, settingsKey = "power", order = 20 },
+    }
+
+    root.nameText = BFUF.Elements.Text:Create(root.highFrame, { justifyH = "LEFT", justifyV = "MIDDLE" })
+    root.healthText = BFUF.Elements.Text:Create(root.highFrame, { justifyH = "RIGHT", justifyV = "MIDDLE" })
+    root.powerText = BFUF.Elements.Text:Create(root.highFrame, { justifyH = "RIGHT", justifyV = "MIDDLE" })
 
     root.indicators = {
         combat = BFUF.Elements.Indicators.Combat:Create(root.statusIconsContainer),

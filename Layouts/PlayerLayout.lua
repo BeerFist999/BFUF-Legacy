@@ -9,11 +9,8 @@ local LAYOUT = {
     frameInset = 2,
     barSpacing = 2,
     borderThickness = 1,
-}
-
-local BAR_ORDER = {
-    { key = "health", field = "healthBar", order = 10 },
-    { key = "power", field = "powerBar", order = 20 },
+    portraitFirstOrder = 0,
+    portraitLastOrder = 50,
 }
 
 local INDICATOR_ANCHORS = {
@@ -32,23 +29,22 @@ local function setRectangle(region, parent, left, right, top, bottom)
     region:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", right, bottom)
 end
 
-local function setBarGeometry(bar, parent, left, right, top, height)
+local function setBarGeometry(bar, parent, geometry)
     bar:ClearAllPoints()
-    bar:SetPoint("TOPLEFT", parent, "TOPLEFT", left, top)
-    bar:SetPoint("TOPRIGHT", parent, "TOPRIGHT", right, top)
-    bar:SetHeight(height)
+    bar:SetPoint("TOPLEFT", parent, "TOPLEFT", geometry.left, geometry.top)
+    bar:SetPoint("TOPRIGHT", parent, "TOPRIGHT", geometry.right, geometry.top)
+    bar:SetHeight(geometry.height)
 end
 
-local function setTextAnchor(text, point, relativeTo, relativePoint, offsetX, offsetY)
+local function setTextGeometry(text, geometry)
     text:ClearAllPoints()
-    text:SetPoint(point, relativeTo, relativePoint, offsetX, offsetY)
-end
-
-local function setIndicatorGeometry(indicator, parent, settings, anchor)
-    setRectangle(indicator.holder, parent, 0, 0, 0, 0)
-    indicator:ClearAllPoints()
-    indicator:SetSize(settings.size, settings.size)
-    indicator:SetPoint(anchor.point, parent, anchor.relativePoint, settings.offsetX, settings.offsetY)
+    text:SetPoint(
+        geometry.point,
+        geometry.relativeTo,
+        geometry.relativePoint,
+        geometry.offsetX,
+        geometry.offsetY
+    )
 end
 
 local function applyBorderGeometry(border)
@@ -60,51 +56,279 @@ local function applyBorderGeometry(border)
     setRectangle(border.lines.right, border, -thickness, 0, 0, 0)
 end
 
-local function applyRootAnchor(root, settings)
+local function applyRootAnchor(root, anchor)
     root:ClearAllPoints()
+    root:SetPoint(anchor.point, UIParent, anchor.relativePoint, anchor.offsetX, anchor.offsetY)
+end
 
-    local anchor = settings.positionAnchor
-    if anchor then
-        root:SetPoint(anchor.point, UIParent, anchor.relativePoint, anchor.offsetX, anchor.offsetY)
+-- Build the root data without changing visual components.
+function PlayerLayout:SetupFrame(root, settings)
+    local width = math.max(1, settings.width)
+    local height = math.max(1, settings.height)
+    local anchor = settings.positionAnchor or {
+        point = "CENTER",
+        relativePoint = "CENTER",
+        offsetX = settings.positionX,
+        offsetY = settings.positionY,
+    }
+
+    return {
+        root = {
+            width = width,
+            height = height,
+            scale = settings.scale,
+            anchor = anchor,
+            inset = LAYOUT.frameInset,
+            innerWidth = math.max(1, width - LAYOUT.frameInset * 2),
+            innerHeight = math.max(2, height - LAYOUT.frameInset * 2),
+        },
+        bars = {},
+        portrait = {
+            visible = settings.portrait.mode ~= BFUF.Elements.Portrait.Modes.HIDDEN,
+            mode = settings.portrait.mode,
+        },
+        textRegions = {},
+        indicatorRegions = {},
+        layers = {
+            backdrop = root.background,
+            bars = root.barsContainer,
+            portrait = root.portraitContainer,
+            highFrame = root.highFrame,
+            indicators = root.indicatorLayer,
+            secureInteraction = root.interaction,
+        },
+    }
+end
+
+-- Collect all registered visual bars. Future modules only need to register a descriptor.
+function PlayerLayout:CollectBars(root, settings, result)
+    for _, descriptor in ipairs(root.layoutBars or {}) do
+        local bar = descriptor.frame
+        local section = settings[descriptor.settingsKey] or {}
+        if bar and descriptor.enabled ~= false then
+            table.insert(result.bars, {
+                key = descriptor.key,
+                frame = bar,
+                order = descriptor.order,
+                weight = math.max(1, section.height or descriptor.defaultWeight or 1),
+                portraitCompatible = false,
+            })
+        end
+    end
+end
+
+function PlayerLayout:SortBars(result)
+    table.sort(result.bars, function(left, right)
+        return left.order < right.order
+    end)
+end
+
+-- Select the ordered bar range that shares horizontal space with the portrait.
+function PlayerLayout:ComputePortraitRegion(settings, result)
+    local region = result.portrait
+    if not region.visible then
         return
     end
 
-    root:SetPoint("CENTER", UIParent, "CENTER", settings.positionX, settings.positionY)
-end
+    local firstOrder = settings.portrait.fullBefore or LAYOUT.portraitFirstOrder
+    local lastOrder = settings.portrait.fullAfter or LAYOUT.portraitLastOrder
+    local totalWidth = result.root.innerWidth
+    local portraitWidth = math.min(
+        math.max(1, settings.portrait.width),
+        math.max(1, totalWidth - 1)
+    )
 
-local function resolveBarStack(root, settings, left, right, innerHeight)
-    local totalWeight = 0
-    for _, definition in ipairs(BAR_ORDER) do
-        totalWeight = totalWeight + math.max(1, settings[definition.key].height)
+    region.width = portraitWidth
+    region.left = result.root.inset
+    region.right = -(result.root.width - result.root.inset - portraitWidth)
+    region.firstBar = nil
+    region.lastBar = nil
+
+    for _, bar in ipairs(result.bars) do
+        if bar.order >= firstOrder and bar.order <= lastOrder then
+            bar.portraitCompatible = true
+            region.firstBar = region.firstBar or bar
+            region.lastBar = bar
+        end
     end
 
-    local availableHeight = math.max(2, innerHeight - LAYOUT.barSpacing * (#BAR_ORDER - 1))
+    if not region.firstBar then
+        region.visible = false
+    end
+end
+
+-- Resolve every bar from order and weight. No component chooses its own geometry.
+function PlayerLayout:ComputeBarGeometry(result)
+    local count = #result.bars
+    if count == 0 then
+        return
+    end
+
+    local totalWeight = 0
+    for _, bar in ipairs(result.bars) do
+        totalWeight = totalWeight + bar.weight
+    end
+
+    local availableHeight = math.max(
+        count,
+        result.root.innerHeight - LAYOUT.barSpacing * (count - 1)
+    )
     local consumedHeight = 0
-    local top = 0
+    local top = -result.root.inset
 
-    for index, definition in ipairs(BAR_ORDER) do
-        local bar = root[definition.field]
-        local weight = math.max(1, settings[definition.key].height)
+    for index, bar in ipairs(result.bars) do
         local height
-
-        if index == #BAR_ORDER then
+        if index == count then
             height = availableHeight - consumedHeight
         else
-            height = math.max(
-                1,
-                math.floor(availableHeight * weight / totalWeight + 0.5)
-            )
-            height = math.min(height, availableHeight - consumedHeight - 1)
+            height = math.max(1, math.floor(availableHeight * bar.weight / totalWeight + 0.5))
+            height = math.min(height, availableHeight - consumedHeight - (count - index))
         end
 
-        setBarGeometry(bar, root.barsContainer, left, right, top, height)
+        local left = result.root.inset
+        local right = -result.root.inset
+        if result.portrait.visible and bar.portraitCompatible then
+            left = left + result.portrait.width
+        end
+
+        bar.geometry = {
+            left = left,
+            right = right,
+            top = top,
+            height = height,
+            bottom = top - height,
+        }
 
         consumedHeight = consumedHeight + height
         top = top - height - LAYOUT.barSpacing
     end
+
+    local portrait = result.portrait
+    if portrait.visible then
+        portrait.top = portrait.firstBar.geometry.top
+        portrait.bottom = portrait.lastBar.geometry.bottom
+    end
 end
 
--- Apply BFUF's SUF-style ordered bar and portrait layout in one pass.
+function PlayerLayout:ComputeTextRegions(settings, result)
+    local bars = {}
+    for _, bar in ipairs(result.bars) do
+        bars[bar.key] = bar.frame
+    end
+
+    local texts = settings.texts
+    result.textRegions.name = {
+        point = "LEFT",
+        relativeTo = bars.health,
+        relativePoint = "LEFT",
+        offsetX = texts.name.offsetX,
+        offsetY = texts.name.offsetY,
+    }
+    result.textRegions.health = {
+        point = "RIGHT",
+        relativeTo = bars.health,
+        relativePoint = "RIGHT",
+        offsetX = texts.health.offsetX,
+        offsetY = texts.health.offsetY,
+    }
+    result.textRegions.power = {
+        point = "RIGHT",
+        relativeTo = bars.power,
+        relativePoint = "RIGHT",
+        offsetX = texts.power.offsetX,
+        offsetY = texts.power.offsetY,
+    }
+end
+
+function PlayerLayout:ComputeIndicatorRegions(settings, result)
+    for name, settingsEntry in pairs(settings.indicators) do
+        local anchor = INDICATOR_ANCHORS[name]
+        if anchor then
+            result.indicatorRegions[name] = {
+                point = anchor.point,
+                relativePoint = anchor.relativePoint,
+                offsetX = settingsEntry.offsetX,
+                offsetY = settingsEntry.offsetY,
+                size = settingsEntry.size,
+            }
+        end
+    end
+end
+
+function PlayerLayout:ApplyLayout(root, result)
+    root:SetSize(result.root.width, result.root.height)
+    root:SetScale(result.root.scale)
+    applyRootAnchor(root, result.root.anchor)
+
+    setRectangle(root.background, root, 0, 0, 0, 0)
+    applyBorderGeometry(root.border)
+    setRectangle(root.barsContainer, root, 0, 0, 0, 0)
+    setRectangle(root.highFrame, root, 0, 0, 0, 0)
+    setRectangle(root.indicatorLayer, root, 0, 0, 0, 0)
+    setRectangle(root.classResourceContainer, root, 0, 0, 0, 0)
+    setRectangle(root.overlayContainer, root, 0, 0, 0, 0)
+
+    for _, bar in ipairs(result.bars) do
+        setBarGeometry(bar.frame, root.barsContainer, bar.geometry)
+        if bar.frame.background then
+            setRectangle(bar.frame.background, bar.frame, 0, 0, 0, 0)
+        end
+    end
+
+    setRectangle(root.healthBar.absorbBar, root.healthBar, 0, 0, 0, 0)
+    setRectangle(root.healthBar.healAbsorbBar, root.healthBar, 0, 0, 0, 0)
+
+    if result.portrait.visible then
+        setRectangle(
+            root.portraitContainer,
+            root,
+            result.portrait.left,
+            result.portrait.right,
+            result.portrait.top,
+            result.portrait.bottom
+        )
+        setRectangle(root.portrait, root.portraitContainer, 0, 0, 0, 0)
+        setRectangle(root.portrait.texture, root.portrait, 0, 0, 0, 0)
+        setRectangle(root.portrait.model, root.portrait, 0, 0, 0, 0)
+        root.portraitContainer:Show()
+    else
+        root.portraitContainer:Hide()
+    end
+
+    setTextGeometry(root.nameText, result.textRegions.name)
+    setTextGeometry(root.healthText, result.textRegions.health)
+    setTextGeometry(root.powerText, result.textRegions.power)
+
+    for name, region in pairs(result.indicatorRegions) do
+        local indicator = root.indicators[name]
+        if indicator then
+            setRectangle(indicator.holder, root.indicatorLayer, 0, 0, 0, 0)
+            indicator:ClearAllPoints()
+            indicator:SetSize(region.size, region.size)
+            indicator:SetPoint(
+                region.point,
+                root.indicatorLayer,
+                region.relativePoint,
+                region.offsetX,
+                region.offsetY
+            )
+        end
+    end
+end
+
+function PlayerLayout:NotifyModules(root, result)
+    root.portrait:SetMode(result.portrait.mode)
+    root.healthBar:UpdateStyle()
+    root.powerBar:UpdateStyle()
+
+    for _, module in ipairs(root.layoutModules or {}) do
+        if module.OnLayoutApplied then
+            module:OnLayoutApplied(root, result)
+        end
+    end
+end
+
+-- Run the complete Player layout pipeline from a single authority.
 function PlayerLayout:Apply(root)
     if InCombatLockdown() then
         root.layoutPending = true
@@ -112,72 +336,16 @@ function PlayerLayout:Apply(root)
     end
 
     local settings = BFUF.DB:Get("Player")
-    local portrait = settings.portrait
-    local width = math.max(1, settings.width)
-    local height = math.max(1, settings.height)
-    local inset = LAYOUT.frameInset
-    local innerWidth = math.max(1, width - inset * 2)
-    local innerHeight = math.max(2, height - inset * 2)
+    local result = self:SetupFrame(root, settings)
+    self:CollectBars(root, settings, result)
+    self:SortBars(result)
+    self:ComputePortraitRegion(settings, result)
+    self:ComputeBarGeometry(result)
+    self:ComputeTextRegions(settings, result)
+    self:ComputeIndicatorRegions(settings, result)
+    self:ApplyLayout(root, result)
+    self:NotifyModules(root, result)
 
-    root:SetSize(width, height)
-    root:SetScale(settings.scale)
-    applyRootAnchor(root, settings)
-
-    setRectangle(root.background, root, 0, 0, 0, 0)
-    applyBorderGeometry(root.border)
-    setRectangle(root.barsContainer, root, inset, -inset, -inset, inset)
-    setRectangle(root.textContainer, root.barsContainer, 0, 0, 0, 0)
-    setRectangle(root.statusIconsContainer, root, 0, 0, 0, 0)
-    setRectangle(root.classResourceContainer, root, inset, -inset, -inset, inset)
-    setRectangle(root.overlayContainer, root, inset, -inset, -inset, inset)
-
-    local portraitVisible = portrait.mode ~= BFUF.Elements.Portrait.Modes.HIDDEN
-    local barsLeft = 0
-
-    if portraitVisible then
-        local portraitWidth = math.min(
-            math.max(1, portrait.width),
-            math.max(1, innerWidth - 1)
-        )
-
-        setRectangle(
-            root.portraitContainer,
-            root,
-            inset,
-            -(width - inset - portraitWidth),
-            -inset,
-            inset
-        )
-        root.portraitContainer:Show()
-        setRectangle(root.portrait, root.portraitContainer, 0, 0, 0, 0)
-        setRectangle(root.portrait.texture, root.portrait, 0, 0, 0, 0)
-        setRectangle(root.portrait.model, root.portrait, 0, 0, 0, 0)
-
-        barsLeft = portraitWidth
-    else
-        root.portraitContainer:Hide()
-    end
-
-    resolveBarStack(root, settings, barsLeft, 0, innerHeight)
-    setRectangle(root.healthBar.absorbBar, root.healthBar, 0, 0, 0, 0)
-    setRectangle(root.healthBar.healAbsorbBar, root.healthBar, 0, 0, 0, 0)
-
-    local texts = settings.texts
-    setTextAnchor(root.nameText, "LEFT", root.healthBar, "LEFT", texts.name.offsetX, texts.name.offsetY)
-    setTextAnchor(root.healthText, "RIGHT", root.healthBar, "RIGHT", texts.health.offsetX, texts.health.offsetY)
-    setTextAnchor(root.powerText, "RIGHT", root.powerBar, "RIGHT", texts.power.offsetX, texts.power.offsetY)
-
-    for name, indicator in pairs(root.indicators) do
-        setIndicatorGeometry(
-            indicator,
-            root.statusIconsContainer,
-            settings.indicators[name],
-            INDICATOR_ANCHORS[name]
-        )
-    end
-
-    root.portrait:SetMode(portrait.mode)
-    root.healthBar:UpdateStyle()
-    root.powerBar:UpdateStyle()
+    root.layoutResult = result
     root.layoutPending = false
 end
