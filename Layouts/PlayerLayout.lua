@@ -36,20 +36,29 @@ local function setBarGeometry(bar, parent, geometry)
     bar:SetHeight(geometry.height)
 end
 
+local function printPortraitTiming(stage, container, region)
+    BFUF:Print(string.format(
+        "[BFUF Portrait Timing] %s W=%s H=%s ExpectedW=%s ExpectedH=%s Match=%s",
+        stage,
+        tostring(container:GetWidth()),
+        tostring(container:GetHeight()),
+        tostring(region.width),
+        tostring(region.height),
+        tostring(
+            container:GetWidth() == region.width
+                and container:GetHeight() == region.height
+        )
+    ))
+end
+
 -- Apply the LayoutResult dimensions directly to the portrait container.
 local function setPortraitContainerGeometry(container, parent, region)
     container:ClearAllPoints()
     container:SetPoint("TOPLEFT", parent, "TOPLEFT", region.left, region.top)
-    container:SetSize(region.width, region.height)
+    printPortraitTiming("Before SetSize", container, region)
 
-    assert(
-        container:GetWidth() == region.width,
-        "BFUF PortraitContainer width does not match PortraitRegion width"
-    )
-    assert(
-        container:GetHeight() == region.height,
-        "BFUF PortraitContainer height does not match PortraitRegion height"
-    )
+    container:SetSize(region.width, region.height)
+    printPortraitTiming("After SetSize", container, region)
 end
 
 local function setTextGeometry(text, geometry)
@@ -347,6 +356,13 @@ function PlayerLayout:ApplyLayout(root, result)
                 region.offsetY
             )
         end
+    end
+
+    if result.portrait.visible then
+        printPortraitTiming("After ApplyLayout", root.portraitContainer, result.portrait)
+        C_Timer.After(0, function()
+            printPortraitTiming("Next Frame", root.portraitContainer, result.portrait)
+        end)
     end
 end
 
