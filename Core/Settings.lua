@@ -496,6 +496,81 @@ function SettingsModule:ShowPlayerHealthPage(pages)
     self.playerHealthControls = controls
 end
 
+-- Show the Player power page using the existing power profile fields.
+function SettingsModule:ShowPlayerPowerPage(pages)
+    local controls = {}
+
+    local function updatePower()
+        BFUF.Frames.Player:UpdateLayout()
+    end
+
+    local function resetPower()
+        local power = BFUF.DB:Get("Player").power
+        local defaults = BFUF.Defaults.profile.Player.power
+        power.height = defaults.height
+        power.colorMode = defaults.colorMode
+        power.customColor = {
+            r = defaults.customColor.r,
+            g = defaults.customColor.g,
+            b = defaults.customColor.b,
+        }
+        updatePower()
+
+        if controls.height then
+            controls.height.Refresh()
+        end
+    end
+
+    pages:ShowPage(BFUF.L.SETTINGS_PLAYER_POWER, nil, true, function(page)
+        UI.SectionPanel:Create(page, BFUF.L.SECTION_POWER, -36)
+
+        controls.height = UI.SliderRow:Create(
+            page,
+            BFUF.L.OPTION_POWER_HEIGHT,
+            -66,
+            4,
+            100,
+            1,
+            function()
+                return BFUF.DB:Get("Player").power.height
+            end,
+            function(value)
+                BFUF.DB:Get("Player").power.height = value
+                updatePower()
+            end
+        )
+
+        local resourceButton = UI.ButtonRow:Create(page, BFUF.L.OPTION_RESOURCE_COLOR, -124, function()
+            BFUF.DB:Get("Player").power.colorMode = "resource"
+            updatePower()
+        end)
+        resourceButton:SetSize(150, 24)
+
+        local customButton = UI.ButtonRow:Create(page, BFUF.L.OPTION_CUSTOM_COLOR, -124, function()
+            BFUF.DB:Get("Player").power.colorMode = "custom"
+            updatePower()
+        end)
+        customButton:ClearAllPoints()
+        customButton:SetPoint("LEFT", resourceButton, "RIGHT", 8, 0)
+        customButton:SetSize(150, 24)
+
+        UI.ColorRow:Create(
+            page,
+            BFUF.L.BUTTON_SELECT_COLOR,
+            -158,
+            function()
+                return BFUF.DB:Get("Player").power.customColor
+            end,
+            function(color)
+                BFUF.DB:Get("Player").power.customColor = color
+                updatePower()
+            end
+        )
+    end, resetPower)
+
+    self.playerPowerControls = controls
+end
+
 -- Show the Player portrait page using the existing portrait profile fields.
 function SettingsModule:ShowPlayerPortraitPage(pages)
     local controls = {}
@@ -600,6 +675,11 @@ function SettingsModule:ShowPlayerPage()
 
             if currentEntry.key == "health" then
                 self:ShowPlayerHealthPage(pages)
+                return
+            end
+
+            if currentEntry.key == "power" then
+                self:ShowPlayerPowerPage(pages)
                 return
             end
 
