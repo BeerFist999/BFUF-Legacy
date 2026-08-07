@@ -1,16 +1,32 @@
 local addonName, BFUF = ...
 
--- Assistant owns the player assistant indicator.
+-- Assistant manages its own player status indicator.
 BFUF.Elements = BFUF.Elements or {}
 BFUF.Elements.Indicators = BFUF.Elements.Indicators or {}
 
 local Assistant = {}
 BFUF.Elements.Indicators.Assistant = Assistant
 
+local function applyResource(texture, resource)
+    if resource.type == "atlas" then
+        texture:SetAtlas(resource.value)
+    else
+        texture:SetTexture(resource.value)
+    end
+
+    if resource.texCoord then
+        texture:SetTexCoord(unpack(resource.texCoord))
+    end
+end
+
 function Assistant:Create(parent, layout)
     local resource = BFUF.Elements.StatusIconResources.ICON_RESOURCES.assistant
-    local indicator = BFUF.Elements.StatusIconResources:CreateTexture(parent, resource)
+    local holder = CreateFrame("Frame", nil, parent)
+    holder:SetAllPoints(parent)
+    holder:SetFrameLevel(parent:GetFrameLevel() + 20)
 
+    local indicator = holder:CreateTexture(nil, "OVERLAY", nil, 7)
+    applyResource(indicator, resource)
     indicator:SetSize(layout.size, layout.size)
     indicator:SetPoint(
         layout.point,
@@ -21,24 +37,23 @@ function Assistant:Create(parent, layout)
     )
     indicator:Hide()
 
-    function indicator:Update()
-        indicator:SetShown(layout.enabled and UnitIsGroupAssistant("player"))
+    local function update()
+        local isAssistant = UnitIsGroupAssistant("player")
+
+        if not issecretvalue(isAssistant) and isAssistant then
+            indicator:Show()
+        else
+            indicator:Hide()
+        end
     end
 
-    function indicator:RegisterEvents()
-        local eventFrame = CreateFrame("Frame")
-
-        eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    local eventFrame = CreateFrame("Frame", nil, holder)
+        eventFrame:RegisterEvent("PARTY_LEADER_CHANGED")
         eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
-        eventFrame:SetScript("OnEvent", function()
-            self:Update()
-        end)
+        eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+        eventFrame:SetScript("OnEvent", update)
 
-        self.eventFrame = eventFrame
-    end
-
-    indicator:RegisterEvents()
-    indicator:Update()
+    update()
 
     return indicator
 end

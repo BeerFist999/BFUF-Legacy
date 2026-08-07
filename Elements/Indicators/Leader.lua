@@ -1,16 +1,32 @@
 local addonName, BFUF = ...
 
--- Leader owns the player leader indicator.
+-- Leader manages its own player status indicator.
 BFUF.Elements = BFUF.Elements or {}
 BFUF.Elements.Indicators = BFUF.Elements.Indicators or {}
 
 local Leader = {}
 BFUF.Elements.Indicators.Leader = Leader
 
+local function applyResource(texture, resource)
+    if resource.type == "atlas" then
+        texture:SetAtlas(resource.value)
+    else
+        texture:SetTexture(resource.value)
+    end
+
+    if resource.texCoord then
+        texture:SetTexCoord(unpack(resource.texCoord))
+    end
+end
+
 function Leader:Create(parent, layout)
     local resource = BFUF.Elements.StatusIconResources.ICON_RESOURCES.leader
-    local indicator = BFUF.Elements.StatusIconResources:CreateTexture(parent, resource)
+    local holder = CreateFrame("Frame", nil, parent)
+    holder:SetAllPoints(parent)
+    holder:SetFrameLevel(parent:GetFrameLevel() + 20)
 
+    local indicator = holder:CreateTexture(nil, "OVERLAY", nil, 7)
+    applyResource(indicator, resource)
     indicator:SetSize(layout.size, layout.size)
     indicator:SetPoint(
         layout.point,
@@ -19,7 +35,25 @@ function Leader:Create(parent, layout)
         layout.offsetX,
         layout.offsetY
     )
-    indicator:Show()
+    indicator:Hide()
+
+    local function update()
+        local isLeader = UnitIsGroupLeader("player")
+
+        if not issecretvalue(isLeader) and isLeader then
+            indicator:Show()
+        else
+            indicator:Hide()
+        end
+    end
+
+    local eventFrame = CreateFrame("Frame", nil, holder)
+        eventFrame:RegisterEvent("PARTY_LEADER_CHANGED")
+        eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+        eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+        eventFrame:SetScript("OnEvent", update)
+
+    update()
 
     return indicator
 end

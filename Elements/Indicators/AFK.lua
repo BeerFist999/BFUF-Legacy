@@ -1,16 +1,32 @@
 local addonName, BFUF = ...
 
--- AFK owns the player afk indicator.
+-- AFK manages its own player status indicator.
 BFUF.Elements = BFUF.Elements or {}
 BFUF.Elements.Indicators = BFUF.Elements.Indicators or {}
 
 local AFK = {}
 BFUF.Elements.Indicators.AFK = AFK
 
+local function applyResource(texture, resource)
+    if resource.type == "atlas" then
+        texture:SetAtlas(resource.value)
+    else
+        texture:SetTexture(resource.value)
+    end
+
+    if resource.texCoord then
+        texture:SetTexCoord(unpack(resource.texCoord))
+    end
+end
+
 function AFK:Create(parent, layout)
     local resource = BFUF.Elements.StatusIconResources.ICON_RESOURCES.afk
-    local indicator = BFUF.Elements.StatusIconResources:CreateTexture(parent, resource)
+    local holder = CreateFrame("Frame", nil, parent)
+    holder:SetAllPoints(parent)
+    holder:SetFrameLevel(parent:GetFrameLevel() + 20)
 
+    local indicator = holder:CreateTexture(nil, "OVERLAY", nil, 7)
+    applyResource(indicator, resource)
     indicator:SetSize(layout.size, layout.size)
     indicator:SetPoint(
         layout.point,
@@ -21,26 +37,24 @@ function AFK:Create(parent, layout)
     )
     indicator:Hide()
 
-    function indicator:Update()
-        indicator:SetShown(layout.enabled and UnitIsAFK("player"))
+    local function update()
+        if layout.enabled and UnitIsAFK("player") then
+            indicator:Show()
+        else
+            indicator:Hide()
+        end
     end
 
-    function indicator:RegisterEvents()
-        local eventFrame = CreateFrame("Frame")
-
+    local eventFrame = CreateFrame("Frame", nil, holder)
         eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
         eventFrame:RegisterEvent("PLAYER_FLAGS_CHANGED")
         eventFrame:SetScript("OnEvent", function(_, _, unit)
             if not unit or unit == "player" then
-                self:Update()
+                update()
             end
         end)
 
-        self.eventFrame = eventFrame
-    end
-
-    indicator:RegisterEvents()
-    indicator:Update()
+    update()
 
     return indicator
 end
