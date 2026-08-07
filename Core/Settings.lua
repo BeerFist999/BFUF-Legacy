@@ -393,6 +393,109 @@ function SettingsModule:ShowPlayerGeneralPage(pages)
     self.playerGeneralControls = controls
 end
 
+-- Show the Player health page using the existing health profile fields.
+function SettingsModule:ShowPlayerHealthPage(pages)
+    local controls = {}
+
+    local function updateHealth()
+        BFUF.Frames.Player:UpdateLayout()
+    end
+
+    local function resetHealth()
+        local health = BFUF.DB:Get("Player").health
+        local defaults = BFUF.Defaults.profile.Player.health
+        health.height = defaults.height
+        health.colorMode = defaults.colorMode
+        health.customColor = {
+            r = defaults.customColor.r,
+            g = defaults.customColor.g,
+            b = defaults.customColor.b,
+        }
+        health.showAbsorb = defaults.showAbsorb
+        health.showHealAbsorb = defaults.showHealAbsorb
+        updateHealth()
+
+        if controls.height then
+            controls.height.Refresh()
+        end
+    end
+
+    pages:ShowPage(BFUF.L.SETTINGS_PLAYER_HEALTH, nil, true, function(page)
+        UI.SectionPanel:Create(page, BFUF.L.SECTION_HEALTH, -36)
+
+        controls.height = UI.SliderRow:Create(
+            page,
+            BFUF.L.OPTION_HEALTH_HEIGHT,
+            -66,
+            10,
+            160,
+            1,
+            function()
+                return BFUF.DB:Get("Player").health.height
+            end,
+            function(value)
+                BFUF.DB:Get("Player").health.height = value
+                updateHealth()
+            end
+        )
+
+        local classButton = UI.ButtonRow:Create(page, BFUF.L.OPTION_CLASS_COLOR, -124, function()
+            BFUF.DB:Get("Player").health.colorMode = "class"
+            updateHealth()
+        end)
+        classButton:SetSize(150, 24)
+
+        local customButton = UI.ButtonRow:Create(page, BFUF.L.OPTION_CUSTOM_COLOR, -124, function()
+            BFUF.DB:Get("Player").health.colorMode = "custom"
+            updateHealth()
+        end)
+        customButton:ClearAllPoints()
+        customButton:SetPoint("LEFT", classButton, "RIGHT", 8, 0)
+        customButton:SetSize(150, 24)
+
+        UI.ColorRow:Create(
+            page,
+            BFUF.L.BUTTON_SELECT_COLOR,
+            -158,
+            function()
+                return BFUF.DB:Get("Player").health.customColor
+            end,
+            function(color)
+                BFUF.DB:Get("Player").health.customColor = color
+                updateHealth()
+            end
+        )
+
+        UI.CheckboxRow:Create(
+            page,
+            BFUF.L.OPTION_SHOW_ABSORB,
+            -194,
+            function()
+                return BFUF.DB:Get("Player").health.showAbsorb
+            end,
+            function(value)
+                BFUF.DB:Get("Player").health.showAbsorb = value
+                updateHealth()
+            end
+        )
+
+        UI.CheckboxRow:Create(
+            page,
+            BFUF.L.OPTION_SHOW_HEAL_ABSORB,
+            -222,
+            function()
+                return BFUF.DB:Get("Player").health.showHealAbsorb
+            end,
+            function(value)
+                BFUF.DB:Get("Player").health.showHealAbsorb = value
+                updateHealth()
+            end
+        )
+    end, resetHealth)
+
+    self.playerHealthControls = controls
+end
+
 -- Show the Player portrait page using the existing portrait profile fields.
 function SettingsModule:ShowPlayerPortraitPage(pages)
     local controls = {}
@@ -492,6 +595,11 @@ function SettingsModule:ShowPlayerPage()
 
             if currentEntry.key == "portrait" then
                 self:ShowPlayerPortraitPage(pages)
+                return
+            end
+
+            if currentEntry.key == "health" then
+                self:ShowPlayerHealthPage(pages)
                 return
             end
 
