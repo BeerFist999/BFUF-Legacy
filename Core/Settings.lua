@@ -571,6 +571,134 @@ function SettingsModule:ShowPlayerPowerPage(pages)
     self.playerPowerControls = controls
 end
 
+-- Show one existing status indicator without changing its runtime logic.
+function SettingsModule:ShowPlayerIndicatorPage(pages, indicatorKey, title)
+    local controls = {}
+
+    local function updateIndicators()
+        BFUF.Frames.Player:UpdateLayout()
+    end
+
+    local function resetIndicator()
+        BFUF.DB:Get("Player").indicators[indicatorKey] = copyProfileValue(
+            BFUF.Defaults.profile.Player.indicators[indicatorKey]
+        )
+        updateIndicators()
+
+        for _, control in pairs(controls) do
+            control.Refresh()
+        end
+    end
+
+    pages:ShowPage(title, nil, true, function(page)
+        UI.SectionPanel:Create(page, title, -36)
+
+        UI.CheckboxRow:Create(
+            page,
+            BFUF.L.OPTION_ENABLE,
+            -66,
+            function()
+                return BFUF.DB:Get("Player").indicators[indicatorKey].enabled
+            end,
+            function(value)
+                BFUF.DB:Get("Player").indicators[indicatorKey].enabled = value
+                updateIndicators()
+            end
+        )
+
+        controls.size = UI.SliderRow:Create(
+            page,
+            BFUF.L.OPTION_SIZE,
+            -94,
+            8,
+            64,
+            1,
+            function()
+                return BFUF.DB:Get("Player").indicators[indicatorKey].size
+            end,
+            function(value)
+                BFUF.DB:Get("Player").indicators[indicatorKey].size = value
+                updateIndicators()
+            end
+        )
+
+        controls.offsetX = UI.SliderRow:Create(
+            page,
+            BFUF.L.OPTION_OFFSET_X,
+            -152,
+            -200,
+            200,
+            1,
+            function()
+                return BFUF.DB:Get("Player").indicators[indicatorKey].offsetX
+            end,
+            function(value)
+                BFUF.DB:Get("Player").indicators[indicatorKey].offsetX = value
+                updateIndicators()
+            end
+        )
+
+        controls.offsetY = UI.SliderRow:Create(
+            page,
+            BFUF.L.OPTION_OFFSET_Y,
+            -210,
+            -200,
+            200,
+            1,
+            function()
+                return BFUF.DB:Get("Player").indicators[indicatorKey].offsetY
+            end,
+            function(value)
+                BFUF.DB:Get("Player").indicators[indicatorKey].offsetY = value
+                updateIndicators()
+            end
+        )
+    end, resetIndicator)
+
+    self.playerIndicatorControls = self.playerIndicatorControls or {}
+    self.playerIndicatorControls[indicatorKey] = controls
+end
+
+-- Show the local navigation for the existing player indicators.
+function SettingsModule:ShowPlayerIndicatorsPage(pages)
+    local page = pages:ShowPage(BFUF.L.SETTINGS_PLAYER_INDICATORS, nil, false)
+
+    local navigation = UI.NavigationList:Create(page, 120)
+    navigation.frame:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -34)
+    navigation.frame:SetPoint("BOTTOMLEFT", page, "BOTTOMLEFT", 0, 0)
+
+    local divider = page:CreateTexture(nil, "ARTWORK")
+    divider:SetPoint("TOPLEFT", navigation.frame, "TOPRIGHT", 10, 0)
+    divider:SetPoint("BOTTOMLEFT", navigation.frame, "BOTTOMRIGHT", 10, 0)
+    divider:SetWidth(1)
+    divider:SetColorTexture(0.35, 0.35, 0.35, 0.8)
+
+    local localHost = CreateFrame("Frame", nil, page)
+    localHost:SetPoint("TOPLEFT", divider, "TOPRIGHT", 12, 0)
+    localHost:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", 0, 0)
+    local indicatorPages = UI.PagePanel:Create(localHost)
+
+    local entries = {
+        { key = "combat", label = BFUF.L.INDICATOR_COMBAT },
+        { key = "resting", label = BFUF.L.INDICATOR_RESTING },
+        { key = "leader", label = BFUF.L.INDICATOR_LEADER },
+        { key = "assistant", label = BFUF.L.INDICATOR_ASSISTANT },
+        { key = "pvp", label = BFUF.L.INDICATOR_PVP },
+        { key = "afk", label = BFUF.L.INDICATOR_AFK },
+        { key = "dnd", label = BFUF.L.INDICATOR_DND },
+    }
+
+    for _, entry in ipairs(entries) do
+        local currentEntry = entry
+        currentEntry.onSelect = function()
+            self:ShowPlayerIndicatorPage(indicatorPages, currentEntry.key, currentEntry.label)
+        end
+        navigation:AddEntry(currentEntry)
+    end
+
+    navigation:Select("combat")
+end
+
 -- Copy a profile value without sharing nested color tables.
 local function copyProfileValue(source)
     if type(source) ~= "table" then
@@ -847,6 +975,11 @@ function SettingsModule:ShowPlayerPage()
 
             if currentEntry.key == "text" then
                 self:ShowPlayerTextPage(pages)
+                return
+            end
+
+            if currentEntry.key == "indicators" then
+                self:ShowPlayerIndicatorsPage(pages)
                 return
             end
 
