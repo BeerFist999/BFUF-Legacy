@@ -123,18 +123,22 @@ function Player:UpdateLayout(frame)
 end
 
 function Player:SavePosition(frame)
-    local centerX, centerY = frame:GetCenter()
-    local parentX, parentY = UIParent:GetCenter()
-    if not centerX or not parentX then
+    local parentScale = UIParent:GetEffectiveScale()
+    local left = frame:GetLeft()
+    local bottom = frame:GetBottom()
+
+    if not left or not bottom then
         return
     end
 
-    local parentScale = UIParent:GetEffectiveScale()
+    local frameScale = frame:GetScale()
     local settings = BFUF.DB:Get("Player")
+    local parentWidth = UIParent:GetWidth()
+    local parentHeight = UIParent:GetHeight()
 
-    -- GetCenter returns screen coordinates. Convert them back to UIParent units only.
-    settings.positionX = math.floor((centerX - parentX) / parentScale + 0.5)
-    settings.positionY = math.floor((centerY - parentY) / parentScale + 0.5)
+    -- Store the visual centre in UIParent coordinates, including frame scale.
+    settings.positionX = math.floor((left / parentScale) + (frame:GetWidth() * frameScale / 2) - (parentWidth / 2) + 0.5)
+    settings.positionY = math.floor((bottom / parentScale) + (frame:GetHeight() * frameScale / 2) - (parentHeight / 2) + 0.5)
     BFUF.Config.Player:RefreshLayoutControls()
 end
 
@@ -163,25 +167,42 @@ function Player:Create()
 
     local frame = BFUF.Framework.Factory:CreateUnitFrame("player")
     frame:SetClampedToScreen(true)
-    frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", function(self)
-        if self.layoutUnlocked then
-            self.isDragging = true
-            self:StartMoving()
+    frame:SetScript("OnMouseDown", function(self, button)
+        if button ~= "LeftButton" or not self.layoutUnlocked then
+            return
         end
+
+        local parentScale = UIParent:GetEffectiveScale()
+        local cursorX, cursorY = GetCursorPosition()
+        local left, bottom = self:GetLeft(), self:GetBottom()
+        if not left or not bottom then
+            return
+        end
+
+        self.isDragging = true
+        self.dragOffsetX = cursorX / parentScale - left / parentScale
+        self.dragOffsetY = cursorY / parentScale - bottom / parentScale
     end)
-    frame:SetScript("OnDragStop", function(self)
-        if self.isDragging then
-            self:StopMovingOrSizing()
+    frame:SetScript("OnMouseUp", function(self, button)
+        if button == "LeftButton" and self.isDragging then
             self.isDragging = false
             Player:SavePosition(self)
             Player:UpdateLayout(self)
         end
     end)
     frame:SetScript("OnUpdate", function(self)
-        if self.isDragging then
-            Player:SavePosition(self)
+        if not self.isDragging then
+            return
         end
+
+        local parentScale = UIParent:GetEffectiveScale()
+        local cursorX, cursorY = GetCursorPosition()
+        local left = cursorX / parentScale - self.dragOffsetX
+        local bottom = cursorY / parentScale - self.dragOffsetY
+
+        self:ClearAllPoints()
+        self:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", left, bottom)
+        Player:SavePosition(self)
     end)
 
     local background = BFUF.Framework.Factory:CreateTexture(frame)
