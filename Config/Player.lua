@@ -20,14 +20,6 @@ local function normalizeValue(value, option)
     return math.floor((value - option.minValue) / option.step + 0.5) * option.step + option.minValue
 end
 
-local function getSection(path)
-    local section = BFUF.DB:Get("Player")
-    for _, key in ipairs(path) do
-        section = section[key]
-    end
-    return section
-end
-
 local function createLabel(parent, text, y)
     local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
     label:SetPoint("TOPLEFT", parent, "TOPLEFT", 20, y)
@@ -163,8 +155,6 @@ function Player:Create(parentCategory)
 
     local controls = {}
     self.controls = controls
-    local settings = BFUF.DB:Get("Player")
-
     createLabel(content, BFUF.L.SECTION_LAYOUT, -20)
     local layoutKeys = { "width", "height", "scale", "positionX", "positionY" }
     for index, key in ipairs(layoutKeys) do
@@ -222,7 +212,6 @@ function Player:Create(parentCategory)
     end
     local portraitOptions = {
         { key = "width", label = "OPTION_PORTRAIT_WIDTH", minValue = 20, maxValue = 160, step = 1 },
-        { key = "height", label = "OPTION_PORTRAIT_HEIGHT", minValue = 20, maxValue = 160, step = 1 },
     }
     for index, option in ipairs(portraitOptions) do
         local optionKey = option.key
@@ -235,8 +224,6 @@ function Player:Create(parentCategory)
     createLabel(content, BFUF.L.SECTION_HEALTH, -730)
     local healthOptions = {
         { key = "height", label = "OPTION_HEALTH_HEIGHT", minValue = 10, maxValue = 160, step = 1 },
-        { key = "offsetX", label = "OPTION_OFFSET_X", minValue = -200, maxValue = 200, step = 1 },
-        { key = "offsetY", label = "OPTION_OFFSET_Y", minValue = -200, maxValue = 200, step = 1 },
     }
     for index, option in ipairs(healthOptions) do
         local optionKey = option.key
@@ -261,8 +248,6 @@ function Player:Create(parentCategory)
     createLabel(content, BFUF.L.SECTION_POWER, -1080)
     local powerOptions = {
         { key = "height", label = "OPTION_POWER_HEIGHT", minValue = 4, maxValue = 100, step = 1 },
-        { key = "offsetX", label = "OPTION_OFFSET_X", minValue = -200, maxValue = 200, step = 1 },
-        { key = "offsetY", label = "OPTION_OFFSET_Y", minValue = -200, maxValue = 200, step = 1 },
     }
     for index, option in ipairs(powerOptions) do
         local optionKey = option.key
@@ -283,11 +268,7 @@ function Player:Create(parentCategory)
     for _, name in ipairs({ "name", "health", "power" }) do
         local textName = name
         createLabel(content, BFUF.L["SECTION_TEXT_" .. string.upper(textName)], textY)
-        createCheckbox(content, BFUF.L.OPTION_SHOW, textY - 28,
-            function() return BFUF.DB:Get("Player").texts[textName].show end,
-            function(value) BFUF.DB:Get("Player").texts[textName].show = value; BFUF.Frames.Player:UpdateLayout() end)
         local textOptions = {
-            { key = "fontSize", label = "OPTION_FONT_SIZE", minValue = 6, maxValue = 32, step = 1 },
             { key = "offsetX", label = "OPTION_OFFSET_X", minValue = -200, maxValue = 200, step = 1 },
             { key = "offsetY", label = "OPTION_OFFSET_Y", minValue = -200, maxValue = 200, step = 1 },
         }
