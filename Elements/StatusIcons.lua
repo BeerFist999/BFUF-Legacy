@@ -87,3 +87,85 @@ function StatusIcons:Create(parent, layout)
 
     return icons
 end
+
+
+-- Temporary diagnostics for comparing status icon runtime properties.
+local function printDebugLine(label, value)
+    BFUF:Print(label .. ": " .. tostring(value))
+end
+
+local function getFrameLabel(frame)
+    if not frame then
+        return "nil"
+    end
+
+    return frame:GetName() or "<unnamed>"
+end
+
+local function printIconDebug(name, icon, condition)
+    BFUF:Print("==========")
+    BFUF:Print(name)
+    BFUF:Print("==========")
+
+    if not icon then
+        BFUF:Print("Icon: not created")
+        return
+    end
+
+    local parent = icon:GetParent()
+    local point, relativeTo, relativePoint, offsetX, offsetY = icon:GetPoint()
+    local drawLayer, subLevel = icon:GetDrawLayer()
+
+    printDebugLine("Parent", getFrameLabel(parent))
+    printDebugLine("Texture", icon:GetTexture())
+    printDebugLine("Width", icon:GetWidth())
+    printDebugLine("Height", icon:GetHeight())
+    printDebugLine(
+        "Point",
+        string.format(
+            "%s -> %s:%s (%s, %s)",
+            tostring(point),
+            getFrameLabel(relativeTo),
+            tostring(relativePoint),
+            tostring(offsetX),
+            tostring(offsetY)
+        )
+    )
+    printDebugLine("FrameLevel", parent and parent:GetFrameLevel() or "nil")
+    printDebugLine("FrameStrata", parent and parent:GetFrameStrata() or "nil")
+    printDebugLine("DrawLayer", string.format("%s:%s", tostring(drawLayer), tostring(subLevel)))
+    printDebugLine("Alpha", icon:GetAlpha())
+    printDebugLine("IsShown()", icon:IsShown())
+    printDebugLine("IsVisible()", icon:IsVisible())
+    printDebugLine("EffectiveScale()", icon:GetEffectiveScale())
+    printDebugLine("Left", icon:GetLeft())
+    printDebugLine("Right", icon:GetRight())
+    printDebugLine("Top", icon:GetTop())
+    printDebugLine("Bottom", icon:GetBottom())
+    printDebugLine("Current state condition", condition)
+end
+
+-- Prints the runtime state of Combat, Rest, and all StatusIcons.
+function StatusIcons:Debug()
+    local playerFrame = BFUF.Framework.Registry:GetFrame("player")
+
+    if not playerFrame then
+        BFUF:Print("StatusIcons debug: Player Frame is not available.")
+        return
+    end
+
+    local icons = playerFrame.statusIcons
+
+    printIconDebug("Combat", playerFrame.combatIndicator, UnitAffectingCombat("player"))
+    printIconDebug("Rest", playerFrame.restingIndicator, IsResting())
+    printIconDebug("Leader", icons and icons.leader, UnitIsGroupLeader("player"))
+    printIconDebug("Assistant", icons and icons.assistant, UnitIsGroupAssistant("player"))
+    printIconDebug("PvP", icons and icons.pvp, UnitIsPVP("player"))
+    printIconDebug("AFK", icons and icons.afk, UnitIsAFK("player"))
+    printIconDebug("DND", icons and icons.dnd, UnitIsDND("player"))
+end
+
+SLASH_BFUFSTATUSDEBUG1 = "/bfufstatusdebug"
+SlashCmdList.BFUFSTATUSDEBUG = function()
+    StatusIcons:Debug()
+end
