@@ -79,7 +79,8 @@ function PlayerLayout:Apply(root)
     local width = math.max(1, settings.width)
     local height = math.max(1, settings.height)
     local padding = GEOMETRY.padding
-    local contentHeight = math.max(1, height - padding * 2)
+    local borderInset = GEOMETRY.borderThickness
+    local contentHeight = math.max(2, height - borderInset * 2)
 
     root:SetSize(width, height)
     root:SetScale(settings.scale)
@@ -94,8 +95,18 @@ function PlayerLayout:Apply(root)
     local barsLeft = padding
     if portraitVisible then
         local portraitWidth = math.min(portrait.width, math.max(1, width - padding * 2))
-        local portraitHeight = math.min(portrait.height, contentHeight)
-        setRectangle(root.portraitContainer, root, padding, -(width - padding - portraitWidth), -padding, -(height - padding - portraitHeight))
+        local portraitHeight = math.min(portrait.height, math.max(1, height - padding * 2))
+        local portraitTop = -math.floor((height - portraitHeight) / 2)
+        local portraitBottom = portraitTop - portraitHeight
+
+        setRectangle(
+            root.portraitContainer,
+            root,
+            padding,
+            -(width - padding - portraitWidth),
+            portraitTop,
+            portraitBottom
+        )
         root.portraitContainer:Show()
         setRectangle(root.portrait, root.portraitContainer, 0, 0, 0, 0)
         setRectangle(root.portrait.texture, root.portrait, 0, 0, 0, 0)
@@ -105,17 +116,17 @@ function PlayerLayout:Apply(root)
         root.portraitContainer:Hide()
     end
 
-    setRectangle(root.barsContainer, root, barsLeft, -padding, -padding, padding)
+    setRectangle(
+        root.barsContainer,
+        root,
+        barsLeft,
+        -borderInset,
+        -borderInset,
+        borderInset
+    )
     setRectangle(root.textContainer, root.barsContainer, 0, 0, 0, 0)
 
-    local healthInset = math.max(0, health.offsetX)
-    local powerInset = math.max(0, power.offsetX)
-    local healthTopInset = math.max(0, -health.offsetY)
-    local powerBottomInset = math.max(0, power.offsetY)
-    local availableBarHeight = math.max(
-        2,
-        contentHeight - healthTopInset - powerBottomInset - GEOMETRY.barGap
-    )
+    local availableBarHeight = math.max(2, contentHeight - GEOMETRY.barGap)
     local requestedHealthHeight = math.max(1, health.height)
     local requestedPowerHeight = math.max(1, power.height)
     local requestedHeight = requestedHealthHeight + requestedPowerHeight
@@ -125,10 +136,10 @@ function PlayerLayout:Apply(root)
     )
     local resolvedPowerHeight = math.max(1, availableBarHeight - resolvedHealthHeight)
 
-    setHorizontalBar(root.healthBar, root.barsContainer, "TOP", resolvedHealthHeight, healthInset, health.offsetY)
+    setHorizontalBar(root.healthBar, root.barsContainer, "TOP", resolvedHealthHeight, 0, 0)
     setRectangle(root.healthBar.absorbBar, root.healthBar, 0, 0, 0, 0)
     setRectangle(root.healthBar.healAbsorbBar, root.healthBar, 0, 0, 0, 0)
-    setHorizontalBar(root.powerBar, root.barsContainer, "BOTTOM", resolvedPowerHeight, powerInset, power.offsetY)
+    setHorizontalBar(root.powerBar, root.barsContainer, "BOTTOM", resolvedPowerHeight, 0, 0)
 
     local texts = settings.texts
     setTextAnchor(root.nameText, "LEFT", root.healthBar, "LEFT", texts.name.offsetX, texts.name.offsetY)
