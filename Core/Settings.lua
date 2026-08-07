@@ -24,7 +24,7 @@ function UI.PagePanel:Create(parent)
         currentPage = nil,
     }
 
-    function panel:ShowPage(title, description, hasSettings, buildContent)
+    function panel:ShowPage(title, description, hasSettings, buildContent, resetAction)
         if self.currentPage then
             self.currentPage:Hide()
         end
@@ -48,6 +48,9 @@ function UI.PagePanel:Create(parent)
         reset:SetSize(150, 24)
         reset:SetText(BFUF.L.SETTINGS_RESET_PAGE)
         reset:SetEnabled(hasSettings == true)
+        if resetAction then
+            reset:SetScript("OnClick", resetAction)
+        end
 
         if buildContent then
             buildContent(page)
@@ -105,7 +108,11 @@ function UI.NavigationList:Create(parent, width)
 
         self.selectedKey = key
         for buttonKey, buttonItem in pairs(self.buttons) do
-            buttonItem.button:Enable(buttonKey ~= key)
+            if buttonItem.entry.disabled then
+                buttonItem.button:Disable()
+            else
+                buttonItem.button:Enable(buttonKey ~= key)
+            end
         end
 
         item.entry.onSelect()
@@ -327,6 +334,22 @@ function SettingsModule:ShowPlayerGeneralPage(pages)
         { key = "positionY", label = "OPTION_POSITION_Y", minValue = -1000, maxValue = 1000, step = 1 },
     }
 
+    local function resetLayout()
+        local profile = BFUF.DB:Get("Player")
+        local defaults = BFUF.Defaults.profile.Player
+
+        for _, option in ipairs(options) do
+            profile[option.key] = defaults[option.key]
+        end
+
+        profile.positionAnchor = nil
+        BFUF.Frames.Player:UpdateLayout()
+
+        for _, control in pairs(controls) do
+            control.Refresh()
+        end
+    end
+
     pages:ShowPage(BFUF.L.SETTINGS_PLAYER_GENERAL, nil, true, function(page)
         UI.SectionPanel:Create(page, BFUF.L.SECTION_LAYOUT, -36)
 
@@ -364,22 +387,8 @@ function SettingsModule:ShowPlayerGeneralPage(pages)
                 or BFUF.L.BUTTON_UNLOCK_PLAYER_FRAME
         )
 
-        UI.ButtonRow:Create(page, BFUF.L.BUTTON_RESET_LAYOUT, -404, function()
-            local profile = BFUF.DB:Get("Player")
-            local defaults = BFUF.Defaults.profile.Player
-
-            for _, option in ipairs(options) do
-                profile[option.key] = defaults[option.key]
-            end
-
-            profile.positionAnchor = nil
-            BFUF.Frames.Player:UpdateLayout()
-
-            for _, control in pairs(controls) do
-                control.Refresh()
-            end
-        end)
-    end)
+        UI.ButtonRow:Create(page, BFUF.L.BUTTON_RESET_LAYOUT, -404, resetLayout)
+    end, resetLayout)
 
     self.playerGeneralControls = controls
 end
