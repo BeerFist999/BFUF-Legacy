@@ -66,3 +66,54 @@ function Portrait:Create(parent)
 
     return container
 end
+
+
+-- Print the final runtime state of both portrait renderers for diagnostics.
+function Portrait:PrintRenderState()
+    local root = BFUF.Framework.Registry:GetFrame("player")
+    if not root or not root.portraitContainer or not root.portrait then
+        BFUF:Print("[BFUF Portrait] Player portrait is not available.")
+        return
+    end
+
+    local container = root.portraitContainer
+    local portrait = root.portrait
+    local texture = portrait.texture
+    local model = portrait.model
+    local textureLayer, textureSubLevel = texture:GetDrawLayer()
+
+    BFUF:Print(string.format(
+        "[BFUF Portrait] Container W=%s H=%s Level=%s Strata=%s Shown=%s",
+        tostring(container:GetWidth()),
+        tostring(container:GetHeight()),
+        tostring(container:GetFrameLevel()),
+        tostring(container:GetFrameStrata()),
+        tostring(container:IsShown())
+    ))
+    BFUF:Print(string.format(
+        "[BFUF Portrait] Texture W=%s H=%s Alpha=%s Shown=%s Visible=%s Layer=%s/%s",
+        tostring(texture:GetWidth()),
+        tostring(texture:GetHeight()),
+        tostring(texture:GetAlpha()),
+        tostring(texture:IsShown()),
+        tostring(texture:IsVisible()),
+        tostring(textureLayer),
+        tostring(textureSubLevel)
+    ))
+    BFUF:Print(string.format(
+        "[BFUF Portrait] Model W=%s H=%s Alpha=%s Shown=%s Visible=%s Level=%s Strata=%s",
+        tostring(model:GetWidth()),
+        tostring(model:GetHeight()),
+        tostring(model:GetAlpha()),
+        tostring(model:IsShown()),
+        tostring(model:IsVisible()),
+        tostring(model:GetFrameLevel()),
+        tostring(model:GetFrameStrata())
+    ))
+end
+
+-- The temporary command lives beside the diagnostic code for simple removal.
+SLASH_BFUFPORTRAITDEBUG1 = "/bfufportraitdebug"
+SlashCmdList.BFUFPORTRAITDEBUG = function()
+    Portrait:PrintRenderState()
+end
