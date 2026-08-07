@@ -393,6 +393,60 @@ function SettingsModule:ShowPlayerGeneralPage(pages)
     self.playerGeneralControls = controls
 end
 
+-- Show the Player portrait page using the existing portrait profile fields.
+function SettingsModule:ShowPlayerPortraitPage(pages)
+    local controls = {}
+    local modes = {
+        { key = BFUF.Elements.Portrait.Modes.HIDDEN, label = BFUF.L.OPTION_PORTRAIT_HIDDEN },
+        { key = BFUF.Elements.Portrait.Modes.TWO_D, label = BFUF.L.OPTION_PORTRAIT_2D },
+        { key = BFUF.Elements.Portrait.Modes.THREE_D, label = BFUF.L.OPTION_PORTRAIT_3D },
+    }
+
+    local function resetPortrait()
+        local portrait = BFUF.DB:Get("Player").portrait
+        local defaults = BFUF.Defaults.profile.Player.portrait
+        portrait.mode = defaults.mode
+        portrait.width = defaults.width
+        BFUF.Frames.Player:UpdateLayout()
+
+        if controls.width then
+            controls.width.Refresh()
+        end
+    end
+
+    pages:ShowPage(BFUF.L.SETTINGS_PLAYER_PORTRAIT, nil, true, function(page)
+        UI.SectionPanel:Create(page, BFUF.L.SECTION_PORTRAIT, -36)
+
+        for index, mode in ipairs(modes) do
+            local button = UI.ButtonRow:Create(page, mode.label, -68, function()
+                BFUF.DB:Get("Player").portrait.mode = mode.key
+                BFUF.Frames.Player:UpdateLayout()
+            end)
+            button:ClearAllPoints()
+            button:SetPoint("TOPLEFT", page, "TOPLEFT", (index - 1) * 122, -68)
+            button:SetSize(114, 24)
+        end
+
+        controls.width = UI.SliderRow:Create(
+            page,
+            BFUF.L.OPTION_PORTRAIT_WIDTH,
+            -116,
+            20,
+            160,
+            1,
+            function()
+                return BFUF.DB:Get("Player").portrait.width
+            end,
+            function(value)
+                BFUF.DB:Get("Player").portrait.width = value
+                BFUF.Frames.Player:UpdateLayout()
+            end
+        )
+    end, resetPortrait)
+
+    self.playerPortraitControls = controls
+end
+
 -- Build the local navigation used by the Player settings entry.
 function SettingsModule:ShowPlayerPage()
     local page = self.shell.pages:ShowPage(BFUF.L.SETTINGS_PAGE_PLAYER, nil, false)
@@ -432,6 +486,11 @@ function SettingsModule:ShowPlayerPage()
         currentEntry.onSelect = function()
             if currentEntry.key == "general" then
                 self:ShowPlayerGeneralPage(pages)
+                return
+            end
+
+            if currentEntry.key == "portrait" then
+                self:ShowPlayerPortraitPage(pages)
                 return
             end
 
