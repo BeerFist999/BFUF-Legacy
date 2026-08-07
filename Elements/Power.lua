@@ -24,7 +24,7 @@ end
 
 function Power:Create(parent)
     local statusBar = CreateFrame("StatusBar", nil, parent)
-    statusBar:SetStatusBarTexture("Interface\TargetingFrame\UI-StatusBar")
+    statusBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
 
     function statusBar:SetUnit(unit)
         self.unit = unit
