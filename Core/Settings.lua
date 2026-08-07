@@ -167,7 +167,7 @@ function UI.CheckboxRow:Create(parent, label, y, getValue, setValue)
     return checkbox
 end
 
--- Create a reusable slider row.
+-- Create a reusable slider row with a numeric edit box.
 function UI.SliderRow:Create(parent, label, y, minValue, maxValue, step, getValue, setValue)
     local slider = CreateFrame("Slider", nil, parent, "OptionsSliderTemplate")
     slider:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, y)
@@ -178,13 +178,72 @@ function UI.SliderRow:Create(parent, label, y, minValue, maxValue, step, getValu
     slider.Text:SetText(label)
     slider.Low:SetText(minValue)
     slider.High:SetText(maxValue)
-    slider:SetValue(getValue())
+
+    local input = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
+    input:SetPoint("LEFT", slider, "RIGHT", 35, 0)
+    input:SetSize(70, 20)
+    input:SetAutoFocus(false)
+    input:SetJustifyH("CENTER")
+
+    local applying = false
+    local function formatValue(value)
+        if step < 1 then
+            return string.format("%.2f", value)
+        end
+
+        return string.format("%.0f", value)
+    end
+
+    local function normalizeValue(value)
+        value = math.max(minValue, math.min(maxValue, value))
+        return math.floor((value - minValue) / step + 0.5) * step + minValue
+    end
+
+    local function apply(value)
+        if applying then
+            return
+        end
+
+        applying = true
+        value = normalizeValue(value)
+        setValue(value)
+        slider:SetValue(value)
+        input:SetText(formatValue(value))
+        applying = false
+    end
 
     slider:SetScript("OnValueChanged", function(_, value)
-        setValue(value)
+        apply(value)
     end)
 
-    return slider
+    local function applyInput()
+        local value = tonumber(input:GetText())
+        if value then
+            apply(value)
+        else
+            input:SetText(formatValue(getValue()))
+        end
+        input:ClearFocus()
+    end
+
+    input:SetScript("OnEnterPressed", applyInput)
+    input:SetScript("OnEditFocusLost", applyInput)
+
+    applying = true
+    slider:SetValue(getValue())
+    input:SetText(formatValue(getValue()))
+    applying = false
+
+    return {
+        slider = slider,
+        input = input,
+        Refresh = function()
+            applying = true
+            slider:SetValue(getValue())
+            input:SetText(formatValue(getValue()))
+            applying = false
+        end,
+    }
 end
 
 -- Create a reusable dropdown-style button row.
@@ -257,6 +316,73 @@ function SettingsModule:ShowPlaceholderPage(title, description)
     self.shell.pages:ShowPage(title, description or BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER, false)
 end
 
+-- Show the Player general settings using the existing AceDB bindings.
+function SettingsModule:ShowPlayerGeneralPage(pages)
+    local controls = {}
+    local options = {
+        { key = "width", label = "OPTION_FRAME_WIDTH", minValue = 120, maxValue = 600, step = 1 },
+        { key = "height", label = "OPTION_FRAME_HEIGHT", minValue = 20, maxValue = 200, step = 1 },
+        { key = "scale", label = "OPTION_FRAME_SCALE", minValue = 0.5, maxValue = 2, step = 0.05 },
+        { key = "positionX", label = "OPTION_POSITION_X", minValue = -1000, maxValue = 1000, step = 1 },
+        { key = "positionY", label = "OPTION_POSITION_Y", minValue = -1000, maxValue = 1000, step = 1 },
+    }
+
+    pages:ShowPage(BFUF.L.SETTINGS_PLAYER_GENERAL, nil, true, function(page)
+        UI.SectionPanel:Create(page, BFUF.L.SECTION_LAYOUT, -36)
+
+        for index, option in ipairs(options) do
+            local optionKey = option.key
+            controls[optionKey] = UI.SliderRow:Create(
+                page,
+                BFUF.L[option.label],
+                -66 - (index - 1) * 58,
+                option.minValue,
+                option.maxValue,
+                option.step,
+                function()
+                    return BFUF.DB:Get("Player")[optionKey]
+                end,
+                function(value)
+                    BFUF.DB:Get("Player")[optionKey] = value
+                    BFUF.Frames.Player:UpdateLayout()
+                end
+            )
+        end
+
+        local unlockButton = UI.ButtonRow:Create(page, "", -372, function()
+            BFUF.Frames.Player:SetLayoutUnlocked(not BFUF.Frames.Player:IsLayoutUnlocked())
+            unlockButton:SetText(
+                BFUF.Frames.Player:IsLayoutUnlocked()
+                    and BFUF.L.BUTTON_LOCK_PLAYER_FRAME
+                    or BFUF.L.BUTTON_UNLOCK_PLAYER_FRAME
+            )
+        end)
+        unlockButton:SetText(
+            BFUF.Frames.Player:IsLayoutUnlocked()
+                and BFUF.L.BUTTON_LOCK_PLAYER_FRAME
+                or BFUF.L.BUTTON_UNLOCK_PLAYER_FRAME
+        )
+
+        UI.ButtonRow:Create(page, BFUF.L.BUTTON_RESET_LAYOUT, -404, function()
+            local profile = BFUF.DB:Get("Player")
+            local defaults = BFUF.Defaults.profile.Player
+
+            for _, option in ipairs(options) do
+                profile[option.key] = defaults[option.key]
+            end
+
+            profile.positionAnchor = nil
+            BFUF.Frames.Player:UpdateLayout()
+
+            for _, control in pairs(controls) do
+                control.Refresh()
+            end
+        end)
+    end)
+
+    self.playerGeneralControls = controls
+end
+
 -- Build the local navigation used by the Player settings entry.
 function SettingsModule:ShowPlayerPage()
     local page = self.shell.pages:ShowPage(BFUF.L.SETTINGS_PAGE_PLAYER, nil, false)
@@ -292,10 +418,16 @@ function SettingsModule:ShowPlayerPage()
     end
 
     for _, entry in ipairs(entries) do
-        entry.onSelect = function()
-            pages:ShowPage(entry.label, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER, false)
+        local currentEntry = entry
+        currentEntry.onSelect = function()
+            if currentEntry.key == "general" then
+                self:ShowPlayerGeneralPage(pages)
+                return
+            end
+
+            pages:ShowPage(currentEntry.label, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER, false)
         end
-        navigation:AddEntry(entry)
+        navigation:AddEntry(currentEntry)
     end
 
     navigation:Select("general")
