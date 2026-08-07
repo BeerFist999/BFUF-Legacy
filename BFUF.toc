@@ -28,6 +28,8 @@ Framework\Registry.lua
 Framework\Builder.lua
 Framework\LayoutEngine.lua
 Framework\Factory.lua
+Layouts\PlayerLayout.lua
+Layouts\PlayerEdit.lua
 Frames\Player.lua
 Frames\Target.lua
 Frames\TargetTarget.lua
