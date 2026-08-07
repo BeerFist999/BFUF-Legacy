@@ -93,7 +93,7 @@ function Player:Create()
     root.interaction:RegisterForClicks("AnyUp")
     root.interaction:SetAttribute("unit", "player")
     root.interaction:SetAttribute("*type1", "target")
-    root.interaction:SetAttribute("*type2", "menu")
+    root.interaction:SetAttribute("*type2", "togglemenu")
 
     local function refresh()
         root.portrait:Update()
