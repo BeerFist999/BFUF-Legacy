@@ -19,28 +19,7 @@ function PvP:Create(parent, layout)
         layout.offsetX,
         layout.offsetY
     )
-    indicator:Hide()
-
-    function indicator:Update()
-        indicator:SetShown(layout.enabled and UnitIsPVP("player"))
-    end
-
-    function indicator:RegisterEvents()
-        local eventFrame = CreateFrame("Frame")
-
-        eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-        eventFrame:RegisterEvent("PLAYER_FLAGS_CHANGED")
-        eventFrame:SetScript("OnEvent", function(_, _, unit)
-            if not unit or unit == "player" then
-                self:Update()
-            end
-        end)
-
-        self.eventFrame = eventFrame
-    end
-
-    indicator:RegisterEvents()
-    indicator:Update()
+    indicator:Show()
 
     return indicator
 end

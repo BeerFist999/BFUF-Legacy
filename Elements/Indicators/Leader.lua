@@ -19,26 +19,7 @@ function Leader:Create(parent, layout)
         layout.offsetX,
         layout.offsetY
     )
-    indicator:Hide()
-
-    function indicator:Update()
-        indicator:SetShown(layout.enabled and UnitIsGroupLeader("player"))
-    end
-
-    function indicator:RegisterEvents()
-        local eventFrame = CreateFrame("Frame")
-
-        eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-        eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
-        eventFrame:SetScript("OnEvent", function()
-            self:Update()
-        end)
-
-        self.eventFrame = eventFrame
-    end
-
-    indicator:RegisterEvents()
-    indicator:Update()
+    indicator:Show()
 
     return indicator
 end
