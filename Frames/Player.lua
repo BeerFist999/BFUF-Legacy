@@ -21,23 +21,22 @@ local function createBorder(parent)
     return border
 end
 
-local function formatValue(mode, current, maximum)
+-- Format Secret Values without Lua arithmetic or comparisons.
+local function formatValue(mode, current, maximum, percent)
     if mode == "hidden" then
         return nil
     end
 
-    current = current or 0
-    maximum = maximum or 0
-    local percent = maximum > 0 and math.floor(current / maximum * 100 + 0.5) or 0
-
     if mode == "current" then
-        return tostring(current)
+        return string.format("%d", current)
     elseif mode == "percent" then
-        return string.format("%d%%", percent)
+        return string.format("%.0f%%", percent)
     elseif mode == "currentPercent" then
-        return string.format("%d (%d%%)", current, percent)
+        return string.format("%d (%.0f%%)", current, percent)
     elseif mode == "missing" then
-        return tostring(math.max(0, maximum - current))
+        -- A missing absolute value requires arithmetic on Secret Values.
+        -- Keep this unsupported mode hidden until it has a native Blizzard API source.
+        return nil
     end
 
     return string.format("%d / %d", current, maximum)
@@ -71,17 +70,19 @@ function Player:UpdateTextElements(root)
     local settings = BFUF.DB:Get("Player").texts
     local health = UnitHealth("player")
     local maxHealth = UnitHealthMax("player")
+    local healthPercent = UnitHealthPercent("player", true, PERCENT_CURVE)
     local powerType = UnitPowerType("player")
     local power = UnitPower("player", powerType)
     local maxPower = UnitPowerMax("player", powerType)
+    local powerPercent = UnitPowerPercent("player", powerType, false, PERCENT_CURVE)
 
     applyTextStyle(
         root.nameText,
         settings.name,
         settings.name.mode == "hidden" and nil or (UnitName("player") or "")
     )
-    applyTextStyle(root.healthText, settings.health, formatValue(settings.health.mode, health, maxHealth))
-    applyTextStyle(root.powerText, settings.power, formatValue(settings.power.mode, power, maxPower))
+    applyTextStyle(root.healthText, settings.health, formatValue(settings.health.mode, health, maxHealth, healthPercent))
+    applyTextStyle(root.powerText, settings.power, formatValue(settings.power.mode, power, maxPower, powerPercent))
 
     local levelSettings = settings.level
     root.levelText:ClearAllPoints()
