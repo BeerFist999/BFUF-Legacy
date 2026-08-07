@@ -5,11 +5,15 @@ BFUF.Layouts = BFUF.Layouts or {}
 local PlayerLayout = {}
 BFUF.Layouts.Player = PlayerLayout
 
-local GEOMETRY = {
-    padding = 3,
-    barGap = 2,
+local LAYOUT = {
+    frameInset = 2,
+    barSpacing = 2,
     borderThickness = 1,
-    contentPadding = 2,
+}
+
+local BAR_ORDER = {
+    { key = "health", field = "healthBar", order = 10 },
+    { key = "power", field = "powerBar", order = 20 },
 }
 
 local INDICATOR_ANCHORS = {
@@ -28,11 +32,11 @@ local function setRectangle(region, parent, left, right, top, bottom)
     region:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", right, bottom)
 end
 
-local function setHorizontalBar(region, parent, verticalPoint, height, horizontalInset, verticalOffset)
-    region:ClearAllPoints()
-    region:SetPoint(verticalPoint .. "LEFT", parent, verticalPoint .. "LEFT", horizontalInset, verticalOffset)
-    region:SetPoint(verticalPoint .. "RIGHT", parent, verticalPoint .. "RIGHT", -horizontalInset, verticalOffset)
-    region:SetHeight(height)
+local function setBarGeometry(bar, parent, left, right, top, height)
+    bar:ClearAllPoints()
+    bar:SetPoint("TOPLEFT", parent, "TOPLEFT", left, top)
+    bar:SetPoint("TOPRIGHT", parent, "TOPRIGHT", right, top)
+    bar:SetHeight(height)
 end
 
 local function setTextAnchor(text, point, relativeTo, relativePoint, offsetX, offsetY)
@@ -48,7 +52,7 @@ local function setIndicatorGeometry(indicator, parent, settings, anchor)
 end
 
 local function applyBorderGeometry(border)
-    local thickness = GEOMETRY.borderThickness
+    local thickness = LAYOUT.borderThickness
     setRectangle(border, border:GetParent(), 0, 0, 0, 0)
     setRectangle(border.lines.top, border, 0, 0, 0, -thickness)
     setRectangle(border.lines.bottom, border, 0, 0, thickness, 0)
@@ -58,15 +62,49 @@ end
 
 local function applyRootAnchor(root, settings)
     root:ClearAllPoints()
+
     local anchor = settings.positionAnchor
     if anchor then
         root:SetPoint(anchor.point, UIParent, anchor.relativePoint, anchor.offsetX, anchor.offsetY)
         return
     end
+
     root:SetPoint("CENTER", UIParent, "CENTER", settings.positionX, settings.positionY)
 end
 
--- Resolve and apply every Player Frame rectangle from one authoritative layout pass.
+local function resolveBarStack(root, settings, left, right, innerHeight)
+    local totalWeight = 0
+    for _, definition in ipairs(BAR_ORDER) do
+        totalWeight = totalWeight + math.max(1, settings[definition.key].height)
+    end
+
+    local availableHeight = math.max(2, innerHeight - LAYOUT.barSpacing * (#BAR_ORDER - 1))
+    local consumedHeight = 0
+    local top = 0
+
+    for index, definition in ipairs(BAR_ORDER) do
+        local bar = root[definition.field]
+        local weight = math.max(1, settings[definition.key].height)
+        local height
+
+        if index == #BAR_ORDER then
+            height = availableHeight - consumedHeight
+        else
+            height = math.max(
+                1,
+                math.floor(availableHeight * weight / totalWeight + 0.5)
+            )
+            height = math.min(height, availableHeight - consumedHeight - 1)
+        end
+
+        setBarGeometry(bar, root.barsContainer, left, right, top, height)
+
+        consumedHeight = consumedHeight + height
+        top = top - height - LAYOUT.barSpacing
+    end
+end
+
+-- Apply BFUF's SUF-style ordered bar and portrait layout in one pass.
 function PlayerLayout:Apply(root)
     if InCombatLockdown() then
         root.layoutPending = true
@@ -75,86 +113,67 @@ function PlayerLayout:Apply(root)
 
     local settings = BFUF.DB:Get("Player")
     local portrait = settings.portrait
-    local health = settings.health
-    local power = settings.power
     local width = math.max(1, settings.width)
     local height = math.max(1, settings.height)
-    local padding = GEOMETRY.padding
-    local contentPadding = GEOMETRY.contentPadding
-    local contentWidth = math.max(1, width - contentPadding * 2)
-    local contentHeight = math.max(2, height - contentPadding * 2)
+    local inset = LAYOUT.frameInset
+    local innerWidth = math.max(1, width - inset * 2)
+    local innerHeight = math.max(2, height - inset * 2)
 
     root:SetSize(width, height)
     root:SetScale(settings.scale)
     applyRootAnchor(root, settings)
 
-    setRectangle(
-        root.contentContainer,
-        root,
-        contentPadding,
-        -contentPadding,
-        -contentPadding,
-        contentPadding
-    )
-    setRectangle(root.background, root.contentContainer, 0, 0, 0, 0)
+    setRectangle(root.background, root, 0, 0, 0, 0)
     applyBorderGeometry(root.border)
-    setRectangle(root.statusIconsContainer, root.contentContainer, 0, 0, 0, 0)
-    setRectangle(root.overlayContainer, root.contentContainer, 0, 0, 0, 0)
+    setRectangle(root.barsContainer, root, inset, -inset, -inset, inset)
+    setRectangle(root.textContainer, root.barsContainer, 0, 0, 0, 0)
+    setRectangle(root.statusIconsContainer, root, 0, 0, 0, 0)
+    setRectangle(root.classResourceContainer, root, inset, -inset, -inset, inset)
+    setRectangle(root.overlayContainer, root, inset, -inset, -inset, inset)
 
     local portraitVisible = portrait.mode ~= BFUF.Elements.Portrait.Modes.HIDDEN
-    local barsLeft = padding
+    local barsLeft = 0
+
     if portraitVisible then
-        local portraitWidth = math.min(portrait.width, math.max(1, contentWidth - padding * 2))
-        local portraitHeight = math.min(portrait.height, math.max(1, contentHeight - padding * 2))
-        local portraitTop = -math.floor((contentHeight - portraitHeight) / 2)
-        local portraitBottom = portraitTop - portraitHeight
+        local portraitWidth = math.min(
+            math.max(1, portrait.width),
+            math.max(1, innerWidth - 1)
+        )
 
         setRectangle(
             root.portraitContainer,
-            root.contentContainer,
-            padding,
-            -(contentWidth - padding - portraitWidth),
-            portraitTop,
-            portraitBottom
+            root,
+            inset,
+            -(width - inset - portraitWidth),
+            -inset,
+            inset
         )
         root.portraitContainer:Show()
         setRectangle(root.portrait, root.portraitContainer, 0, 0, 0, 0)
         setRectangle(root.portrait.texture, root.portrait, 0, 0, 0, 0)
         setRectangle(root.portrait.model, root.portrait, 0, 0, 0, 0)
-        barsLeft = padding + portraitWidth + GEOMETRY.barGap
+
+        barsLeft = portraitWidth
     else
         root.portraitContainer:Hide()
     end
 
-    setRectangle(root.barsContainer, root.contentContainer, barsLeft, 0, 0, 0)
-    setRectangle(root.textContainer, root.barsContainer, 0, 0, 0, 0)
-
-    local availableBarHeight = math.max(2, contentHeight - GEOMETRY.barGap)
-    local requestedHealthHeight = math.max(1, health.height)
-    local requestedPowerHeight = math.max(1, power.height)
-    local requestedHeight = requestedHealthHeight + requestedPowerHeight
-    local resolvedHealthHeight = math.min(
-        availableBarHeight - 1,
-        math.max(
-            1,
-            math.floor(availableBarHeight * requestedHealthHeight / requestedHeight + 0.5)
-        )
-    )
-    local resolvedPowerHeight = availableBarHeight - resolvedHealthHeight
-
-    setHorizontalBar(root.healthBar, root.barsContainer, "TOP", resolvedHealthHeight, 0, 0)
+    resolveBarStack(root, settings, barsLeft, 0, innerHeight)
     setRectangle(root.healthBar.absorbBar, root.healthBar, 0, 0, 0, 0)
     setRectangle(root.healthBar.healAbsorbBar, root.healthBar, 0, 0, 0, 0)
-    setHorizontalBar(root.powerBar, root.barsContainer, "BOTTOM", resolvedPowerHeight, 0, 0)
 
     local texts = settings.texts
     setTextAnchor(root.nameText, "LEFT", root.healthBar, "LEFT", texts.name.offsetX, texts.name.offsetY)
     setTextAnchor(root.healthText, "RIGHT", root.healthBar, "RIGHT", texts.health.offsetX, texts.health.offsetY)
     setTextAnchor(root.powerText, "RIGHT", root.powerBar, "RIGHT", texts.power.offsetX, texts.power.offsetY)
 
-    setRectangle(root.classResourceContainer, root.barsContainer, 0, 0, -GEOMETRY.barGap, -GEOMETRY.barGap)
     for name, indicator in pairs(root.indicators) do
-        setIndicatorGeometry(indicator, root.statusIconsContainer, settings.indicators[name], INDICATOR_ANCHORS[name])
+        setIndicatorGeometry(
+            indicator,
+            root.statusIconsContainer,
+            settings.indicators[name],
+            INDICATOR_ANCHORS[name]
+        )
     end
 
     root.portrait:SetMode(portrait.mode)
