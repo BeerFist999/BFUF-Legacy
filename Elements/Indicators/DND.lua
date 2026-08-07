@@ -38,7 +38,7 @@ function DND:Create(parent, layout)
     indicator:Hide()
 
     local function update()
-        if layout.enabled and UnitIsDND("player") then
+        if BFUF.DB:Get("Player").indicators.dnd.enabled and UnitIsDND("player") then
             indicator:Show()
         else
             indicator:Hide()
@@ -54,6 +54,7 @@ function DND:Create(parent, layout)
             end
         end)
 
+    indicator.Update = update
     update()
 
     return indicator

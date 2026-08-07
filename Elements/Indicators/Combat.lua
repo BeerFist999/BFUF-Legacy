@@ -38,7 +38,7 @@ function Combat:Create(parent, layout)
     indicator:Hide()
 
     local function update()
-        if UnitAffectingCombat("player") then
+        if BFUF.DB:Get("Player").indicators.combat.enabled and UnitAffectingCombat("player") then
             indicator:Show()
         else
             indicator:Hide()
@@ -50,6 +50,7 @@ function Combat:Create(parent, layout)
         eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
         eventFrame:SetScript("OnEvent", update)
 
+    indicator.Update = update
     update()
 
     return indicator

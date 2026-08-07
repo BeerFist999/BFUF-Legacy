@@ -38,7 +38,7 @@ function AFK:Create(parent, layout)
     indicator:Hide()
 
     local function update()
-        if layout.enabled and UnitIsAFK("player") then
+        if BFUF.DB:Get("Player").indicators.afk.enabled and UnitIsAFK("player") then
             indicator:Show()
         else
             indicator:Hide()
@@ -54,6 +54,7 @@ function AFK:Create(parent, layout)
             end
         end)
 
+    indicator.Update = update
     update()
 
     return indicator

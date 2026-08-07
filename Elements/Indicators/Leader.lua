@@ -40,7 +40,7 @@ function Leader:Create(parent, layout)
     local function update()
         local isLeader = UnitIsGroupLeader("player")
 
-        if not issecretvalue(isLeader) and isLeader then
+        if BFUF.DB:Get("Player").indicators.leader.enabled and not issecretvalue(isLeader) and isLeader then
             indicator:Show()
         else
             indicator:Hide()
@@ -53,6 +53,7 @@ function Leader:Create(parent, layout)
         eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
         eventFrame:SetScript("OnEvent", update)
 
+    indicator.Update = update
     update()
 
     return indicator

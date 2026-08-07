@@ -38,7 +38,7 @@ function PvP:Create(parent, layout)
     indicator:Hide()
 
     local function update()
-        if layout.enabled and UnitIsPVP("player") then
+        if BFUF.DB:Get("Player").indicators.pvp.enabled and UnitIsPVP("player") then
             indicator:Show()
         else
             indicator:Hide()
@@ -54,6 +54,7 @@ function PvP:Create(parent, layout)
             end
         end)
 
+    indicator.Update = update
     update()
 
     return indicator

@@ -40,7 +40,7 @@ function Assistant:Create(parent, layout)
     local function update()
         local isAssistant = UnitIsGroupAssistant("player")
 
-        if not issecretvalue(isAssistant) and isAssistant then
+        if BFUF.DB:Get("Player").indicators.assistant.enabled and not issecretvalue(isAssistant) and isAssistant then
             indicator:Show()
         else
             indicator:Hide()
@@ -53,6 +53,7 @@ function Assistant:Create(parent, layout)
         eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
         eventFrame:SetScript("OnEvent", update)
 
+    indicator.Update = update
     update()
 
     return indicator
