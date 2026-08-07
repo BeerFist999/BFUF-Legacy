@@ -1182,6 +1182,137 @@ function SettingsModule:ShowPlayerPortraitPage(pages)
     self.playerPortraitControls = controls
 end
 
+-- Register all navigation definitions independently from the settings views.
+function SettingsModule:RegisterPages()
+    if self.topLevelPages then
+        return
+    end
+
+    self.topLevelPages = PageRegistry:Create()
+    self.playerPages = PageRegistry:Create()
+
+    self.topLevelPages:Register({
+        id = "general",
+        title = BFUF.L.SETTINGS_PAGE_GENERAL,
+        builder = function()
+            self:ShowGeneralPage()
+        end,
+    })
+    self.topLevelPages:Register({
+        id = "player",
+        title = BFUF.L.SETTINGS_PAGE_PLAYER,
+        builder = function()
+            self:ShowPlayerPage()
+        end,
+    })
+
+    local unavailablePages = {
+        { id = "target", title = BFUF.L.SETTINGS_PAGE_TARGET },
+        { id = "targetTarget", title = BFUF.L.SETTINGS_PAGE_TARGET_TARGET },
+        { id = "focus", title = BFUF.L.SETTINGS_PAGE_FOCUS },
+        { id = "focusTarget", title = BFUF.L.SETTINGS_PAGE_FOCUS_TARGET },
+        { id = "pet", title = BFUF.L.SETTINGS_PAGE_PET },
+        { id = "petTarget", title = BFUF.L.SETTINGS_PAGE_PET_TARGET },
+        { id = "boss", title = BFUF.L.SETTINGS_PAGE_BOSS },
+        { id = "arena", title = BFUF.L.SETTINGS_PAGE_ARENA },
+    }
+
+    for _, page in ipairs(unavailablePages) do
+        page.disabled = true
+        page.builder = function()
+        end
+        self.topLevelPages:Register(page)
+    end
+
+    self.topLevelPages:Register({
+        id = "profiles",
+        title = BFUF.L.SETTINGS_PAGE_PROFILES,
+        builder = function()
+            self:ShowPlaceholderPage(BFUF.L.SETTINGS_PAGE_PROFILES, BFUF.L.DESCRIPTION_PROFILES)
+        end,
+    })
+    self.topLevelPages:Register({
+        id = "about",
+        title = BFUF.L.SETTINGS_PAGE_ABOUT,
+        builder = function()
+            self:ShowPlaceholderPage(BFUF.L.SETTINGS_PAGE_ABOUT, BFUF.L.DESCRIPTION_ABOUT)
+        end,
+    })
+
+    local playerDefinitions = {
+        {
+            id = "player.general",
+            title = BFUF.L.SETTINGS_PLAYER_GENERAL,
+            builder = function(pages)
+                self:ShowPlayerGeneralPage(pages)
+            end,
+        },
+        {
+            id = "player.portrait",
+            title = BFUF.L.SETTINGS_PLAYER_PORTRAIT,
+            builder = function(pages)
+                self:ShowPlayerPortraitPage(pages)
+            end,
+        },
+        {
+            id = "player.health",
+            title = BFUF.L.SETTINGS_PLAYER_HEALTH,
+            builder = function(pages)
+                self:ShowPlayerHealthPage(pages)
+            end,
+        },
+        {
+            id = "player.power",
+            title = BFUF.L.SETTINGS_PLAYER_POWER,
+            builder = function(pages)
+                self:ShowPlayerPowerPage(pages)
+            end,
+        },
+        {
+            id = "player.text",
+            title = BFUF.L.SETTINGS_PLAYER_TEXT,
+            builder = function(pages)
+                self:ShowPlayerTextPage(pages)
+            end,
+        },
+        {
+            id = "player.indicators",
+            title = BFUF.L.SETTINGS_PLAYER_INDICATORS,
+            builder = function(pages)
+                self:ShowPlayerIndicatorsPage(pages)
+            end,
+        },
+        {
+            id = "player.resources",
+            title = BFUF.L.SETTINGS_PLAYER_RESOURCES,
+            builder = function(pages)
+                pages:ShowPage(BFUF.L.SETTINGS_PLAYER_RESOURCES, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER, false)
+            end,
+        },
+        {
+            id = "player.auras",
+            title = BFUF.L.SETTINGS_PLAYER_AURAS,
+            builder = function(pages)
+                pages:ShowPage(BFUF.L.SETTINGS_PLAYER_AURAS, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER, false)
+            end,
+        },
+    }
+
+    if BFUF.DebugEnabled then
+        table.insert(playerDefinitions, {
+            id = "player.advanced",
+            title = BFUF.L.SETTINGS_PLAYER_ADVANCED,
+            builder = function(pages)
+                pages:ShowPage(BFUF.L.SETTINGS_PLAYER_ADVANCED, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER, false)
+            end,
+        })
+    end
+
+    for _, definition in ipairs(playerDefinitions) do
+        self.playerPages:Register(definition)
+    end
+end
+
 -- Build the local navigation used by the Player settings entry.
 function SettingsModule:ShowPlayerPage()
     local page = self.shell.pages:ShowPage(BFUF.L.SETTINGS_PAGE_PLAYER, nil, false)
@@ -1201,60 +1332,18 @@ function SettingsModule:ShowPlayerPage()
     localHost:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", 0, 0)
     local pages = UI.PagePanel:Create(localHost)
 
-    local entries = {
-        { key = "general", label = BFUF.L.SETTINGS_PLAYER_GENERAL },
-        { key = "portrait", label = BFUF.L.SETTINGS_PLAYER_PORTRAIT },
-        { key = "health", label = BFUF.L.SETTINGS_PLAYER_HEALTH },
-        { key = "power", label = BFUF.L.SETTINGS_PLAYER_POWER },
-        { key = "text", label = BFUF.L.SETTINGS_PLAYER_TEXT },
-        { key = "indicators", label = BFUF.L.SETTINGS_PLAYER_INDICATORS },
-        { key = "resources", label = BFUF.L.SETTINGS_PLAYER_RESOURCES },
-        { key = "auras", label = BFUF.L.SETTINGS_PLAYER_AURAS },
-    }
+    self.playerPages:ForEach(function(definition)
+        navigation:AddEntry({
+            key = definition.id,
+            label = definition.title,
+            disabled = definition.disabled,
+            onSelect = function()
+                definition.builder(pages)
+            end,
+        })
+    end)
 
-    if BFUF.DebugEnabled then
-        table.insert(entries, { key = "advanced", label = BFUF.L.SETTINGS_PLAYER_ADVANCED })
-    end
-
-    for _, entry in ipairs(entries) do
-        local currentEntry = entry
-        currentEntry.onSelect = function()
-            if currentEntry.key == "general" then
-                self:ShowPlayerGeneralPage(pages)
-                return
-            end
-
-            if currentEntry.key == "portrait" then
-                self:ShowPlayerPortraitPage(pages)
-                return
-            end
-
-            if currentEntry.key == "health" then
-                self:ShowPlayerHealthPage(pages)
-                return
-            end
-
-            if currentEntry.key == "power" then
-                self:ShowPlayerPowerPage(pages)
-                return
-            end
-
-            if currentEntry.key == "text" then
-                self:ShowPlayerTextPage(pages)
-                return
-            end
-
-            if currentEntry.key == "indicators" then
-                self:ShowPlayerIndicatorsPage(pages)
-                return
-            end
-
-            pages:ShowPage(currentEntry.label, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER, false)
-        end
-        navigation:AddEntry(currentEntry)
-    end
-
-    navigation:Select("general")
+    navigation:Select("player.general")
 end
 
 -- Register the shell and preserve legacy pages until each replacement has been validated.
@@ -1273,48 +1362,16 @@ function SettingsModule:Initialize()
         self.shell.pages:ClearCache()
     end)
 
-    local entries = {
-        {
-            key = "general",
-            label = BFUF.L.SETTINGS_PAGE_GENERAL,
-            onSelect = function()
-                self:ShowGeneralPage()
-            end,
-        },
-        {
-            key = "player",
-            label = BFUF.L.SETTINGS_PAGE_PLAYER,
-            onSelect = function()
-                self:ShowPlayerPage()
-            end,
-        },
-        { key = "target", label = BFUF.L.SETTINGS_PAGE_TARGET, disabled = true },
-        { key = "targetTarget", label = BFUF.L.SETTINGS_PAGE_TARGET_TARGET, disabled = true },
-        { key = "focus", label = BFUF.L.SETTINGS_PAGE_FOCUS, disabled = true },
-        { key = "focusTarget", label = BFUF.L.SETTINGS_PAGE_FOCUS_TARGET, disabled = true },
-        { key = "pet", label = BFUF.L.SETTINGS_PAGE_PET, disabled = true },
-        { key = "petTarget", label = BFUF.L.SETTINGS_PAGE_PET_TARGET, disabled = true },
-        { key = "boss", label = BFUF.L.SETTINGS_PAGE_BOSS, disabled = true },
-        { key = "arena", label = BFUF.L.SETTINGS_PAGE_ARENA, disabled = true },
-        {
-            key = "profiles",
-            label = BFUF.L.SETTINGS_PAGE_PROFILES,
-            onSelect = function()
-                self:ShowPlaceholderPage(BFUF.L.SETTINGS_PAGE_PROFILES, BFUF.L.DESCRIPTION_PROFILES)
-            end,
-        },
-        {
-            key = "about",
-            label = BFUF.L.SETTINGS_PAGE_ABOUT,
-            onSelect = function()
-                self:ShowPlaceholderPage(BFUF.L.SETTINGS_PAGE_ABOUT, BFUF.L.DESCRIPTION_ABOUT)
-            end,
-        },
-    }
+    self:RegisterPages()
 
-    for _, entry in ipairs(entries) do
-        self.shell.navigation:AddEntry(entry)
-    end
+    self.topLevelPages:ForEach(function(definition)
+        self.shell.navigation:AddEntry({
+            key = definition.id,
+            label = definition.title,
+            disabled = definition.disabled,
+            onSelect = definition.builder,
+        })
+    end)
 
     self.shell.navigation:Select("general")
 
