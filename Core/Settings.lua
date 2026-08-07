@@ -571,6 +571,19 @@ function SettingsModule:ShowPlayerPowerPage(pages)
     self.playerPowerControls = controls
 end
 
+-- Copy a profile value without sharing nested color tables.
+local function copyProfileValue(source)
+    if type(source) ~= "table" then
+        return source
+    end
+
+    local copy = {}
+    for key, value in pairs(source) do
+        copy[key] = copyProfileValue(value)
+    end
+    return copy
+end
+
 -- Show one existing status indicator without changing its runtime logic.
 function SettingsModule:ShowPlayerIndicatorPage(pages, indicatorKey, title)
     local controls = {}
@@ -697,19 +710,6 @@ function SettingsModule:ShowPlayerIndicatorsPage(pages)
     end
 
     navigation:Select("combat")
-end
-
--- Copy a profile value without sharing nested color tables.
-local function copyProfileValue(source)
-    if type(source) ~= "table" then
-        return source
-    end
-
-    local copy = {}
-    for key, value in pairs(source) do
-        copy[key] = copyProfileValue(value)
-    end
-    return copy
 end
 
 -- Show one existing text object without changing its renderer or display model.
