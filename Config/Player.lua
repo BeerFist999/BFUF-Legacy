@@ -168,11 +168,12 @@ function Player:Create(parentCategory)
     createLabel(content, BFUF.L.SECTION_LAYOUT, -20)
     local layoutKeys = { "width", "height", "scale", "positionX", "positionY" }
     for index, key in ipairs(layoutKeys) do
-        local option = NUMBER_OPTIONS[key]
+        local settingKey = key
+        local option = NUMBER_OPTIONS[settingKey]
         createSlider(content, BFUF.L[option.label], -50 - (index - 1) * 60, option,
-            function() return BFUF.DB:Get("Player")[key] end,
-            function(value) BFUF.DB:Get("Player")[key] = value; BFUF.Frames.Player:UpdateLayout() end,
-            controls, key)
+            function() return BFUF.DB:Get("Player")[settingKey] end,
+            function(value) BFUF.DB:Get("Player")[settingKey] = value; BFUF.Frames.Player:UpdateLayout() end,
+            controls, settingKey)
     end
 
     local unlockButton = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
@@ -209,12 +210,13 @@ function Player:Create(parentCategory)
         { key = BFUF.Elements.Portrait.Modes.THREE_D, text = BFUF.L.OPTION_PORTRAIT_3D },
     }
     for index, mode in ipairs(modeButtons) do
+        local modeKey = mode.key
         local button = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
         button:SetPoint("TOPLEFT", content, "TOPLEFT", 20 + (index - 1) * 125, -440)
         button:SetSize(118, 24)
         button:SetText(mode.text)
         button:SetScript("OnClick", function()
-            BFUF.DB:Get("Player").portrait.mode = mode.key
+            BFUF.DB:Get("Player").portrait.mode = modeKey
             BFUF.Frames.Player:UpdateLayout()
         end)
     end
@@ -223,10 +225,11 @@ function Player:Create(parentCategory)
         { key = "height", label = "OPTION_PORTRAIT_HEIGHT", minValue = 20, maxValue = 160, step = 1 },
     }
     for index, option in ipairs(portraitOptions) do
+        local optionKey = option.key
         createSlider(content, BFUF.L[option.label], -480 - (index - 1) * 60, option,
-            function() return BFUF.DB:Get("Player").portrait[option.key] end,
-            function(value) BFUF.DB:Get("Player").portrait[option.key] = value; BFUF.Frames.Player:UpdateLayout() end,
-            controls, "portrait" .. option.key)
+            function() return BFUF.DB:Get("Player").portrait[optionKey] end,
+            function(value) BFUF.DB:Get("Player").portrait[optionKey] = value; BFUF.Frames.Player:UpdateLayout() end,
+            controls, "portrait" .. optionKey)
     end
 
     createLabel(content, BFUF.L.SECTION_HEALTH, -730)
@@ -236,10 +239,11 @@ function Player:Create(parentCategory)
         { key = "offsetY", label = "OPTION_OFFSET_Y", minValue = -200, maxValue = 200, step = 1 },
     }
     for index, option in ipairs(healthOptions) do
+        local optionKey = option.key
         createSlider(content, BFUF.L[option.label], -760 - (index - 1) * 60, option,
-            function() return BFUF.DB:Get("Player").health[option.key] end,
-            function(value) BFUF.DB:Get("Player").health[option.key] = value; BFUF.Frames.Player:UpdateLayout() end,
-            controls, "health" .. option.key)
+            function() return BFUF.DB:Get("Player").health[optionKey] end,
+            function(value) BFUF.DB:Get("Player").health[optionKey] = value; BFUF.Frames.Player:UpdateLayout() end,
+            controls, "health" .. optionKey)
     end
     createModeButtons(content, -940, BFUF.L.OPTION_CLASS_COLOR, BFUF.L.OPTION_CUSTOM_COLOR,
         function() return BFUF.DB:Get("Player").health.colorMode end,
@@ -261,10 +265,11 @@ function Player:Create(parentCategory)
         { key = "offsetY", label = "OPTION_OFFSET_Y", minValue = -200, maxValue = 200, step = 1 },
     }
     for index, option in ipairs(powerOptions) do
+        local optionKey = option.key
         createSlider(content, BFUF.L[option.label], -1110 - (index - 1) * 60, option,
-            function() return BFUF.DB:Get("Player").power[option.key] end,
-            function(value) BFUF.DB:Get("Player").power[option.key] = value; BFUF.Frames.Player:UpdateLayout() end,
-            controls, "power" .. option.key)
+            function() return BFUF.DB:Get("Player").power[optionKey] end,
+            function(value) BFUF.DB:Get("Player").power[optionKey] = value; BFUF.Frames.Player:UpdateLayout() end,
+            controls, "power" .. optionKey)
     end
     createModeButtons(content, -1290, BFUF.L.OPTION_RESOURCE_COLOR, BFUF.L.OPTION_CUSTOM_COLOR,
         function() return BFUF.DB:Get("Player").power.colorMode end,
@@ -276,20 +281,22 @@ function Player:Create(parentCategory)
     createLabel(content, BFUF.L.SECTION_TEXTS, -1370)
     local textY = -1400
     for _, name in ipairs({ "name", "health", "power" }) do
-        createLabel(content, BFUF.L["SECTION_TEXT_" .. string.upper(name)], textY)
+        local textName = name
+        createLabel(content, BFUF.L["SECTION_TEXT_" .. string.upper(textName)], textY)
         createCheckbox(content, BFUF.L.OPTION_SHOW, textY - 28,
-            function() return BFUF.DB:Get("Player").texts[name].show end,
-            function(value) BFUF.DB:Get("Player").texts[name].show = value; BFUF.Frames.Player:UpdateLayout() end)
+            function() return BFUF.DB:Get("Player").texts[textName].show end,
+            function(value) BFUF.DB:Get("Player").texts[textName].show = value; BFUF.Frames.Player:UpdateLayout() end)
         local textOptions = {
             { key = "fontSize", label = "OPTION_FONT_SIZE", minValue = 6, maxValue = 32, step = 1 },
             { key = "offsetX", label = "OPTION_OFFSET_X", minValue = -200, maxValue = 200, step = 1 },
             { key = "offsetY", label = "OPTION_OFFSET_Y", minValue = -200, maxValue = 200, step = 1 },
         }
         for index, option in ipairs(textOptions) do
+            local optionKey = option.key
             createSlider(content, BFUF.L[option.label], textY - 58 - (index - 1) * 60, option,
-                function() return BFUF.DB:Get("Player").texts[name][option.key] end,
-                function(value) BFUF.DB:Get("Player").texts[name][option.key] = value; BFUF.Frames.Player:UpdateLayout() end,
-                controls, "text" .. name .. option.key)
+                function() return BFUF.DB:Get("Player").texts[textName][optionKey] end,
+                function(value) BFUF.DB:Get("Player").texts[textName][optionKey] = value; BFUF.Frames.Player:UpdateLayout() end,
+                controls, "text" .. textName .. optionKey)
         end
         textY = textY - 250
     end
@@ -297,20 +304,22 @@ function Player:Create(parentCategory)
     createLabel(content, BFUF.L.SECTION_INDICATORS, textY)
     local indicatorY = textY - 30
     for _, name in ipairs({ "combat", "resting", "leader", "assistant", "pvp", "afk", "dnd" }) do
-        createLabel(content, BFUF.L["INDICATOR_" .. string.upper(name)], indicatorY)
+        local indicatorName = name
+        createLabel(content, BFUF.L["INDICATOR_" .. string.upper(indicatorName)], indicatorY)
         createCheckbox(content, BFUF.L.OPTION_ENABLE, indicatorY - 28,
-            function() return BFUF.DB:Get("Player").indicators[name].enabled end,
-            function(value) BFUF.DB:Get("Player").indicators[name].enabled = value; BFUF.Frames.Player:UpdateLayout() end)
+            function() return BFUF.DB:Get("Player").indicators[indicatorName].enabled end,
+            function(value) BFUF.DB:Get("Player").indicators[indicatorName].enabled = value; BFUF.Frames.Player:UpdateLayout() end)
         local indicatorOptions = {
             { key = "size", label = "OPTION_SIZE", minValue = 8, maxValue = 64, step = 1 },
             { key = "offsetX", label = "OPTION_OFFSET_X", minValue = -200, maxValue = 200, step = 1 },
             { key = "offsetY", label = "OPTION_OFFSET_Y", minValue = -200, maxValue = 200, step = 1 },
         }
         for index, option in ipairs(indicatorOptions) do
+            local optionKey = option.key
             createSlider(content, BFUF.L[option.label], indicatorY - 58 - (index - 1) * 60, option,
-                function() return BFUF.DB:Get("Player").indicators[name][option.key] end,
-                function(value) BFUF.DB:Get("Player").indicators[name][option.key] = value; BFUF.Frames.Player:UpdateLayout() end,
-                controls, "indicator" .. name .. option.key)
+                function() return BFUF.DB:Get("Player").indicators[indicatorName][optionKey] end,
+                function(value) BFUF.DB:Get("Player").indicators[indicatorName][optionKey] = value; BFUF.Frames.Player:UpdateLayout() end,
+                controls, "indicator" .. indicatorName .. optionKey)
         end
         indicatorY = indicatorY - 250
     end
