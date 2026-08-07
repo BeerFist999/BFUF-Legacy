@@ -112,9 +112,18 @@ function PlayerLayout:Apply(root)
     local powerInset = math.max(0, power.offsetX)
     local healthTopInset = math.max(0, -health.offsetY)
     local powerBottomInset = math.max(0, power.offsetY)
-    local barSpace = math.max(1, contentHeight - healthTopInset - powerBottomInset)
-    local resolvedPowerHeight = math.min(power.height, barSpace)
-    local resolvedHealthHeight = math.min(health.height, math.max(1, barSpace - resolvedPowerHeight - GEOMETRY.barGap))
+    local availableBarHeight = math.max(
+        2,
+        contentHeight - healthTopInset - powerBottomInset - GEOMETRY.barGap
+    )
+    local requestedHealthHeight = math.max(1, health.height)
+    local requestedPowerHeight = math.max(1, power.height)
+    local requestedHeight = requestedHealthHeight + requestedPowerHeight
+    local resolvedHealthHeight = math.max(
+        1,
+        math.floor(availableBarHeight * requestedHealthHeight / requestedHeight + 0.5)
+    )
+    local resolvedPowerHeight = math.max(1, availableBarHeight - resolvedHealthHeight)
 
     setHorizontalBar(root.healthBar, root.barsContainer, "TOP", resolvedHealthHeight, healthInset, health.offsetY)
     setRectangle(root.healthBar.absorbBar, root.healthBar, 0, 0, 0, 0)
