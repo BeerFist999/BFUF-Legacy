@@ -513,13 +513,15 @@ function UI.DropdownRow:Create(parent, labelOrBinding, y, getValue, onClick)
 end
 
 -- Create a reusable color picker row.
-function UI.ColorRow:Create(parent, label, y, getColor, setColor)
+function UI.ColorRow:Create(parent, labelOrBinding, y, getColor, setColor)
+    local binding = normalizeBinding(labelOrBinding, getColor, setColor)
     local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
     button:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, y)
     button:SetSize(180, 24)
-    button:SetText(label)
+    button:SetText(binding.label)
+
     button:SetScript("OnClick", function()
-        local color = getColor()
+        local color = binding.get()
         ColorPickerFrame:SetupColorPickerAndShow({
             r = color.r,
             g = color.g,
@@ -527,24 +529,40 @@ function UI.ColorRow:Create(parent, label, y, getColor, setColor)
             hasOpacity = color.a ~= nil,
             swatchFunc = function()
                 local r, g, b = ColorPickerFrame:GetColorRGB()
-                setColor({ r = r, g = g, b = b, a = color.a })
+                binding.set({ r = r, g = g, b = b, a = color.a })
             end,
             cancelFunc = function(previous)
-                setColor(previous)
+                binding.set(previous)
             end,
         })
     end)
-    return button
+
+    return refreshBinding(button, binding)
 end
 
 -- Create a reusable action button row.
-function UI.ButtonRow:Create(parent, label, y, onClick)
+function UI.ButtonRow:Create(parent, labelOrBinding, y, onClick)
+    local binding
+    if type(labelOrBinding) == "table" then
+        binding = labelOrBinding
+    else
+        binding = {
+            label = labelOrBinding,
+            set = onClick,
+        }
+    end
+
     local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
     button:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, y)
     button:SetSize(180, 24)
-    button:SetText(label)
-    button:SetScript("OnClick", onClick)
-    return button
+    button:SetText(binding.label or "")
+    button:SetScript("OnClick", function()
+        if binding.set then
+            binding.set()
+        end
+    end)
+
+    return refreshBinding(button, binding)
 end
 
 -- Create a reusable expandable section without page-specific behavior.
