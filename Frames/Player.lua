@@ -72,12 +72,12 @@ function Player:UpdateLayout(frame)
 
     frame.portrait:ClearAllPoints()
     frame.portrait:SetSize(portraitSettings.width, portraitSettings.height)
-    frame.portrait:SetPoint("TOPLEFT", frame, "TOPLEFT", portraitSettings.offsetX, portraitSettings.offsetY)
-    frame.portrait:SetShown(portraitSettings.show)
+    frame.portrait:SetPoint("TOPLEFT", frame, "TOPLEFT", 3, -3)
+    frame.portrait:SetMode(portraitSettings.mode)
 
     local contentLeft = healthSettings.offsetX
-    if portraitSettings.show then
-        contentLeft = portraitSettings.offsetX + portraitSettings.width + healthSettings.offsetX
+    if portraitSettings.mode ~= BFUF.Elements.Portrait.Modes.HIDDEN then
+        contentLeft = 3 + portraitSettings.width + healthSettings.offsetX
     end
 
     frame.healthBar:ClearAllPoints()
@@ -190,7 +190,7 @@ function Player:Create()
     background:SetColorTexture(0, 0, 0, 0.8)
     frame.background = background
 
-    local portrait = BFUF.Elements.Portrait:Create(frame, BFUF.Elements.Portrait.Types.TEXTURE)
+    local portrait = BFUF.Elements.Portrait:Create(frame)
     portrait:SetUnit("player")
     portrait:Update()
     frame.portrait = portrait

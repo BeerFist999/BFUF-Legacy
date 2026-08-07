@@ -1,38 +1,61 @@
 local addonName, BFUF = ...
 
--- Portrait создаёт независимый элемент портрета юнита.
--- API предусматривает варианты Texture и PlayerModel; пока реализован только Texture.
 BFUF.Elements = BFUF.Elements or {}
 
 local Portrait = {
-    Types = {
-        TEXTURE = "texture",
-        MODEL = "model",
+    Modes = {
+        HIDDEN = "hidden",
+        TWO_D = "2d",
+        THREE_D = "3d",
     },
 }
 BFUF.Elements.Portrait = Portrait
 
--- Создаёт 2D-портрет. Размер и положение передаются внешним Layout-слоем.
-function Portrait:Create(parent, portraitType)
-    local texture = parent:CreateTexture(nil, "ARTWORK")
+-- Create a complete portrait container that supports 2D and 3D renderers.
+function Portrait:Create(parent)
+    local container = CreateFrame("Frame", nil, parent)
 
-    -- Сохраняем запрошенный тип для будущей реализации PlayerModel.
-    texture.portraitType = portraitType or Portrait.Types.TEXTURE
+    local texture = container:CreateTexture(nil, "ARTWORK")
+    texture:SetAllPoints(container)
+    container.texture = texture
 
-    -- Сохраняет игровой юнит, портрет которого должен отображаться.
-    function texture:SetUnit(unit)
+    local model = CreateFrame("PlayerModel", nil, container)
+    model:SetAllPoints(container)
+    model:Hide()
+    container.model = model
+    container.mode = Portrait.Modes.TWO_D
+
+    function container:SetUnit(unit)
         self.unit = unit
     end
 
-    -- Обновляет 2D-портрет штатной функцией Blizzard.
-    function texture:Update()
+    function container:SetMode(mode)
+        self.mode = mode
+        self:Update()
+    end
+
+    function container:Update()
         if not self.unit then
             return
         end
 
-        -- PlayerModel будет реализован отдельно; пока оба типа используют 2D-портрет.
-        SetPortraitTexture(self, self.unit)
+        if self.mode == Portrait.Modes.HIDDEN then
+            self:Hide()
+            return
+        end
+
+        self:Show()
+        if self.mode == Portrait.Modes.THREE_D then
+            self.texture:Hide()
+            self.model:SetUnit(self.unit)
+            self.model:SetPortraitZoom(1)
+            self.model:Show()
+        else
+            self.model:Hide()
+            SetPortraitTexture(self.texture, self.unit)
+            self.texture:Show()
+        end
     end
 
-    return texture
+    return container
 end

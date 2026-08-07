@@ -17,11 +17,9 @@ BFUF.Defaults = {
             positionY = 0,
 
             portrait = {
-                show = true,
+                mode = "2d",
                 width = 44,
                 height = 44,
-                offsetX = 3,
-                offsetY = -3,
             },
 
             health = {
