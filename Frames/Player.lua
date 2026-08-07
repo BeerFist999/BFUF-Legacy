@@ -50,6 +50,43 @@ local PLAYER_LAYOUT = {
         offsetX = 21,
         offsetY = -3,
     },
+    statusIcons = {
+        leader = {
+            size = 12,
+            point = "TOPRIGHT",
+            relativePoint = "TOPRIGHT",
+            offsetX = -3,
+            offsetY = -3,
+        },
+        assistant = {
+            size = 12,
+            point = "TOPRIGHT",
+            relativePoint = "TOPRIGHT",
+            offsetX = -17,
+            offsetY = -3,
+        },
+        pvp = {
+            size = 12,
+            point = "TOPRIGHT",
+            relativePoint = "TOPRIGHT",
+            offsetX = -31,
+            offsetY = -3,
+        },
+        afk = {
+            size = 12,
+            point = "TOPRIGHT",
+            relativePoint = "TOPRIGHT",
+            offsetX = -3,
+            offsetY = -17,
+        },
+        dnd = {
+            size = 12,
+            point = "TOPRIGHT",
+            relativePoint = "TOPRIGHT",
+            offsetX = -17,
+            offsetY = -17,
+        },
+    },
 }
 
 -- Blizzard API возвращает процент здоровья и ресурса в диапазоне от 0.0 до 1.0.
@@ -158,6 +195,10 @@ function Player:Create()
     -- Resting Indicator также получает положение из временного Layout Player Frame.
     local restingIndicator = BFUF.Elements.RestingIndicator:Create(frame, PLAYER_LAYOUT.restingIndicator)
     frame.restingIndicator = restingIndicator
+
+    -- Status Icons receive their positions from the temporary Player Frame Layout.
+    local statusIcons = BFUF.Elements.StatusIcons:Create(frame, PLAYER_LAYOUT.statusIcons)
+    frame.statusIcons = statusIcons
 
     -- Смещение полос рассчитывается из размера портрета, заданного Layout.
     local contentLeftOffset = PLAYER_LAYOUT.portrait.inset + PLAYER_LAYOUT.portrait.width + PLAYER_LAYOUT.health.inset
