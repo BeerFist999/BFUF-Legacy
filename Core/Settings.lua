@@ -1098,12 +1098,13 @@ function SettingsModule:Initialize()
 
     self.shell.navigation:Select("general")
 
-    self.legacyCategories = {
-        General = BFUF.Config.General:Create(self.category),
-        Player = BFUF.Config.Player:Create(self.category),
-        Indicators = BFUF.Config.Indicators:Create(self.category),
-        Profiles = BFUF.Config.Profiles:Create(self.category),
-        About = BFUF.Config.About:Create(self.category),
+    -- Keep legacy modules available internally without publishing old pages to Blizzard Settings.
+    self.legacyPages = {
+        General = BFUF.Config.General,
+        Player = BFUF.Config.Player,
+        Indicators = BFUF.Config.Indicators,
+        Profiles = BFUF.Config.Profiles,
+        About = BFUF.Config.About,
     }
 end
 
