@@ -350,14 +350,63 @@ function UI.SliderRow:Create(parent, labelOrBinding, y, minValue, maxValue, step
     return row
 end
 
--- Create a reusable dropdown-style button row.
-function UI.DropdownRow:Create(parent, label, y, getValue, onClick)
+-- Create a reusable dropdown row backed by the Blizzard context menu API.
+function UI.DropdownRow:Create(parent, labelOrBinding, y, getValue, onClick)
+    local binding = normalizeBinding(labelOrBinding, getValue, onClick)
     local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
     button:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, y)
     button:SetSize(240, 24)
-    button:SetText(label .. ": " .. getValue())
-    button:SetScript("OnClick", onClick)
-    return button
+
+    local row = {
+        button = button,
+    }
+
+    local function getLabel(value)
+        for _, option in ipairs(binding.values or {}) do
+            if option.value == value then
+                return option.label
+            end
+        end
+
+        return tostring(value or "")
+    end
+
+    function row:Refresh()
+        local value = binding.get and binding.get() or nil
+        button:SetText(binding.label .. ": " .. getLabel(value))
+
+        local disabled = binding.disabled and binding.disabled() or false
+        button:SetEnabled(not disabled)
+
+        if binding.refresh then
+            binding.refresh(self)
+        end
+    end
+
+    button:SetScript("OnClick", function()
+        if binding.disabled and binding.disabled() then
+            return
+        end
+
+        if binding.values and binding.set then
+            MenuUtil.CreateContextMenu(button, function(_, rootDescription)
+                for _, option in ipairs(binding.values) do
+                    rootDescription:CreateButton(option.label, function()
+                        binding.set(option.value)
+                        row:Refresh()
+                    end)
+                end
+            end)
+            return
+        end
+
+        if onClick then
+            onClick()
+        end
+    end)
+
+    row:Refresh()
+    return row
 end
 
 -- Create a reusable color picker row.
