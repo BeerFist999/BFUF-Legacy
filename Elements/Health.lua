@@ -23,13 +23,11 @@ function Health:Create(parent)
     statusBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
 
     local absorbBar = CreateFrame("StatusBar", nil, statusBar)
-    absorbBar:SetAllPoints(statusBar)
     absorbBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
     absorbBar:SetStatusBarColor(0.8, 0.8, 1, 0.65)
     statusBar.absorbBar = absorbBar
 
     local healAbsorbBar = CreateFrame("StatusBar", nil, statusBar)
-    healAbsorbBar:SetAllPoints(statusBar)
     healAbsorbBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
     healAbsorbBar:SetStatusBarColor(0.85, 0.15, 0.15, 0.65)
     statusBar.healAbsorbBar = healAbsorbBar

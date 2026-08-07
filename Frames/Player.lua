@@ -12,20 +12,11 @@ PERCENT_CURVE:AddPoint(1, 100)
 local function createBorder(parent)
     local border = CreateFrame("Frame", nil, parent)
     border:SetFrameLevel(parent:GetFrameLevel() + 2)
+    border.lines = {}
     for _, point in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
         local line = border:CreateTexture(nil, "OVERLAY")
         line:SetColorTexture(0, 0, 0, 1)
-        if point == "TOP" or point == "BOTTOM" then
-            line:SetHeight(1)
-            line:SetPoint(point, border, point)
-            line:SetPoint("LEFT", border, "LEFT")
-            line:SetPoint("RIGHT", border, "RIGHT")
-        else
-            line:SetWidth(1)
-            line:SetPoint(point, border, point)
-            line:SetPoint("TOP", border, "TOP")
-            line:SetPoint("BOTTOM", border, "BOTTOM")
-        end
+        border.lines[string.lower(point)] = line
     end
     return border
 end
@@ -73,19 +64,15 @@ function Player:Create()
     root.nameText = BFUF.Elements.Text:Create(root.textContainer, { justifyH = "LEFT", justifyV = "MIDDLE" })
     root.healthText = BFUF.Elements.Text:Create(root.textContainer, { justifyH = "RIGHT", justifyV = "MIDDLE" })
     root.powerText = BFUF.Elements.Text:Create(root.textContainer, { justifyH = "RIGHT", justifyV = "MIDDLE" })
-    root.nameText:SetPoint("LEFT", root.healthBar, "LEFT", 4, 0)
-    root.healthText:SetPoint("RIGHT", root.healthBar, "RIGHT", -4, 0)
-    root.powerText:SetPoint("RIGHT", root.powerBar, "RIGHT", -4, 0)
 
-    local defaults = BFUF.Defaults.profile.Player.indicators
     root.indicators = {
-        combat = BFUF.Elements.Indicators.Combat:Create(root.statusIconsContainer, { point="TOPLEFT", relativePoint="TOPLEFT", size=defaults.combat.size, offsetX=defaults.combat.offsetX, offsetY=defaults.combat.offsetY }),
-        resting = BFUF.Elements.Indicators.Resting:Create(root.statusIconsContainer, { point="TOPLEFT", relativePoint="TOPLEFT", size=defaults.resting.size, offsetX=defaults.resting.offsetX, offsetY=defaults.resting.offsetY }),
-        leader = BFUF.Elements.Indicators.Leader:Create(root.statusIconsContainer, { point="TOPRIGHT", relativePoint="TOP", size=defaults.leader.size, offsetX=defaults.leader.offsetX, offsetY=defaults.leader.offsetY }),
-        assistant = BFUF.Elements.Indicators.Assistant:Create(root.statusIconsContainer, { point="TOPLEFT", relativePoint="TOP", size=defaults.assistant.size, offsetX=defaults.assistant.offsetX, offsetY=defaults.assistant.offsetY }),
-        pvp = BFUF.Elements.Indicators.PvP:Create(root.statusIconsContainer, { point="BOTTOMLEFT", relativePoint="BOTTOMLEFT", size=defaults.pvp.size, offsetX=defaults.pvp.offsetX, offsetY=defaults.pvp.offsetY }),
-        afk = BFUF.Elements.Indicators.AFK:Create(root.statusIconsContainer, { point="BOTTOMLEFT", relativePoint="BOTTOMLEFT", size=defaults.afk.size, offsetX=defaults.afk.offsetX, offsetY=defaults.afk.offsetY }),
-        dnd = BFUF.Elements.Indicators.DND:Create(root.statusIconsContainer, { point="BOTTOMLEFT", relativePoint="BOTTOMLEFT", size=defaults.dnd.size, offsetX=defaults.dnd.offsetX, offsetY=defaults.dnd.offsetY }),
+        combat = BFUF.Elements.Indicators.Combat:Create(root.statusIconsContainer),
+        resting = BFUF.Elements.Indicators.Resting:Create(root.statusIconsContainer),
+        leader = BFUF.Elements.Indicators.Leader:Create(root.statusIconsContainer),
+        assistant = BFUF.Elements.Indicators.Assistant:Create(root.statusIconsContainer),
+        pvp = BFUF.Elements.Indicators.PvP:Create(root.statusIconsContainer),
+        afk = BFUF.Elements.Indicators.AFK:Create(root.statusIconsContainer),
+        dnd = BFUF.Elements.Indicators.DND:Create(root.statusIconsContainer),
     }
 
     root.interaction = CreateFrame("Button", nil, root, "SecureUnitButtonTemplate")

@@ -16,11 +16,9 @@ function Portrait:Create(parent)
     local container = CreateFrame("Frame", nil, parent)
 
     local texture = container:CreateTexture(nil, "ARTWORK")
-    texture:SetAllPoints(container)
     container.texture = texture
 
     local model = CreateFrame("PlayerModel", nil, container)
-    model:SetAllPoints(container)
     model:Hide()
     container.model = model
     container.mode = Portrait.Modes.TWO_D

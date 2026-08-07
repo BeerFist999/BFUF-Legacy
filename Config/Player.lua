@@ -197,6 +197,7 @@ function Player:Create(parentCategory)
         for _, key in ipairs(layoutKeys) do
             profile[key] = defaults[key]
         end
+        profile.positionAnchor = nil
         BFUF.Frames.Player:UpdateLayout()
         Player:RefreshLayoutControls()
     end)

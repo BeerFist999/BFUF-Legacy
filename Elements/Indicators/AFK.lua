@@ -19,22 +19,14 @@ local function applyResource(texture, resource)
     end
 end
 
-function AFK:Create(parent, layout)
+function AFK:Create(parent)
     local resource = BFUF.Elements.StatusIconResources.ICON_RESOURCES.afk
     local holder = CreateFrame("Frame", nil, parent)
-    holder:SetAllPoints(parent)
     holder:SetFrameLevel(parent:GetFrameLevel() + 20)
 
     local indicator = holder:CreateTexture(nil, "OVERLAY", nil, 7)
     applyResource(indicator, resource)
-    indicator:SetSize(layout.size, layout.size)
-    indicator:SetPoint(
-        layout.point,
-        parent,
-        layout.relativePoint,
-        layout.offsetX,
-        layout.offsetY
-    )
+    indicator.holder = holder
     indicator:Hide()
 
     local function update()
