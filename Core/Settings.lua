@@ -1670,18 +1670,6 @@ function SettingsModule:ShowBossFramePage()
                 return boss.enabled == false or boss.preview ~= true
             end,
         }),
-        showHealthText = BindingFactory:CreateProfileBinding({
-            path = "Boss.showHealthText",
-            label = BFUF.L.OPTION_SHOW_BOSS_HEALTH_TEXT,
-            refreshIntent = "BOSS_LAYOUT",
-            context = context,
-        }),
-        showPowerText = BindingFactory:CreateProfileBinding({
-            path = "Boss.showPowerText",
-            label = BFUF.L.OPTION_SHOW_BOSS_POWER_TEXT,
-            refreshIntent = "BOSS_LAYOUT",
-            context = context,
-        }),
         count = BindingFactory:CreateProfileBinding({
             path = "Boss.count",
             label = BFUF.L.OPTION_BOSS_FRAME_COUNT,
@@ -1736,6 +1724,66 @@ function SettingsModule:ShowBossFramePage()
 end
 
 -- Show the single Boss portrait visibility setting.
+function SettingsModule:ShowBossTextPage()
+    local context = { unit = "boss" }
+    local bindings = {
+        showName = BindingFactory:CreateProfileBinding({
+            path = "Boss.showName",
+            label = BFUF.L.OPTION_SHOW_BOSS_NAME,
+            refreshIntent = "BOSS_LAYOUT",
+            context = context,
+        }),
+        showHealthText = BindingFactory:CreateProfileBinding({
+            path = "Boss.showHealthText",
+            label = BFUF.L.OPTION_SHOW_BOSS_HEALTH_TEXT,
+            refreshIntent = "BOSS_LAYOUT",
+            context = context,
+        }),
+        healthTextFormat = BindingFactory:CreateProfileBinding({
+            path = "Boss.healthTextFormat",
+            label = BFUF.L.OPTION_BOSS_HEALTH_TEXT_FORMAT,
+            refreshIntent = "BOSS_LAYOUT",
+            context = context,
+            values = {
+                { value = "currentMax", label = BFUF.L.TEXT_MODE_CURRENT_MAX },
+                { value = "percent", label = BFUF.L.TEXT_MODE_PERCENT },
+                { value = "currentPercent", label = BFUF.L.TEXT_MODE_CURRENT_PERCENT },
+            },
+        }),
+        showPowerText = BindingFactory:CreateProfileBinding({
+            path = "Boss.showPowerText",
+            label = BFUF.L.OPTION_SHOW_BOSS_POWER_TEXT,
+            refreshIntent = "BOSS_LAYOUT",
+            context = context,
+        }),
+        powerTextFormat = BindingFactory:CreateProfileBinding({
+            path = "Boss.powerTextFormat",
+            label = BFUF.L.OPTION_BOSS_POWER_TEXT_FORMAT,
+            refreshIntent = "BOSS_LAYOUT",
+            context = context,
+            values = {
+                { value = "current", label = BFUF.L.TEXT_MODE_CURRENT },
+                { value = "percent", label = BFUF.L.TEXT_MODE_PERCENT },
+            },
+        }),
+    }
+
+    self.shell.pages:ShowPage(BFUF.L.SETTINGS_PLAYER_TEXT, nil, true, function(page)
+        UI.SectionPanel:Create(page, BFUF.L.SECTION_TEXT_NAME, -36)
+        UI.CheckboxRow:Create(page, bindings.showName, -66)
+
+        UI.SectionPanel:Create(page, BFUF.L.SECTION_TEXT_HEALTH, -110)
+        UI.CheckboxRow:Create(page, bindings.showHealthText, -140)
+        UI.DropdownRow:Create(page, bindings.healthTextFormat, -172)
+
+        UI.SectionPanel:Create(page, BFUF.L.SECTION_TEXT_POWER, -222)
+        UI.CheckboxRow:Create(page, bindings.showPowerText, -252)
+        UI.DropdownRow:Create(page, bindings.powerTextFormat, -284)
+    end, function()
+        BindingFactory:Reset(bindings)
+    end)
+end
+
 function SettingsModule:ShowBossPortraitPage()
     local context = { unit = "boss" }
     local bindings = {
@@ -1769,7 +1817,7 @@ function SettingsModule:ShowShellFrame(frameKey, title, isFuture)
         { key = "general", title = BFUF.L.SETTINGS_PLAYER_GENERAL, disabled = isFuture == true },
         { key = "bars", title = BFUF.L.SETTINGS_PLAYER_BARS, disabled = true },
         { key = "portrait", title = BFUF.L.SETTINGS_PLAYER_PORTRAIT, disabled = frameKey ~= "player" and frameKey ~= "target" and frameKey ~= "boss" },
-        { key = "text", title = BFUF.L.SETTINGS_PLAYER_TEXT, disabled = true },
+        { key = "text", title = BFUF.L.SETTINGS_PLAYER_TEXT, disabled = frameKey ~= "boss" },
         { key = "indicators", title = BFUF.L.SETTINGS_PLAYER_INDICATORS, disabled = true },
         { key = "resources", title = BFUF.L.SETTINGS_PLAYER_RESOURCES, disabled = true },
         { key = "auras", title = BFUF.L.SETTINGS_PLAYER_AURAS, disabled = true },
@@ -1803,6 +1851,11 @@ function SettingsModule:ShowShellFrame(frameKey, title, isFuture)
                     else
                         self:ShowBossFramePage()
                     end
+                    return
+                end
+
+                if definition.key == "text" and frameKey == "boss" then
+                    self:ShowBossTextPage()
                     return
                 end
 

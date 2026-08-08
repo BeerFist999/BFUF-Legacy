@@ -7,6 +7,11 @@ BFUF.Frames.Boss = Boss
 
 local MAX_BOSS_FRAMES = 5
 
+local PERCENT_CURVE = C_CurveUtil.CreateCurve()
+PERCENT_CURVE:SetType(Enum.LuaCurveType.Linear)
+PERCENT_CURVE:AddPoint(0, 0)
+PERCENT_CURVE:AddPoint(1, 100)
+
 local function copyDefaults(source, destination)
     for key, value in pairs(source) do
         if type(value) == "table" then
@@ -87,6 +92,67 @@ local function createPreviewFrame(parent)
     return frame
 end
 
+local function applyTextLayout(frame, settings)
+    frame.nameText:ClearAllPoints()
+    frame.nameText:SetPoint("LEFT", frame.healthBar, "LEFT", 4, 0)
+    frame.nameText:SetShown(settings.showName ~= false)
+
+    frame.healthText:ClearAllPoints()
+    frame.healthText:SetPoint("RIGHT", frame.healthBar, "RIGHT", -4, 0)
+    frame.healthText:SetShown(settings.showHealthText ~= false)
+
+    if settings.showHealthText ~= false then
+        frame.nameText:SetPoint("RIGHT", frame.healthText, "LEFT", -6, 0)
+    else
+        frame.nameText:SetPoint("RIGHT", frame.healthBar, "RIGHT", -4, 0)
+    end
+
+    frame.powerText:ClearAllPoints()
+    frame.powerText:SetPoint("RIGHT", frame.powerBar, "RIGHT", -4, 0)
+    frame.powerText:SetShown(settings.showPowerText ~= false)
+end
+
+local function setHealthText(text, unit, format)
+    local current = UnitHealth(unit)
+    local maximum = UnitHealthMax(unit)
+
+    if format == "percent" then
+        text:SetFormattedText("%.0f%%", UnitHealthPercent(unit, true, PERCENT_CURVE))
+    elseif format == "currentPercent" then
+        text:SetFormattedText("%d (%.0f%%)", current, UnitHealthPercent(unit, true, PERCENT_CURVE))
+    else
+        text:SetFormattedText("%d / %d", current, maximum)
+    end
+end
+
+local function setPowerText(text, unit, format)
+    local powerType = UnitPowerType(unit)
+
+    if format == "percent" then
+        text:SetFormattedText("%.0f%%", UnitPowerPercent(unit, powerType, false, PERCENT_CURVE))
+    else
+        text:SetFormattedText("%d", UnitPower(unit, powerType))
+    end
+end
+
+local function formatPreviewHealth(current, maximum, format)
+    if format == "percent" then
+        return string.format("%.0f%%", current / maximum * 100)
+    elseif format == "currentPercent" then
+        return string.format("%d (%.0f%%)", current, current / maximum * 100)
+    end
+
+    return string.format("%d / %d", current, maximum)
+end
+
+local function formatPreviewPower(current, maximum, format)
+    if format == "percent" then
+        return string.format("%.0f%%", current / maximum * 100)
+    end
+
+    return string.format("%d", current)
+end
+
 local function applyPreviewBorder(frame)
     frame.border:ClearAllPoints()
     frame.border:SetAllPoints(frame)
@@ -163,22 +229,7 @@ local function applyPreviewGeometry(frame, previous, settings, index)
 
     frame.highFrame:ClearAllPoints()
     frame.highFrame:SetAllPoints(frame.barsContainer)
-
-    frame.healthText:ClearAllPoints()
-    frame.healthText:SetPoint("RIGHT", frame.healthBar, "RIGHT", -4, 0)
-    frame.healthText:SetShown(settings.showHealthText ~= false)
-
-    frame.nameText:ClearAllPoints()
-    frame.nameText:SetPoint("LEFT", frame.healthBar, "LEFT", 4, 0)
-    if settings.showHealthText ~= false then
-        frame.nameText:SetPoint("RIGHT", frame.healthText, "LEFT", -6, 0)
-    else
-        frame.nameText:SetPoint("RIGHT", frame.healthBar, "RIGHT", -4, 0)
-    end
-
-    frame.powerText:ClearAllPoints()
-    frame.powerText:SetPoint("RIGHT", frame.powerBar, "RIGHT", -4, 0)
-    frame.powerText:SetShown(settings.showPowerText ~= false)
+    applyTextLayout(frame, settings)
 end
 
 function Boss:HidePreview()
@@ -272,11 +323,12 @@ function Boss:UpdatePreview(settings)
         if index <= count then
             applyPreviewGeometry(frame, previous, settings, index)
             local health = math.max(20, 100 - (index - 1) * 15)
+            local power = 100 - (index - 1) * 10
             frame.healthBar:SetValue(health)
-            frame.powerBar:SetValue(100 - (index - 1) * 10)
+            frame.powerBar:SetValue(power)
             frame.nameText:SetText("Boss " .. index)
-            frame.healthText:SetText(health .. "%")
-            frame.powerText:SetText((100 - (index - 1) * 10) .. "%")
+            frame.healthText:SetText(formatPreviewHealth(health, 100, settings.healthTextFormat))
+            frame.powerText:SetText(formatPreviewPower(power, 100, settings.powerTextFormat))
             frame:Show()
             previous = frame
         else
@@ -308,10 +360,12 @@ function Boss:EnsurePosition()
 end
 
 function Boss:UpdateTexts(root)
+    local settings = self:EnsureSettings()
     local unit = root.unit
-    root.nameText:SetText(UnitName(unit))
-    root.healthText:SetText(UnitHealth(unit))
-    root.powerText:SetText(UnitPower(unit, UnitPowerType(unit)))
+
+    root.nameText:SetText(UnitName(unit) or "")
+    setHealthText(root.healthText, unit, settings.healthTextFormat)
+    setPowerText(root.powerText, unit, settings.powerTextFormat)
 end
 
 function Boss:Update(root)
@@ -319,6 +373,7 @@ function Boss:Update(root)
         return
     end
 
+    applyTextLayout(root, self:EnsureSettings())
     root.portrait:Update()
     root.healthBar:Update()
     root.powerBar:Update()
@@ -335,6 +390,7 @@ function Boss:UpdateLayout()
         if root then
             BFUF.Layouts.Boss:Apply(root, previous, settings)
             if root.enabled then
+                self:Update(root)
                 previous = root
             end
         end
