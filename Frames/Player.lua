@@ -128,6 +128,7 @@ function Player:Create()
     root.portraitContainer:SetFrameLevel(rootLevel + 3)
     root.highFrame = CreateFrame("Frame", nil, root)
     root.highFrame:SetFrameLevel(rootLevel + 4)
+    root.highFrame:SetClipsChildren(true)
     root.textContainer = root.highFrame
     root.indicatorLayer = CreateFrame("Frame", nil, root)
     root.indicatorLayer:SetFrameLevel(rootLevel + 5)
@@ -155,6 +156,8 @@ function Player:Create()
     }
 
     root.nameText = BFUF.Elements.Text:Create(root.highFrame, { justifyH = "LEFT", justifyV = "MIDDLE" })
+    root.nameText:SetWordWrap(false)
+    root.nameText:SetMaxLines(1)
     root.healthText = BFUF.Elements.Text:Create(root.highFrame, { justifyH = "RIGHT", justifyV = "MIDDLE" })
     root.powerText = BFUF.Elements.Text:Create(root.highFrame, { justifyH = "RIGHT", justifyV = "MIDDLE" })
     root.levelText = BFUF.Elements.Text:Create(root.highFrame, { justifyH = "LEFT", justifyV = "MIDDLE" })
