@@ -128,7 +128,6 @@ function Player:Create()
     root.portraitContainer:SetFrameLevel(rootLevel + 3)
     root.highFrame = CreateFrame("Frame", nil, root)
     root.highFrame:SetFrameLevel(rootLevel + 4)
-    root.highFrame:SetClipsChildren(true)
     root.textContainer = root.highFrame
     root.indicatorLayer = CreateFrame("Frame", nil, root)
     root.indicatorLayer:SetFrameLevel(rootLevel + 5)
