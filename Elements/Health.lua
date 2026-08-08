@@ -11,9 +11,11 @@ local DEFAULT_SETTINGS = {
     showAbsorb = true,
     absorbColor = { r = 0.8, g = 0.8, b = 1 },
     absorbAlpha = 0.65,
+    absorbPosition = "left",
     showHealAbsorb = true,
     healAbsorbColor = { r = 0.85, g = 0.15, b = 0.15 },
     healAbsorbAlpha = 0.65,
+    healAbsorbPosition = "left",
 }
 
 local function getSettings(statusBar)
@@ -81,6 +83,8 @@ function Health:Create(parent, context)
         local healAbsorbColor = settings.healAbsorbColor or DEFAULT_SETTINGS.healAbsorbColor
         local absorbAlpha = settings.absorbAlpha
         local healAbsorbAlpha = settings.healAbsorbAlpha
+        local absorbPosition = settings.absorbPosition or DEFAULT_SETTINGS.absorbPosition
+        local healAbsorbPosition = settings.healAbsorbPosition or DEFAULT_SETTINGS.healAbsorbPosition
 
         if absorbAlpha == nil then
             absorbAlpha = DEFAULT_SETTINGS.absorbAlpha
@@ -102,6 +106,8 @@ function Health:Create(parent, context)
             healAbsorbColor.b,
             healAbsorbAlpha
         )
+        self.absorbBar:SetReverseFill(absorbPosition == "right")
+        self.healAbsorbBar:SetReverseFill(healAbsorbPosition == "right")
         self:UpdateOverlays(settings)
     end
 

@@ -224,6 +224,13 @@ playerHealthBindings.absorbAlpha = BindingFactory:CreateProfileBinding({
     context = { scope = "sharedHealth" },
 })
 
+playerHealthBindings.absorbPosition = BindingFactory:CreateProfileBinding({
+    path = "Player.health.absorbPosition",
+    label = BFUF.L.OPTION_ABSORB_POSITION,
+    refreshIntent = "HEALTH",
+    context = { scope = "sharedHealth" },
+})
+
 playerHealthBindings.showHealAbsorb = BindingFactory:CreateProfileBinding({
     path = "Player.health.showHealAbsorb",
     label = BFUF.L.OPTION_SHOW_HEAL_ABSORB,
@@ -241,6 +248,13 @@ playerHealthBindings.healAbsorbColor = BindingFactory:CreateProfileBinding({
 playerHealthBindings.healAbsorbAlpha = BindingFactory:CreateProfileBinding({
     path = "Player.health.healAbsorbAlpha",
     label = BFUF.L.OPTION_HEAL_ABSORB_ALPHA,
+    refreshIntent = "HEALTH",
+    context = { scope = "sharedHealth" },
+})
+
+playerHealthBindings.healAbsorbPosition = BindingFactory:CreateProfileBinding({
+    path = "Player.health.healAbsorbPosition",
+    label = BFUF.L.OPTION_HEAL_ABSORB_POSITION,
     refreshIntent = "HEALTH",
     context = { scope = "sharedHealth" },
 })
@@ -306,6 +320,7 @@ pages:Register({
         "Player.health.showAbsorb",
         "Player.health.absorbColor",
         "Player.health.absorbAlpha",
+        "Player.health.absorbPosition",
     },
     refreshIntent = "HEALTH",
     resetScope = "Player.health",
@@ -339,6 +354,17 @@ pages:Register({
             max = 1,
             step = 0.05,
         },
+        {
+            type = "dropdown",
+            key = "absorbPosition",
+            label = BFUF.L.OPTION_ABSORB_POSITION,
+            binding = playerHealthBindings.absorbPosition,
+            refreshIntent = "HEALTH",
+            values = {
+                { value = "left", label = BFUF.L.VALUE_LEFT },
+                { value = "right", label = BFUF.L.VALUE_RIGHT },
+            },
+        },
     },
     builder = function(settings, definition)
         settings:ShowDeclarativeControlsPage(definition)
@@ -354,6 +380,7 @@ pages:Register({
         "Player.health.showHealAbsorb",
         "Player.health.healAbsorbColor",
         "Player.health.healAbsorbAlpha",
+        "Player.health.healAbsorbPosition",
     },
     refreshIntent = "HEALTH",
     resetScope = "Player.health",
@@ -386,6 +413,17 @@ pages:Register({
             min = 0,
             max = 1,
             step = 0.05,
+        },
+        {
+            type = "dropdown",
+            key = "healAbsorbPosition",
+            label = BFUF.L.OPTION_HEAL_ABSORB_POSITION,
+            binding = playerHealthBindings.healAbsorbPosition,
+            refreshIntent = "HEALTH",
+            values = {
+                { value = "left", label = BFUF.L.VALUE_LEFT },
+                { value = "right", label = BFUF.L.VALUE_RIGHT },
+            },
         },
     },
     builder = function(settings, definition)
