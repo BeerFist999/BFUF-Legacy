@@ -8,7 +8,6 @@ BFUF.Layouts.Player = PlayerLayout
 local LAYOUT = {
     frameInset = 2,
     barSpacing = 2,
-    borderThickness = 1,
     portraitFirstOrder = 0,
     portraitLastOrder = 50,
 }
@@ -83,12 +82,32 @@ local function setTextGeometry(text, geometry)
 end
 
 local function applyBorderGeometry(border)
-    local thickness = LAYOUT.borderThickness
-    setRectangle(border, border:GetParent(), 0, 0, 0, 0)
-    setRectangle(border.lines.top, border, 0, 0, 0, -thickness)
-    setRectangle(border.lines.bottom, border, 0, 0, thickness, 0)
-    setRectangle(border.lines.left, border, 0, thickness, 0, 0)
-    setRectangle(border.lines.right, border, -thickness, 0, 0, 0)
+    border:ClearAllPoints()
+    border:SetAllPoints(border:GetParent())
+
+    local top = border.lines.top
+    top:ClearAllPoints()
+    top:SetPoint("TOPLEFT", border, "TOPLEFT", 0, 0)
+    top:SetPoint("TOPRIGHT", border, "TOPRIGHT", 0, 0)
+    top:SetHeight(1)
+
+    local bottom = border.lines.bottom
+    bottom:ClearAllPoints()
+    bottom:SetPoint("BOTTOMLEFT", border, "BOTTOMLEFT", 0, 0)
+    bottom:SetPoint("BOTTOMRIGHT", border, "BOTTOMRIGHT", 0, 0)
+    bottom:SetHeight(1)
+
+    local left = border.lines.left
+    left:ClearAllPoints()
+    left:SetPoint("TOPLEFT", border, "TOPLEFT", 0, 0)
+    left:SetPoint("BOTTOMLEFT", border, "BOTTOMLEFT", 0, 0)
+    left:SetWidth(1)
+
+    local right = border.lines.right
+    right:ClearAllPoints()
+    right:SetPoint("TOPRIGHT", border, "TOPRIGHT", 0, 0)
+    right:SetPoint("BOTTOMRIGHT", border, "BOTTOMRIGHT", 0, 0)
+    right:SetWidth(1)
 end
 
 local function applyRootAnchor(root, anchor)
