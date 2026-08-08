@@ -231,6 +231,13 @@ playerHealthBindings.absorbPosition = BindingFactory:CreateProfileBinding({
     context = { scope = "sharedHealth" },
 })
 
+playerHealthBindings.absorbTexture = BindingFactory:CreateProfileBinding({
+    path = "Player.health.absorbTexture",
+    label = BFUF.L.OPTION_ABSORB_TEXTURE,
+    refreshIntent = "HEALTH",
+    context = { scope = "sharedHealth" },
+})
+
 playerHealthBindings.showHealAbsorb = BindingFactory:CreateProfileBinding({
     path = "Player.health.showHealAbsorb",
     label = BFUF.L.OPTION_SHOW_HEAL_ABSORB,
@@ -255,6 +262,13 @@ playerHealthBindings.healAbsorbAlpha = BindingFactory:CreateProfileBinding({
 playerHealthBindings.healAbsorbPosition = BindingFactory:CreateProfileBinding({
     path = "Player.health.healAbsorbPosition",
     label = BFUF.L.OPTION_HEAL_ABSORB_POSITION,
+    refreshIntent = "HEALTH",
+    context = { scope = "sharedHealth" },
+})
+
+playerHealthBindings.healAbsorbTexture = BindingFactory:CreateProfileBinding({
+    path = "Player.health.healAbsorbTexture",
+    label = BFUF.L.OPTION_HEAL_ABSORB_TEXTURE,
     refreshIntent = "HEALTH",
     context = { scope = "sharedHealth" },
 })
@@ -321,6 +335,7 @@ pages:Register({
         "Player.health.absorbColor",
         "Player.health.absorbAlpha",
         "Player.health.absorbPosition",
+        "Player.health.absorbTexture",
     },
     refreshIntent = "HEALTH",
     resetScope = "Player.health",
@@ -365,6 +380,14 @@ pages:Register({
                 { value = "right", label = BFUF.L.VALUE_RIGHT },
             },
         },
+        {
+            type = "dropdown",
+            key = "absorbTexture",
+            label = BFUF.L.OPTION_ABSORB_TEXTURE,
+            binding = playerHealthBindings.absorbTexture,
+            refreshIntent = "HEALTH",
+            values = BFUF.Media:GetTextureList(),
+        },
     },
     builder = function(settings, definition)
         settings:ShowDeclarativeControlsPage(definition)
@@ -381,6 +404,7 @@ pages:Register({
         "Player.health.healAbsorbColor",
         "Player.health.healAbsorbAlpha",
         "Player.health.healAbsorbPosition",
+        "Player.health.healAbsorbTexture",
     },
     refreshIntent = "HEALTH",
     resetScope = "Player.health",
@@ -424,6 +448,14 @@ pages:Register({
                 { value = "left", label = BFUF.L.VALUE_LEFT },
                 { value = "right", label = BFUF.L.VALUE_RIGHT },
             },
+        },
+        {
+            type = "dropdown",
+            key = "healAbsorbTexture",
+            label = BFUF.L.OPTION_HEAL_ABSORB_TEXTURE,
+            binding = playerHealthBindings.healAbsorbTexture,
+            refreshIntent = "HEALTH",
+            values = BFUF.Media:GetTextureList(),
         },
     },
     builder = function(settings, definition)

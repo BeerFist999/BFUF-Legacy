@@ -17,6 +17,7 @@ Localization\Init.lua
 Localization\enUS.lua
 Localization\ruRU.lua
 Localization\Bootstrap.lua
+Core\Media.lua
 Core\SettingsBindings.lua
 Core\Settings\PageRegistry.lua
 Core\Settings\BindingFactory.lua

@@ -12,10 +12,12 @@ local DEFAULT_SETTINGS = {
     absorbColor = { r = 0.8, g = 0.8, b = 1 },
     absorbAlpha = 0.65,
     absorbPosition = "left",
+    absorbTexture = "blizzard",
     showHealAbsorb = true,
     healAbsorbColor = { r = 0.85, g = 0.15, b = 0.15 },
     healAbsorbAlpha = 0.65,
     healAbsorbPosition = "left",
+    healAbsorbTexture = "blizzard",
 }
 
 local function getSettings(statusBar)
@@ -85,6 +87,8 @@ function Health:Create(parent, context)
         local healAbsorbAlpha = settings.healAbsorbAlpha
         local absorbPosition = settings.absorbPosition or DEFAULT_SETTINGS.absorbPosition
         local healAbsorbPosition = settings.healAbsorbPosition or DEFAULT_SETTINGS.healAbsorbPosition
+        local absorbTexture = settings.absorbTexture or DEFAULT_SETTINGS.absorbTexture
+        local healAbsorbTexture = settings.healAbsorbTexture or DEFAULT_SETTINGS.healAbsorbTexture
 
         if absorbAlpha == nil then
             absorbAlpha = DEFAULT_SETTINGS.absorbAlpha
@@ -94,6 +98,8 @@ function Health:Create(parent, context)
         end
 
         applyColor(self, settings)
+        self.absorbBar:SetStatusBarTexture(BFUF.Media:GetTexture(absorbTexture))
+        self.healAbsorbBar:SetStatusBarTexture(BFUF.Media:GetTexture(healAbsorbTexture))
         self.absorbBar:SetStatusBarColor(
             absorbColor.r,
             absorbColor.g,
