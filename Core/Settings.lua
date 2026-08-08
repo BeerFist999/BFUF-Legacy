@@ -316,6 +316,7 @@ function UI.TabBar:Create(parent)
         frame = frame,
         buttons = {},
         entries = {},
+        entryOrder = {},
         selectedKey = nil,
         nextOffset = 0,
     }
@@ -328,6 +329,7 @@ function UI.TabBar:Create(parent)
 
         wipe(self.buttons)
         wipe(self.entries)
+        wipe(self.entryOrder)
         self.selectedKey = nil
         self.nextOffset = 0
         self.frame:Hide()
@@ -362,9 +364,36 @@ function UI.TabBar:Create(parent)
         self.buttons[entry.key] = {
             button = button,
             entry = entry,
+            desiredWidth = width,
         }
         self.entries[entry.key] = entry
+        table.insert(self.entryOrder, entry)
         self.frame:Show()
+    end
+
+    function tabBar:Relayout()
+        local availableWidth = self.frame:GetWidth()
+        if availableWidth <= 0 then
+            return
+        end
+
+        local totalWidth = 0
+        for _, item in pairs(self.buttons) do
+            totalWidth = totalWidth + item.desiredWidth + 4
+        end
+
+        local scale = totalWidth > availableWidth and availableWidth / totalWidth or 1
+        local offset = 0
+        for _, entry in ipairs(self.entryOrder) do
+            local item = self.buttons[entry.key]
+            if item then
+                local width = math.max(32, math.floor(item.desiredWidth * scale))
+                item.button:ClearAllPoints()
+                item.button:SetPoint("LEFT", self.frame, "LEFT", offset, 0)
+                item.button:SetSize(width, 24)
+                offset = offset + width + 4
+            end
+        end
     end
 
     function tabBar:SetEntries(entries)
@@ -427,6 +456,7 @@ function UI.SettingsShell:Create(parent)
                 tabBar.frame:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 12, y)
                 tabBar.frame:SetPoint("TOPRIGHT", self.frame, "TOPRIGHT", -12, y)
                 tabBar.frame:Show()
+                tabBar:Relayout()
                 y = y - 30
             else
                 tabBar.frame:Hide()
