@@ -329,6 +329,7 @@ function Target:Create()
     -- independent absorb overlays created by the shared Health element.
     root.healthBar.absorbBar:SetAllPoints(root.healthBar)
     root.healthBar.healAbsorbBar:SetAllPoints(root.healthBar)
+    root.healthBar.incomingHealBar:SetAllPoints(root.healthBar)
 
     root.nameText = BFUF.Elements.Text:Create(root.highFrame, {
         justifyH = "LEFT",
@@ -371,6 +372,7 @@ function Target:Create()
     root:RegisterEvent("UNIT_MAXHEALTH")
     root:RegisterEvent("UNIT_ABSORB_AMOUNT_CHANGED")
     root:RegisterEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED")
+    root:RegisterEvent("UNIT_HEAL_PREDICTION")
     root:RegisterEvent("UNIT_POWER_UPDATE")
     root:RegisterEvent("UNIT_MAXPOWER")
     root:RegisterEvent("UNIT_DISPLAYPOWER")
@@ -388,6 +390,13 @@ function Target:Create()
 
         if event == "PLAYER_TARGET_CHANGED" then
             Target:Update(root)
+            return
+        end
+
+        if event == "UNIT_HEAL_PREDICTION" then
+            if unit and UnitIsUnit("target", unit) then
+                root.healthBar:UpdateOverlays()
+            end
             return
         end
 

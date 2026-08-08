@@ -18,6 +18,11 @@ local DEFAULT_SETTINGS = {
     healAbsorbAlpha = 0.65,
     healAbsorbPosition = "left",
     healAbsorbTexture = "blizzard",
+    incomingHeal = false,
+    incomingHealColor = { r = 0.25, g = 1, b = 0.4 },
+    incomingHealAlpha = 0.55,
+    incomingHealPosition = "right",
+    incomingHealTexture = "blizzard",
 }
 
 local function getSettings(statusBar)
@@ -64,6 +69,10 @@ function Health:Create(parent, context)
     healAbsorbBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
     statusBar.healAbsorbBar = healAbsorbBar
 
+    local incomingHealBar = CreateFrame("StatusBar", nil, statusBar)
+    incomingHealBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+    statusBar.incomingHealBar = incomingHealBar
+
     function statusBar:SetUnit(unit)
         self.unit = unit
     end
@@ -89,6 +98,10 @@ function Health:Create(parent, context)
         local healAbsorbPosition = settings.healAbsorbPosition or DEFAULT_SETTINGS.healAbsorbPosition
         local absorbTexture = settings.absorbTexture or DEFAULT_SETTINGS.absorbTexture
         local healAbsorbTexture = settings.healAbsorbTexture or DEFAULT_SETTINGS.healAbsorbTexture
+        local incomingHealColor = settings.incomingHealColor or DEFAULT_SETTINGS.incomingHealColor
+        local incomingHealAlpha = settings.incomingHealAlpha
+        local incomingHealPosition = settings.incomingHealPosition or DEFAULT_SETTINGS.incomingHealPosition
+        local incomingHealTexture = settings.incomingHealTexture or DEFAULT_SETTINGS.incomingHealTexture
 
         if absorbAlpha == nil then
             absorbAlpha = DEFAULT_SETTINGS.absorbAlpha
@@ -96,10 +109,14 @@ function Health:Create(parent, context)
         if healAbsorbAlpha == nil then
             healAbsorbAlpha = DEFAULT_SETTINGS.healAbsorbAlpha
         end
+        if incomingHealAlpha == nil then
+            incomingHealAlpha = DEFAULT_SETTINGS.incomingHealAlpha
+        end
 
         applyColor(self, settings)
         self.absorbBar:SetStatusBarTexture(BFUF.Media:GetTexture(absorbTexture))
         self.healAbsorbBar:SetStatusBarTexture(BFUF.Media:GetTexture(healAbsorbTexture))
+        self.incomingHealBar:SetStatusBarTexture(BFUF.Media:GetTexture(incomingHealTexture))
         self.absorbBar:SetStatusBarColor(
             absorbColor.r,
             absorbColor.g,
@@ -114,6 +131,13 @@ function Health:Create(parent, context)
         )
         self.absorbBar:SetReverseFill(absorbPosition == "right")
         self.healAbsorbBar:SetReverseFill(healAbsorbPosition == "right")
+        self.incomingHealBar:SetStatusBarColor(
+            incomingHealColor.r,
+            incomingHealColor.g,
+            incomingHealColor.b,
+            incomingHealAlpha
+        )
+        self.incomingHealBar:SetReverseFill(incomingHealPosition == "right")
         self:UpdateOverlays(settings)
     end
 
@@ -130,10 +154,13 @@ function Health:Create(parent, context)
         local maxHealth = UnitHealthMax(unit)
         self.absorbBar:SetShown(settings.showAbsorb)
         self.healAbsorbBar:SetShown(settings.showHealAbsorb)
+        self.incomingHealBar:SetShown(settings.incomingHeal)
         self.absorbBar:SetMinMaxValues(0, maxHealth)
         self.healAbsorbBar:SetMinMaxValues(0, maxHealth)
+        self.incomingHealBar:SetMinMaxValues(0, maxHealth)
         self.absorbBar:SetValue(UnitGetTotalAbsorbs(unit))
         self.healAbsorbBar:SetValue(UnitGetTotalHealAbsorbs(unit))
+        self.incomingHealBar:SetValue(UnitGetIncomingHeals(unit))
     end
 
     function statusBar:Update()
@@ -158,6 +185,7 @@ function Health:Create(parent, context)
     function statusBar:Destroy()
         self.absorbBar:Hide()
         self.healAbsorbBar:Hide()
+        self.incomingHealBar:Hide()
         self:Hide()
         self.context = nil
         self.settings = nil

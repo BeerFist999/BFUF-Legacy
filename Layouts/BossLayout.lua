@@ -140,6 +140,7 @@ function BossLayout:Apply(root, previous, settings)
     setRectangle(root.powerBar.background, root.powerBar, 0, 0, 0, 0)
     setRectangle(root.healthBar.absorbBar, root.healthBar, 0, 0, 0, 0)
     setRectangle(root.healthBar.healAbsorbBar, root.healthBar, 0, 0, 0, 0)
+    setRectangle(root.healthBar.incomingHealBar, root.healthBar, 0, 0, 0, 0)
     setRectangle(root.highFrame, root.barsContainer, 0, 0, 0, 0)
 
     root.layoutPending = false

@@ -497,6 +497,7 @@ local function createBossFrame(index)
     root:RegisterEvent("UNIT_MAXHEALTH")
     root:RegisterEvent("UNIT_ABSORB_AMOUNT_CHANGED")
     root:RegisterEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED")
+    root:RegisterEvent("UNIT_HEAL_PREDICTION")
     root:RegisterEvent("UNIT_POWER_UPDATE")
     root:RegisterEvent("UNIT_MAXPOWER")
     root:RegisterEvent("UNIT_DISPLAYPOWER")
@@ -520,7 +521,7 @@ local function createBossFrame(index)
         if event == "PLAYER_ENTERING_WORLD" or event == "INSTANCE_ENCOUNTER_ENGAGE_UNIT" then
             Boss:Update(frame)
         elseif eventUnit == frame.unit then
-            if event == "UNIT_ABSORB_AMOUNT_CHANGED" or event == "UNIT_HEAL_ABSORB_AMOUNT_CHANGED" then
+            if event == "UNIT_ABSORB_AMOUNT_CHANGED" or event == "UNIT_HEAL_ABSORB_AMOUNT_CHANGED" or event == "UNIT_HEAL_PREDICTION" then
                 frame.healthBar:UpdateOverlays()
             else
                 Boss:Update(frame)

@@ -50,6 +50,11 @@ BFUF.Defaults = {
                 healAbsorbAlpha = 0.65,
                 healAbsorbPosition = "left",
                 healAbsorbTexture = "blizzard",
+                incomingHeal = false,
+                incomingHealColor = { r = 0.25, g = 1, b = 0.4 },
+                incomingHealAlpha = 0.55,
+                incomingHealPosition = "right",
+                incomingHealTexture = "blizzard",
             },
 
             power = {

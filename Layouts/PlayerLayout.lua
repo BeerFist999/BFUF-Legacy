@@ -348,6 +348,7 @@ function PlayerLayout:ApplyLayout(root, result)
 
     setRectangle(root.healthBar.absorbBar, root.healthBar, 0, 0, 0, 0)
     setRectangle(root.healthBar.healAbsorbBar, root.healthBar, 0, 0, 0, 0)
+    setRectangle(root.healthBar.incomingHealBar, root.healthBar, 0, 0, 0, 0)
 
     if result.portrait.visible then
         setPortraitContainerGeometry(root.portraitContainer, root, result.portrait)
