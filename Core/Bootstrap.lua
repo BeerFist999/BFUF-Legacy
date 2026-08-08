@@ -20,6 +20,11 @@ function Bootstrap:Initialize()
         BFUF:Print("Player Frame created.")
     end
 
+    local targetFrame = BFUF.Frames.Target:Create()
+    if targetFrame then
+        BFUF:Debug("Target Frame created")
+    end
+
     local eventFrame = CreateFrame("Frame")
     eventFrame:RegisterEvent("PLAYER_LOGIN")
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
