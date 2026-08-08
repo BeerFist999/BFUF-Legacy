@@ -11,7 +11,13 @@ local Portrait = {
 }
 BFUF.Elements.Portrait = Portrait
 
--- Create a complete portrait container that supports 2D and 3D renderers.
+local FALLBACK_MODEL = "Interface\\Buttons\\TalkToMeQuestionMark.m2"
+
+local function isTargetUnit(unit)
+    return unit == "target"
+end
+
+-- Create a portrait renderer with its own event-driven lifecycle.
 function Portrait:Create(parent)
     local container = CreateFrame("Frame", nil, parent)
 
@@ -21,30 +27,55 @@ function Portrait:Create(parent)
 
     local model = CreateFrame("PlayerModel", nil, container)
     model:SetAllPoints(container)
-    model:SetScript("OnShow", function(self)
-        -- Keep the viewport camera consistent after the renderer becomes visible.
-        self:SetPortraitZoom(1)
-        self:SetPosition(0, 0, 0)
-    end)
     model:Hide()
     container.model = model
     container.mode = Portrait.Modes.TWO_D
 
+    function container:ClearRenderer()
+        self.texture:SetTexture(nil)
+        self.texture:Hide()
+        self.model:ClearModel()
+        self.model:Hide()
+    end
+
+    function container:ShowModelFallback()
+        self.texture:Hide()
+        self.model:ClearModel()
+        self.model:SetCamDistanceScale(0.25)
+        self.model:SetPortraitZoom(0)
+        self.model:SetPosition(0, 0, 0.25)
+        self.model:SetModel(FALLBACK_MODEL)
+        self.model:Show()
+    end
+
     function container:SetUnit(unit)
-        self.unit = unit
-    end
-
-    function container:SetMode(mode)
-        self.mode = mode
-        self:Update()
-    end
-
-    function container:Update()
-        if not self.unit then
+        if self.unit == unit then
             return
         end
 
+        self.unit = unit
+        self:Update("UNIT_CHANGED")
+    end
+
+    function container:SetMode(mode)
+        mode = mode or Portrait.Modes.TWO_D
+        if self.mode == mode then
+            return
+        end
+
+        self.mode = mode
+        self:Update("MODE_CHANGED")
+    end
+
+    function container:Update()
+        local unit = self.unit
         if self.mode == Portrait.Modes.HIDDEN then
+            self:Hide()
+            return
+        end
+
+        if not unit or not UnitExists(unit) then
+            self:ClearRenderer()
             self:Hide()
             return
         end
@@ -52,68 +83,52 @@ function Portrait:Create(parent)
         self:Show()
         if self.mode == Portrait.Modes.THREE_D then
             self.texture:Hide()
+
+            if not UnitIsConnected(unit) or not UnitIsVisible(unit) then
+                self:ShowModelFallback()
+                return
+            end
+
             self.model:ClearModel()
-            self.model:SetUnit(self.unit)
+            self.model:SetUnit(unit)
             self.model:SetPortraitZoom(1)
             self.model:SetPosition(0, 0, 0)
             self.model:Show()
-        else
-            self.model:Hide()
-            SetPortraitTexture(self.texture, self.unit)
-            self.texture:Show()
+            return
         end
+
+        self.model:Hide()
+        SetPortraitTexture(self.texture, unit)
+        self.texture:Show()
     end
 
+    function container:RegisterEvents()
+        self:RegisterEvent("PLAYER_ENTERING_WORLD")
+        self:RegisterEvent("PLAYER_TARGET_CHANGED")
+        self:RegisterEvent("UNIT_PORTRAIT_UPDATE")
+        self:RegisterEvent("UNIT_MODEL_CHANGED")
+        self:RegisterEvent("PORTRAITS_UPDATED")
+        self:RegisterEvent("UNIT_CONNECTION")
+
+        self:SetScript("OnEvent", function(renderer, event, unit)
+            if event == "PLAYER_ENTERING_WORLD" or event == "PORTRAITS_UPDATED" then
+                renderer:Update(event)
+                return
+            end
+
+            if event == "PLAYER_TARGET_CHANGED" then
+                if isTargetUnit(renderer.unit) then
+                    renderer:Update(event)
+                end
+                return
+            end
+
+            if unit == renderer.unit then
+                renderer:Update(event)
+            end
+        end)
+    end
+
+    container:RegisterEvents()
     return container
-end
-
-
--- Print the final runtime state of both portrait renderers for diagnostics.
-function Portrait:PrintRenderState()
-    local root = BFUF.Framework.Registry:GetFrame("player")
-    if not root or not root.portraitContainer or not root.portrait then
-        BFUF:Print("[BFUF Portrait] Player portrait is not available.")
-        return
-    end
-
-    local container = root.portraitContainer
-    local portrait = root.portrait
-    local texture = portrait.texture
-    local model = portrait.model
-    local textureLayer, textureSubLevel = texture:GetDrawLayer()
-
-    BFUF:Print(string.format(
-        "[BFUF Portrait] Container W=%s H=%s Level=%s Strata=%s Shown=%s",
-        tostring(container:GetWidth()),
-        tostring(container:GetHeight()),
-        tostring(container:GetFrameLevel()),
-        tostring(container:GetFrameStrata()),
-        tostring(container:IsShown())
-    ))
-    BFUF:Print(string.format(
-        "[BFUF Portrait] Texture W=%s H=%s Alpha=%s Shown=%s Visible=%s Layer=%s/%s",
-        tostring(texture:GetWidth()),
-        tostring(texture:GetHeight()),
-        tostring(texture:GetAlpha()),
-        tostring(texture:IsShown()),
-        tostring(texture:IsVisible()),
-        tostring(textureLayer),
-        tostring(textureSubLevel)
-    ))
-    BFUF:Print(string.format(
-        "[BFUF Portrait] Model W=%s H=%s Alpha=%s Shown=%s Visible=%s Level=%s Strata=%s",
-        tostring(model:GetWidth()),
-        tostring(model:GetHeight()),
-        tostring(model:GetAlpha()),
-        tostring(model:IsShown()),
-        tostring(model:IsVisible()),
-        tostring(model:GetFrameLevel()),
-        tostring(model:GetFrameStrata())
-    ))
-end
-
--- The temporary command lives beside the diagnostic code for simple removal.
-SLASH_BFUFPORTRAITDEBUG1 = "/bfufportraitdebug"
-SlashCmdList.BFUFPORTRAITDEBUG = function()
-    Portrait:PrintRenderState()
 end

@@ -203,30 +203,6 @@ function Target:AttachDrag(root)
     end)
 end
 
--- Apply the current Target portrait mode to the current target unit only.
-function Target:UpdatePortrait(root)
-    root = root or BFUF.Framework.Registry:GetFrame("target")
-    if not root or not root.visible or not UnitExists("target") then
-        return
-    end
-
-    -- Reassert the unit on every refresh so the renderer never retains a previous target.
-    root.portrait:SetUnit("target")
-    root.portrait:SetMode(getPortraitSettings().mode)
-end
-
--- Repeat the portrait update after Blizzard finishes resolving a newly selected unit.
-function Target:SchedulePortraitRefresh(root)
-    root.portraitRefreshGeneration = (root.portraitRefreshGeneration or 0) + 1
-    local generation = root.portraitRefreshGeneration
-
-    C_Timer.After(0, function()
-        if root.portraitRefreshGeneration == generation then
-            Target:UpdatePortrait(root)
-        end
-    end)
-end
-
 -- Refresh all visual elements after a target-related event.
 function Target:Update(root)
     root = root or BFUF.Framework.Registry:GetFrame("target")
@@ -239,7 +215,7 @@ function Target:Update(root)
         return
     end
 
-    self:UpdatePortrait(root)
+    root.portrait:SetMode(getPortraitSettings().mode)
     root.healthBar:Update()
     root.powerBar:Update()
     self:UpdateTexts(root)
@@ -371,9 +347,6 @@ function Target:Create()
     root:RegisterEvent("UNIT_MAXPOWER")
     root:RegisterEvent("UNIT_DISPLAYPOWER")
     root:RegisterEvent("UNIT_NAME_UPDATE")
-    root:RegisterEvent("UNIT_PORTRAIT_UPDATE")
-    root:RegisterEvent("UNIT_MODEL_CHANGED")
-    root:RegisterEvent("PORTRAITS_UPDATED")
     root:SetScript("OnEvent", function(_, event, unit)
         if event == "PLAYER_REGEN_ENABLED" and root.layoutPending then
             Target:UpdateLayout(root)
@@ -387,21 +360,11 @@ function Target:Create()
 
         if event == "PLAYER_TARGET_CHANGED" then
             Target:Update(root)
-            Target:SchedulePortraitRefresh(root)
-            return
-        end
-
-        if event == "PORTRAITS_UPDATED" then
-            Target:UpdatePortrait(root)
             return
         end
 
         if unit == "target" then
-            if event == "UNIT_PORTRAIT_UPDATE" or event == "UNIT_MODEL_CHANGED" then
-                Target:UpdatePortrait(root)
-            else
-                Target:Update(root)
-            end
+            Target:Update(root)
         end
     end)
 
