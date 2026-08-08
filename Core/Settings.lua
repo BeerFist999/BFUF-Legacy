@@ -1882,9 +1882,10 @@ function SettingsModule:ShowElementFrameChoices(elementKey, title)
             { key = "boss", title = BFUF.L.SETTINGS_PAGE_BOSS, pageId = "elements.portrait.boss" },
         },
         health = {
-            { key = "player", title = BFUF.L.SETTINGS_PAGE_PLAYER, pageId = "elements.health.player" },
-            { key = "target", title = BFUF.L.SETTINGS_PAGE_TARGET, disabled = true },
-            { key = "boss", title = BFUF.L.SETTINGS_PAGE_BOSS, disabled = true },
+            { key = "general", title = BFUF.L.SETTINGS_HEALTH_GENERAL, pageId = "elements.health.general" },
+            { key = "text", title = BFUF.L.SETTINGS_HEALTH_TEXT, pageId = "elements.health.player" },
+            { key = "absorb", title = BFUF.L.SETTINGS_HEALTH_ABSORB, pageId = "elements.health.absorb" },
+            { key = "healAbsorb", title = BFUF.L.SETTINGS_HEALTH_HEAL_ABSORB, pageId = "elements.health.healAbsorb" },
         },
     }
 

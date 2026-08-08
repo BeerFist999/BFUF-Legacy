@@ -125,5 +125,11 @@ BFUF.Localization:RegisterLocale("enUS", {
     SETTINGS_PLAYER_RESOURCES = "Class Resources",
     SETTINGS_PLAYER_AURAS = "Auras",
     SETTINGS_PLAYER_ADVANCED = "Advanced",
+    SETTINGS_HEALTH_GENERAL = "General",
+    SETTINGS_HEALTH_TEXT = "Health Text",
+    SETTINGS_HEALTH_ABSORB = "Absorb",
+    SETTINGS_HEALTH_HEAL_ABSORB = "Heal Absorb",
+    OPTION_HEALTH_COLOR_MODE = "Color Mode",
+    OPTION_CUSTOM_HEALTH_COLOR = "Custom Health Color",
     SETTINGS_DESCRIPTION_COMING_LATER = "This section will be available in a future development phase.",
 })

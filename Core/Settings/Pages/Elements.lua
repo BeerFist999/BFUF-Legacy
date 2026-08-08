@@ -132,9 +132,10 @@ local playerHealthTextBindings = {
     }),
 }
 
+-- Keep the existing Health Text controls in the Text-system profile section.
 pages:Register({
     id = "elements.health.player",
-    title = BFUF.L.SETTINGS_PLAYER_HEALTH,
+    title = BFUF.L.SETTINGS_HEALTH_TEXT,
     category = "Elements",
     availability = settingsAvailable,
     bindings = {
@@ -167,6 +168,158 @@ pages:Register({
                 { value = "currentMax", label = BFUF.L.TEXT_MODE_CURRENT_MAX },
                 { value = "percent", label = BFUF.L.TEXT_MODE_PERCENT },
             },
+        },
+    },
+    builder = function(settings, definition)
+        settings:ShowDeclarativeControlsPage(definition)
+    end,
+})
+
+-- The shared policy remains stored in Player.health. Target and Boss receive it
+-- through their existing frame-side settings providers.
+local playerHealthBindings = {}
+
+playerHealthBindings.height = BindingFactory:CreateProfileBinding({
+    path = "Player.health.height",
+    label = BFUF.L.OPTION_HEALTH_HEIGHT,
+    refreshIntent = "PLAYER_LAYOUT",
+    context = { unit = "player" },
+})
+
+playerHealthBindings.colorMode = BindingFactory:CreateProfileBinding({
+    path = "Player.health.colorMode",
+    label = BFUF.L.OPTION_HEALTH_COLOR_MODE,
+    refreshIntent = "HEALTH",
+    context = { scope = "sharedHealth" },
+})
+
+playerHealthBindings.customColor = BindingFactory:CreateProfileBinding({
+    path = "Player.health.customColor",
+    label = BFUF.L.OPTION_CUSTOM_HEALTH_COLOR,
+    refreshIntent = "HEALTH",
+    context = { scope = "sharedHealth" },
+    disabled = function()
+        return playerHealthBindings.colorMode:get() ~= "custom"
+    end,
+})
+
+playerHealthBindings.showAbsorb = BindingFactory:CreateProfileBinding({
+    path = "Player.health.showAbsorb",
+    label = BFUF.L.OPTION_SHOW_ABSORB,
+    refreshIntent = "HEALTH",
+    context = { scope = "sharedHealth" },
+})
+
+playerHealthBindings.showHealAbsorb = BindingFactory:CreateProfileBinding({
+    path = "Player.health.showHealAbsorb",
+    label = BFUF.L.OPTION_SHOW_HEAL_ABSORB,
+    refreshIntent = "HEALTH",
+    context = { scope = "sharedHealth" },
+})
+
+pages:Register({
+    id = "elements.health.general",
+    title = BFUF.L.SETTINGS_HEALTH_GENERAL,
+    category = "Elements",
+    availability = settingsAvailable,
+    bindings = {
+        "Player.health.height",
+        "Player.health.colorMode",
+        "Player.health.customColor",
+    },
+    refreshIntent = "HEALTH",
+    resetScope = "Player.health",
+    controls = {
+        {
+            type = "header",
+            key = "general",
+            label = BFUF.L.SETTINGS_HEALTH_GENERAL,
+        },
+        {
+            type = "slider",
+            key = "height",
+            label = BFUF.L.OPTION_HEALTH_HEIGHT,
+            binding = playerHealthBindings.height,
+            refreshIntent = "PLAYER_LAYOUT",
+            min = 10,
+            max = 160,
+            step = 1,
+        },
+        {
+            type = "dropdown",
+            key = "colorMode",
+            label = BFUF.L.OPTION_HEALTH_COLOR_MODE,
+            binding = playerHealthBindings.colorMode,
+            refreshIntent = "HEALTH",
+            values = {
+                { value = "class", label = BFUF.L.OPTION_CLASS_COLOR },
+                { value = "custom", label = BFUF.L.OPTION_CUSTOM_COLOR },
+            },
+        },
+        {
+            type = "color",
+            key = "customColor",
+            label = BFUF.L.OPTION_CUSTOM_HEALTH_COLOR,
+            binding = playerHealthBindings.customColor,
+            refreshIntent = "HEALTH",
+        },
+    },
+    builder = function(settings, definition)
+        settings:ShowDeclarativeControlsPage(definition)
+    end,
+})
+
+pages:Register({
+    id = "elements.health.absorb",
+    title = BFUF.L.SETTINGS_HEALTH_ABSORB,
+    category = "Elements",
+    availability = settingsAvailable,
+    bindings = {
+        "Player.health.showAbsorb",
+    },
+    refreshIntent = "HEALTH",
+    resetScope = "Player.health.showAbsorb",
+    controls = {
+        {
+            type = "header",
+            key = "absorb",
+            label = BFUF.L.SETTINGS_HEALTH_ABSORB,
+        },
+        {
+            type = "checkbox",
+            key = "showAbsorb",
+            label = BFUF.L.OPTION_SHOW_ABSORB,
+            binding = playerHealthBindings.showAbsorb,
+            refreshIntent = "HEALTH",
+        },
+    },
+    builder = function(settings, definition)
+        settings:ShowDeclarativeControlsPage(definition)
+    end,
+})
+
+pages:Register({
+    id = "elements.health.healAbsorb",
+    title = BFUF.L.SETTINGS_HEALTH_HEAL_ABSORB,
+    category = "Elements",
+    availability = settingsAvailable,
+    bindings = {
+        "Player.health.showHealAbsorb",
+    },
+    refreshIntent = "HEALTH",
+    resetScope = "Player.health.showHealAbsorb",
+    controls = {
+        {
+            type = "header",
+            key = "healAbsorb",
+            label = BFUF.L.SETTINGS_HEALTH_HEAL_ABSORB,
+        },
+        {
+            type = "checkbox",
+            key = "showHealAbsorb",
+            label = BFUF.L.OPTION_SHOW_HEAL_ABSORB,
+            binding = playerHealthBindings.showHealAbsorb,
+            refreshIntent = "HEALTH",
         },
     },
     builder = function(settings, definition)

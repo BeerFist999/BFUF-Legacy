@@ -125,5 +125,11 @@ BFUF.Localization:RegisterLocale("ruRU", {
     SETTINGS_PLAYER_RESOURCES = "Ресурсы класса",
     SETTINGS_PLAYER_AURAS = "Ауры",
     SETTINGS_PLAYER_ADVANCED = "Расширенные",
+    SETTINGS_HEALTH_GENERAL = "Общие",
+    SETTINGS_HEALTH_TEXT = "Текст здоровья",
+    SETTINGS_HEALTH_ABSORB = "Поглощение",
+    SETTINGS_HEALTH_HEAL_ABSORB = "Поглощение лечения",
+    OPTION_HEALTH_COLOR_MODE = "Режим цвета",
+    OPTION_CUSTOM_HEALTH_COLOR = "Пользовательский цвет здоровья",
     SETTINGS_DESCRIPTION_COMING_LATER = "Этот раздел будет доступен на следующем этапе разработки.",
 })

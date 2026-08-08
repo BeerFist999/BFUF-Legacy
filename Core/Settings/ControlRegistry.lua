@@ -74,6 +74,27 @@ function ControlRegistry:Render(parent, controls)
             local control
             local binding = resolveBinding(descriptor)
 
+            -- A setting can change another control's disabled state. Decorate
+            -- the existing binding so every row reflects that state immediately.
+            if binding and binding.set then
+                local originalSet = binding.set
+                local decorated = {}
+                for key, value in pairs(binding) do
+                    decorated[key] = value
+                end
+
+                decorated.set = function(value)
+                    originalSet(value)
+                    for _, renderedControl in pairs(rendered) do
+                        if renderedControl.Refresh then
+                            renderedControl:Refresh()
+                        end
+                    end
+                end
+
+                binding = decorated
+            end
+
             if descriptor.type == "header" then
                 control = UI.SectionPanel:Create(parent, descriptor.label, offset)
                 offset = offset - 32

@@ -105,12 +105,22 @@ local function refreshText(context)
     end
 end
 
-local function refreshHealth(context)
-    if context and context.unit == "player" then
-        local root = getFrameRoot("player")
+local function refreshHealth()
+    -- Player.health is the current shared Health policy. Apply its visual
+    -- settings through each frame's existing provider without changing layout
+    -- ownership or the synthetic Boss preview.
+    local function refreshFrameHealth(frameKey)
+        local root = getFrameRoot(frameKey)
         if root and root.healthBar and root.healthBar.UpdateStyle then
             root.healthBar:UpdateStyle()
         end
+    end
+
+    refreshFrameHealth("player")
+    refreshFrameHealth("target")
+
+    for index = 1, 5 do
+        refreshFrameHealth("boss" .. index)
     end
 end
 
