@@ -10,10 +10,10 @@ local Portrait = {
 BFUF.Elements.Portrait = Portrait
 
 local PORTRAIT_TEX_COORD = {
-    left = 0.15,
-    right = 0.85,
-    top = 0.15,
-    bottom = 0.85,
+    left = 0.08,
+    right = 0.92,
+    top = 0.08,
+    bottom = 0.92,
 }
 
 local function isTargetUnit(unit)
