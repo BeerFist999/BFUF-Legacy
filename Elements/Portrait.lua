@@ -23,6 +23,40 @@ local function isTargetUnit(unit)
     return unit == "target"
 end
 
+-- Print the PlayerModel state without changing the portrait update lifecycle.
+local function printBeforeSetUnit(model, unit, event, mode, canSetUnit)
+    if not Portrait.debugEnabled then
+        return
+    end
+
+    local parent = model:GetParent()
+    local camera = model.GetCamera and model:GetCamera() or nil
+
+    BFUF:Print("[BFUF Portrait] BEFORE SetUnit")
+    BFUF:Print(
+        "[BFUF Portrait] unit=" .. describeValue(unit)
+            .. " event=" .. describeValue(event)
+            .. " mode=" .. describeValue(mode)
+    )
+    BFUF:Print(
+        "[BFUF Portrait] model shown=" .. describeValue(model:IsShown())
+            .. " visible=" .. describeValue(model:IsVisible())
+            .. " width=" .. describeValue(model:GetWidth())
+            .. " height=" .. describeValue(model:GetHeight())
+            .. " effective alpha=" .. describeValue(model:GetEffectiveAlpha())
+    )
+    BFUF:Print(
+        "[BFUF Portrait] parent exists=" .. describeValue(parent ~= nil)
+            .. " shown=" .. describeValue(parent and parent:IsShown())
+            .. " visible=" .. describeValue(parent and parent:IsVisible())
+            .. " effective alpha=" .. describeValue(parent and parent:GetEffectiveAlpha())
+    )
+    BFUF:Print(
+        "[BFUF Portrait] CanSetUnit=" .. describeValue(canSetUnit)
+            .. " camera=" .. describeValue(camera)
+    )
+end
+
 -- Create a portrait renderer with its own event-driven lifecycle.
 function Portrait:Create(parent)
     local container = CreateFrame("Frame", nil, parent)
@@ -127,8 +161,13 @@ function Portrait:Create(parent)
             self.debugState.clearModel = true
             self.model:ClearModel()
             self.debugState.canSetUnit = self.model:CanSetUnit(unit)
+            printBeforeSetUnit(self.model, unit, event, self.mode, self.debugState.canSetUnit)
             self.debugState.setUnit = unit
             self.debugState.setUnitResult = self.model:SetUnit(unit)
+
+            if Portrait.debugEnabled then
+                BFUF:Print("[BFUF Portrait] SetUnit result=" .. describeValue(self.debugState.setUnitResult))
+            end
 
             local success = self.debugState.setUnitResult
             if issecretvalue and issecretvalue(success) then
