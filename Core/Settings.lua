@@ -1555,6 +1555,35 @@ function SettingsModule:ShowBasicFrameLayoutPage(profileKey, frameModule, title,
         refreshControls()
     end
 
+    local function copyDefaults(source)
+        local copy = {}
+        for key, value in pairs(source) do
+            if type(value) == "table" then
+                copy[key] = copyDefaults(value)
+            else
+                copy[key] = value
+            end
+        end
+        return copy
+    end
+
+    local function resetFrameDefaults()
+        local profile = BFUF.DB:Get(profileKey)
+        local defaults = BFUF.Defaults.profile[profileKey]
+
+        -- Reset only the selected frame section without sharing nested default tables.
+        wipe(profile)
+        for key, value in pairs(copyDefaults(defaults)) do
+            profile[key] = value
+        end
+
+        frameModule:UpdateLayout()
+        if profileKey == "Target" then
+            frameModule:Update()
+        end
+        refreshControls()
+    end
+
     self.shell.pages:ShowPage(title, nil, true, function(page)
         UI.SectionPanel:Create(page, BFUF.L.SECTION_LAYOUT, -36)
 
@@ -1598,6 +1627,7 @@ function SettingsModule:ShowBasicFrameLayoutPage(profileKey, frameModule, title,
         )
 
         UI.ButtonRow:Create(page, BFUF.L.BUTTON_RESET_POSITION, -404, resetPosition)
+        UI.ButtonRow:Create(page, BFUF.L.BUTTON_RESET_DEFAULTS, -436, resetFrameDefaults)
     end, resetPosition)
 
     self.frameLayoutControls[profileKey] = controls
