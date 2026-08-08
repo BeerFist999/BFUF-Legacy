@@ -6,6 +6,12 @@ local Health = {}
 BFUF.Elements.Health = Health
 
 local function applyColor(statusBar)
+    if statusBar.colorResolver then
+        local red, green, blue = statusBar.colorResolver(statusBar.unit)
+        statusBar:SetStatusBarColor(red, green, blue)
+        return
+    end
+
     local settings = BFUF.DB:Get("Player").health
     local color = settings.customColor
 
@@ -34,6 +40,10 @@ function Health:Create(parent)
 
     function statusBar:SetUnit(unit)
         self.unit = unit
+    end
+
+    function statusBar:SetColorResolver(resolver)
+        self.colorResolver = resolver
     end
 
     function statusBar:UpdateStyle()

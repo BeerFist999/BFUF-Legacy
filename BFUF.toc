@@ -36,6 +36,7 @@ Frames\Player.lua
 Frames\Target.lua
 Frames\TargetTarget.lua
 Frames\Boss.lua
+Utils\UnitColors.lua
 Elements\Health.lua
 Elements\Power.lua
 Elements\Portrait.lua

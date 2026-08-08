@@ -308,6 +308,7 @@ function Target:Create()
     root.portrait:SetUnit("target")
 
     root.healthBar = BFUF.Elements.Health:Create(root.barsContainer)
+    root.healthBar:SetColorResolver(BFUF.Utils.GetUnitHealthColor)
     root.healthBar:SetUnit("target")
     root.healthBar.background = root.healthBar:CreateTexture(nil, "BACKGROUND")
     root.healthBar.background:SetAllPoints()
