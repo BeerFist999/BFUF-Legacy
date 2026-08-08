@@ -40,6 +40,8 @@ function Portrait:Create(parent)
     container.model = model
     container.mode = Portrait.Modes.TWO_D
     container.debugState = {}
+    container.retryPending = false
+    container.initialRetryScheduled = false
 
     function container:ClearRenderer()
         self.debugState.clearRenderer = true
@@ -48,13 +50,32 @@ function Portrait:Create(parent)
         self.model:ClearModel()
         self.model:Hide()
         self.activeRenderer = nil
+        self.retryPending = false
         self.debugState.activeRenderer = self.activeRenderer
+        self.debugState.retryPending = self.retryPending
+    end
+
+    function container:ScheduleInitialRetry()
+        if self.initialRetryScheduled or not C_Timer or not C_Timer.After then
+            return
+        end
+
+        self.initialRetryScheduled = true
+        C_Timer.After(0, function()
+            self.initialRetryScheduled = false
+
+            if self.mode == Portrait.Modes.THREE_D and self.retryPending then
+                self:Update("INITIAL_3D_RETRY")
+            end
+        end)
     end
 
     function container:ShowModelFallback()
         self.debugState.usedFallback = true
         self.activeRenderer = "3d-fallback"
+        self.retryPending = true
         self.debugState.activeRenderer = self.activeRenderer
+        self.debugState.retryPending = self.retryPending
         self.texture:Hide()
         self.model:ClearModel()
         self.model:SetCamDistanceScale(0.25)
@@ -89,6 +110,7 @@ function Portrait:Create(parent)
             event = event or "DIRECT",
             unit = unit,
             mode = self.mode,
+            retryPending = self.retryPending,
         }
         if self.mode == Portrait.Modes.HIDDEN then
             self:ClearRenderer()
@@ -130,12 +152,21 @@ function Portrait:Create(parent)
                 SetPortraitTexture(self.texture, unit)
                 self.texture:Show()
                 self.activeRenderer = "2d-fallback"
+                self.retryPending = true
                 self.debugState.activeRenderer = self.activeRenderer
+                self.debugState.retryPending = self.retryPending
+
+                if event == "PLAYER_ENTERING_WORLD" then
+                    self:ScheduleInitialRetry()
+                end
+
                 return
             end
 
             self.activeRenderer = "3d"
+            self.retryPending = false
             self.debugState.activeRenderer = self.activeRenderer
+            self.debugState.retryPending = self.retryPending
             self.debugState.setPortraitZoom = true
             self.model:SetPortraitZoom(1)
             self.debugState.setPosition = true
@@ -149,7 +180,9 @@ function Portrait:Create(parent)
         SetPortraitTexture(self.texture, unit)
         self.texture:Show()
         self.activeRenderer = "2d"
+        self.retryPending = false
         self.debugState.activeRenderer = self.activeRenderer
+        self.debugState.retryPending = self.retryPending
     end
 
     function container:PrintDebugState()
@@ -162,7 +195,7 @@ function Portrait:Create(parent)
         BFUF:Print("[BFUF Portrait] UnitCreatureType(target)=" .. describeValue(UnitCreatureType(target)))
         BFUF:Print("[BFUF Portrait] UnitClassification(target)=" .. describeValue(UnitClassification(target)))
         BFUF:Print("[BFUF Portrait] UnitExists(target)=" .. describeValue(UnitExists(target)))
-        BFUF:Print("[BFUF Portrait] mode=" .. describeValue(self.mode))
+        BFUF:Print("[BFUF Portrait] profileMode=" .. describeValue(self.mode))
         BFUF:Print("[BFUF Portrait] PlayerModel exists=" .. describeValue(self.model ~= nil))
         BFUF:Print(
             "[BFUF Portrait] model shown=" .. describeValue(self.model:IsShown())
@@ -177,6 +210,7 @@ function Portrait:Create(parent)
                 .. " setUnit=" .. describeValue(state.setUnit)
                 .. " SetUnit result=" .. describeValue(state.setUnitResult)
                 .. " activeRenderer=" .. describeValue(state.activeRenderer)
+                .. " retryPending=" .. describeValue(state.retryPending)
                 .. " zoom=" .. describeValue(state.setPortraitZoom)
                 .. " position=" .. describeValue(state.setPosition)
                 .. " fallback=" .. describeValue(state.usedFallback)
