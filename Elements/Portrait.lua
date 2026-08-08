@@ -9,8 +9,25 @@ local Portrait = {
 }
 BFUF.Elements.Portrait = Portrait
 
+local PORTRAIT_TEX_COORD = {
+    left = 0.15,
+    right = 0.85,
+    top = 0.15,
+    bottom = 0.85,
+}
+
 local function isTargetUnit(unit)
     return unit == "target"
+end
+
+local function setTwoDPortrait(texture, unit)
+    SetPortraitTexture(texture, unit)
+    texture:SetTexCoord(
+        PORTRAIT_TEX_COORD.left,
+        PORTRAIT_TEX_COORD.right,
+        PORTRAIT_TEX_COORD.top,
+        PORTRAIT_TEX_COORD.bottom
+    )
 end
 
 -- Create a square 2D portrait renderer that fills its parent container.
@@ -49,7 +66,7 @@ function Portrait:Create(parent)
         end
 
         self:Show()
-        SetPortraitTexture(self.texture, unit, true)
+        setTwoDPortrait(self.texture, unit)
         self.texture:Show()
         self.activeRenderer = "2d"
     end
