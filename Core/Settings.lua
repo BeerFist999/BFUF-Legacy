@@ -2316,7 +2316,6 @@ function SettingsModule:CreateStandaloneWindow()
     window:SetClampedToScreen(true)
     window:SetMovable(true)
     window:EnableMouse(true)
-    window:RegisterForDrag("LeftButton")
     window:SetUserPlaced(true)
     window:Hide()
 
@@ -2366,14 +2365,25 @@ function SettingsModule:CreateStandaloneWindow()
         window:Hide()
     end)
 
+    -- The title bar is the only drag owner. Registering the root and the child
+    -- for the same mouse button can produce competing drag dispatch.
     header:EnableMouse(true)
     header:RegisterForDrag("LeftButton")
     header:SetScript("OnDragStart", function()
+        if window._bfufMoving then
+            return
+        end
+
+        window._bfufMoving = true
         window:StartMoving()
     end)
     header:SetScript("OnDragStop", function()
+        if not window._bfufMoving then
+            return
+        end
+
         window:StopMovingOrSizing()
-        window:SetUserPlaced(true)
+        window._bfufMoving = nil
     end)
 
     self.window = window
