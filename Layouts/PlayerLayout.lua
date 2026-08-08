@@ -332,7 +332,7 @@ function PlayerLayout:ApplyLayout(root, result)
 
     if result.portrait.visible then
         setPortraitContainerGeometry(root.portraitContainer, root, result.portrait)
-        setRectangle(root.portrait, root.portraitContainer, 2, -2, -2, 2)
+        setRectangle(root.portrait, root.portraitContainer, 0, 0, 0, 0)
         setRectangle(root.portrait.texture, root.portrait, 0, 0, 0, 0)
         setRectangle(root.portrait.model, root.portrait, 0, 0, 0, 0)
         root.portraitContainer:Show()
