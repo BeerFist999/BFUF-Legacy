@@ -4,116 +4,24 @@ BFUF.Elements = BFUF.Elements or {}
 
 local Portrait = {
     Modes = {
-        HIDDEN = "hidden",
         TWO_D = "2d",
-        THREE_D = "3d",
     },
 }
 BFUF.Elements.Portrait = Portrait
-
-local function describeValue(value)
-    if issecretvalue and issecretvalue(value) then
-        return "<secret>"
-    end
-
-    return tostring(value)
-end
 
 local function isTargetUnit(unit)
     return unit == "target"
 end
 
--- Print the PlayerModel state without changing the portrait update lifecycle.
-local function printBeforeSetUnit(model, unit, event, mode, canSetUnit)
-    if not Portrait.debugEnabled then
-        return
-    end
-
-    local parent = model:GetParent()
-    local camera = model.GetCamera and model:GetCamera() or nil
-
-    BFUF:Print("[BFUF Portrait] BEFORE SetUnit")
-    BFUF:Print(
-        "[BFUF Portrait] unit=" .. describeValue(unit)
-            .. " event=" .. describeValue(event)
-            .. " mode=" .. describeValue(mode)
-    )
-    BFUF:Print(
-        "[BFUF Portrait] model shown=" .. describeValue(model:IsShown())
-            .. " visible=" .. describeValue(model:IsVisible())
-            .. " width=" .. describeValue(model:GetWidth())
-            .. " height=" .. describeValue(model:GetHeight())
-            .. " effective alpha=" .. describeValue(model:GetEffectiveAlpha())
-    )
-    BFUF:Print(
-        "[BFUF Portrait] parent exists=" .. describeValue(parent ~= nil)
-            .. " shown=" .. describeValue(parent and parent:IsShown())
-            .. " visible=" .. describeValue(parent and parent:IsVisible())
-            .. " effective alpha=" .. describeValue(parent and parent:GetEffectiveAlpha())
-    )
-    BFUF:Print(
-        "[BFUF Portrait] CanSetUnit=" .. describeValue(canSetUnit)
-            .. " camera=" .. describeValue(camera)
-    )
-end
-
--- Create a portrait renderer with its own event-driven lifecycle.
+-- Create a square 2D portrait renderer that fills its parent container.
 function Portrait:Create(parent)
     local container = CreateFrame("Frame", nil, parent)
 
     local texture = container:CreateTexture(nil, "ARTWORK")
     texture:SetAllPoints(container)
     container.texture = texture
-
-    local model = CreateFrame("PlayerModel", nil, container)
-    model:SetAllPoints(container)
-    model:SetCamera(0)
-    model:Hide()
-    container.model = model
     container.mode = Portrait.Modes.TWO_D
-    container.debugState = {}
-
-    function container:ClearRenderer()
-        self.debugState.clearRenderer = true
-        self.texture:SetTexture(nil)
-        self.texture:Hide()
-        self.model:ClearModel()
-        self.model:Hide()
-        self.activeRenderer = nil
-        self.debugState.activeRenderer = self.activeRenderer
-    end
-
-    function container:ShowTwoDFallback(unit)
-        self.debugState.usedFallback = true
-        self.model:ClearModel()
-        self.model:Hide()
-        SetPortraitTexture(self.texture, unit)
-        self.texture:Show()
-        self.activeRenderer = "2d-fallback"
-        self.debugState.activeRenderer = self.activeRenderer
-    end
-
-    -- Activate the 3D renderer before its first regular portrait update.
-    function container:ActivateThreeDRenderer()
-        -- Activate the complete portrait renderer chain before SetUnit.
-        local portraitContainer = self:GetParent()
-        if portraitContainer then
-            portraitContainer:Show()
-        end
-
-        self:Show()
-        self.texture:Hide()
-        self.model:Show()
-    end
-
-    -- Keep the mode switch explicit: activate first, then refresh normally.
-    function container:ForceUpdate(event)
-        if self.mode == Portrait.Modes.THREE_D then
-            self:ActivateThreeDRenderer()
-        end
-
-        self:Update(event)
-    end
+    container.activeRenderer = "2d"
 
     function container:SetUnit(unit)
         if self.unit == unit then
@@ -124,187 +32,47 @@ function Portrait:Create(parent)
         self:Update("UNIT_CHANGED")
     end
 
-    function container:SetMode(mode)
-        mode = mode or Portrait.Modes.TWO_D
-        if self.mode == mode then
-            return
-        end
-
-        self.mode = mode
-        self:ForceUpdate("MODE_CHANGED")
+    -- Keep the public mode method for existing frame callers while using 2D only.
+    function container:SetMode()
+        self.mode = Portrait.Modes.TWO_D
+        self:Update("MODE_CHANGED")
     end
 
-    function container:Update(event)
+    function container:Update()
         local unit = self.unit
-        self.debugState = {
-            event = event or "DIRECT",
-            unit = unit,
-            mode = self.mode,
-        }
-        if self.mode == Portrait.Modes.HIDDEN then
-            self:ClearRenderer()
-            self:Hide()
-            return
-        end
 
         if not unit or not UnitExists(unit) then
-            self:ClearRenderer()
+            self.texture:SetTexture(nil)
+            self.texture:Hide()
             self:Hide()
             return
         end
 
         self:Show()
-        if self.mode == Portrait.Modes.THREE_D then
-            self:ActivateThreeDRenderer()
-
-            if not UnitIsConnected(unit) or not UnitIsVisible(unit) then
-                self:ShowTwoDFallback(unit)
-                return
-            end
-
-            -- The PlayerModel must be visible before it accepts a unit.
-            self.model:Show()
-            self.debugState.clearModel = true
-            self.model:ClearModel()
-            self.debugState.canSetUnit = self.model:CanSetUnit(unit)
-
-            -- Temporary direct trace at the exact PlayerModel:SetUnit call site.
-            local parent = self.model:GetParent()
-            local eventPath = debugstack and debugstack(2, 1, 0) or "<unavailable>"
-            BFUF:Print("[BFUF Portrait TRACE]")
-            BFUF:Print(
-                "[BFUF Portrait TRACE] event=" .. describeValue(event)
-                    .. " unit=" .. describeValue(unit)
-                    .. " Update called from=" .. describeValue(eventPath)
-            )
-            BFUF:Print(
-                "[BFUF Portrait TRACE] model exists=" .. describeValue(self.model ~= nil)
-                    .. " shown=" .. describeValue(self.model:IsShown())
-                    .. " visible=" .. describeValue(self.model:IsVisible())
-                    .. " width=" .. describeValue(self.model:GetWidth())
-                    .. " height=" .. describeValue(self.model:GetHeight())
-                    .. " alpha=" .. describeValue(self.model:GetEffectiveAlpha())
-            )
-            BFUF:Print(
-                "[BFUF Portrait TRACE] parent exists=" .. describeValue(parent ~= nil)
-                    .. " shown=" .. describeValue(parent and parent:IsShown())
-                    .. " visible=" .. describeValue(parent and parent:IsVisible())
-            )
-            BFUF:Print("[BFUF Portrait TRACE] CanSetUnit=" .. describeValue(self.debugState.canSetUnit))
-
-            self.debugState.setUnit = unit
-            self.debugState.setUnitResult = self.model:SetUnit(unit)
-            BFUF:Print("[BFUF Portrait TRACE] SetUnit result=" .. describeValue(self.debugState.setUnitResult))
-
-            local success = self.debugState.setUnitResult
-            if issecretvalue and issecretvalue(success) then
-                success = nil
-            end
-
-            if success ~= true then
-                -- Secret units cannot provide their 3D model to addons.
-                self:ShowTwoDFallback(unit)
-                return
-            end
-
-            self.activeRenderer = "3d"
-            self.debugState.activeRenderer = self.activeRenderer
-            self.debugState.setPortraitZoom = true
-            self.model:SetPortraitZoom(1)
-            self.debugState.setPosition = true
-            self.model:SetPosition(0, 0, 0)
-            self.debugState.setCamDistanceScale = true
-            self.model:SetCamDistanceScale(1)
-            return
-        end
-
-        self.model:Hide()
         SetPortraitTexture(self.texture, unit)
         self.texture:Show()
         self.activeRenderer = "2d"
-        self.debugState.activeRenderer = self.activeRenderer
-    end
-
-    function container:PrintDebugState()
-        local state = self.debugState or {}
-        local target = "target"
-
-        BFUF:Print("[BFUF Portrait] unit=" .. describeValue(self.unit))
-        BFUF:Print("[BFUF Portrait] UnitGUID(target)=" .. describeValue(UnitGUID(target)))
-        BFUF:Print("[BFUF Portrait] UnitIsPlayer(target)=" .. describeValue(UnitIsPlayer(target)))
-        BFUF:Print("[BFUF Portrait] UnitCreatureType(target)=" .. describeValue(UnitCreatureType(target)))
-        BFUF:Print("[BFUF Portrait] UnitClassification(target)=" .. describeValue(UnitClassification(target)))
-        BFUF:Print("[BFUF Portrait] UnitExists(target)=" .. describeValue(UnitExists(target)))
-        BFUF:Print("[BFUF Portrait] profileMode=" .. describeValue(self.mode))
-        BFUF:Print("[BFUF Portrait] PlayerModel exists=" .. describeValue(self.model ~= nil))
-        BFUF:Print(
-            "[BFUF Portrait] model shown=" .. describeValue(self.model:IsShown())
-                .. " visible=" .. describeValue(self.model:IsVisible())
-                .. " width=" .. describeValue(self.model:GetWidth())
-                .. " height=" .. describeValue(self.model:GetHeight())
-        )
-        BFUF:Print(
-            "[BFUF Portrait] last refresh=" .. describeValue(state.event)
-                .. " clearModel=" .. describeValue(state.clearModel)
-                .. " CanSetUnit=" .. describeValue(state.canSetUnit)
-                .. " setUnit=" .. describeValue(state.setUnit)
-                .. " SetUnit result=" .. describeValue(state.setUnitResult)
-                .. " activeRenderer=" .. describeValue(state.activeRenderer)
-                .. " zoom=" .. describeValue(state.setPortraitZoom)
-                .. " position=" .. describeValue(state.setPosition)
-                .. " fallback=" .. describeValue(state.usedFallback)
-        )
     end
 
     function container:RegisterEvents()
         self:RegisterEvent("PLAYER_ENTERING_WORLD")
         self:RegisterEvent("PLAYER_TARGET_CHANGED")
         self:RegisterEvent("UNIT_PORTRAIT_UPDATE")
-        self:RegisterEvent("UNIT_MODEL_CHANGED")
-        self:RegisterEvent("PORTRAITS_UPDATED")
         self:RegisterEvent("UNIT_CONNECTION")
 
         self:SetScript("OnEvent", function(renderer, event, unit)
-            local refreshed = false
-
-            if event == "PLAYER_ENTERING_WORLD" or event == "PORTRAITS_UPDATED" then
+            if event == "PLAYER_ENTERING_WORLD" then
                 renderer:Update(event)
-                refreshed = true
             elseif event == "PLAYER_TARGET_CHANGED" then
                 if isTargetUnit(renderer.unit) then
                     renderer:Update(event)
-                    refreshed = true
                 end
             elseif unit == renderer.unit then
                 renderer:Update(event)
-                refreshed = true
-            end
-
-            if Portrait.debugEnabled and isTargetUnit(renderer.unit) then
-                BFUF:Print(
-                    "[BFUF Portrait] EVENT -> " .. event
-                        .. " -> unit=" .. describeValue(unit)
-                        .. " -> 3D refresh=" .. describeValue(refreshed)
-                )
             end
         end)
     end
 
     container:RegisterEvents()
     return container
-end
-
-
--- Temporary diagnostic command for the current Target portrait renderer.
-SLASH_BFUFPORTRAITDEBUG1 = "/bfufportraitdebug"
-SlashCmdList.BFUFPORTRAITDEBUG = function()
-    Portrait.debugEnabled = true
-
-    local root = BFUF.Framework.Registry:GetFrame("target")
-    if not root or not root.portrait then
-        BFUF:Print("[BFUF Portrait] Target portrait is not available.")
-        return
-    end
-
-    root.portrait:PrintDebugState()
 end
