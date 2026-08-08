@@ -44,6 +44,26 @@ local function setText(text, value)
     text:SetShown(value ~= nil)
 end
 
+-- Fill only missing nested portrait fields for profiles created before Target portraits.
+local function getPortraitSettings()
+    local settings = BFUF.DB:Get("Target")
+    local defaults = BFUF.Defaults.profile.Target.portrait
+
+    if type(settings.portrait) ~= "table" then
+        settings.portrait = {}
+    end
+
+    if settings.portrait.mode == nil then
+        settings.portrait.mode = defaults.mode
+    end
+
+    if settings.portrait.width == nil then
+        settings.portrait.width = defaults.width
+    end
+
+    return settings.portrait
+end
+
 -- Refresh the independent target text values without arithmetic on unit values.
 function Target:UpdateTexts(root)
     if not root then
@@ -104,7 +124,7 @@ function Target:UpdateLayout(root)
     root:SetSize(settings.width, settings.height)
     root:SetScale(settings.scale)
 
-    local portraitSettings = settings.portrait
+    local portraitSettings = getPortraitSettings()
     local portraitVisible = portraitSettings.mode ~= BFUF.Elements.Portrait.Modes.HIDDEN
     root.portraitContainer:SetShown(portraitVisible)
     root.portraitContainer:SetWidth(portraitSettings.width)
@@ -194,7 +214,7 @@ function Target:Update(root)
         return
     end
 
-    root.portrait:SetMode(BFUF.DB:Get("Target").portrait.mode)
+    root.portrait:SetMode(getPortraitSettings().mode)
     root.healthBar:Update()
     root.powerBar:Update()
     self:UpdateTexts(root)
@@ -210,6 +230,7 @@ function Target:Create()
     root = BFUF.Framework.Factory:CreateUnitFrame("target")
     root.layoutUnlocked = false
 
+    local portraitSettings = getPortraitSettings()
     local rootLevel = root:GetFrameLevel()
     root.background = root:CreateTexture(nil, "BACKGROUND", nil, 0)
     root.background:SetAllPoints()
@@ -220,7 +241,7 @@ function Target:Create()
     root.portraitContainer = CreateFrame("Frame", nil, root)
     root.portraitContainer:SetPoint("TOPRIGHT", root, "TOPRIGHT", -CONTENT_PADDING, -CONTENT_PADDING)
     root.portraitContainer:SetPoint("BOTTOMRIGHT", root, "BOTTOMRIGHT", -CONTENT_PADDING, CONTENT_PADDING)
-    root.portraitContainer:SetWidth(PORTRAIT_SIZE)
+    root.portraitContainer:SetWidth(portraitSettings.width)
     root.portraitContainer:SetFrameLevel(rootLevel + 3)
     root.portraitContainer:SetClipsChildren(true)
 
