@@ -1369,6 +1369,7 @@ function SettingsModule:RegisterPages()
         id = "general",
         title = BFUF.L.SETTINGS_PAGE_GENERAL,
         builder = function()
+            self.shell:SetFrameEntries({})
             self:ShowGeneralPage()
         end,
     })
@@ -1402,6 +1403,7 @@ function SettingsModule:RegisterPages()
         id = "profiles",
         title = BFUF.L.SETTINGS_PAGE_PROFILES,
         builder = function()
+            self.shell:SetFrameEntries({})
             self:ShowPlaceholderPage(BFUF.L.SETTINGS_PAGE_PROFILES, BFUF.L.DESCRIPTION_PROFILES)
         end,
     })
@@ -1409,6 +1411,7 @@ function SettingsModule:RegisterPages()
         id = "about",
         title = BFUF.L.SETTINGS_PAGE_ABOUT,
         builder = function()
+            self.shell:SetFrameEntries({})
             self:ShowPlaceholderPage(BFUF.L.SETTINGS_PAGE_ABOUT, BFUF.L.DESCRIPTION_ABOUT)
         end,
     })
@@ -1417,13 +1420,23 @@ function SettingsModule:RegisterPages()
         {
             id = "player.general",
             title = BFUF.L.SETTINGS_PLAYER_GENERAL,
+            navigation = true,
             builder = function(pages)
                 self:ShowPlayerGeneralPage(pages)
             end,
         },
         {
+            id = "player.bars",
+            title = BFUF.L.SETTINGS_PLAYER_BARS,
+            navigation = true,
+            builder = function()
+                self:ShowPlayerBarsPage()
+            end,
+        },
+        {
             id = "player.portrait",
             title = BFUF.L.SETTINGS_PLAYER_PORTRAIT,
+            navigation = true,
             builder = function(pages)
                 self:ShowPlayerPortraitPage(pages)
             end,
@@ -1431,6 +1444,7 @@ function SettingsModule:RegisterPages()
         {
             id = "player.health",
             title = BFUF.L.SETTINGS_PLAYER_HEALTH,
+            context = "bars",
             builder = function(pages)
                 self:ShowPlayerHealthPage(pages)
             end,
@@ -1438,6 +1452,7 @@ function SettingsModule:RegisterPages()
         {
             id = "player.power",
             title = BFUF.L.SETTINGS_PLAYER_POWER,
+            context = "bars",
             builder = function(pages)
                 self:ShowPlayerPowerPage(pages)
             end,
@@ -1445,6 +1460,7 @@ function SettingsModule:RegisterPages()
         {
             id = "player.text",
             title = BFUF.L.SETTINGS_PLAYER_TEXT,
+            navigation = true,
             builder = function(pages)
                 self:ShowPlayerTextPage(pages)
             end,
@@ -1452,6 +1468,7 @@ function SettingsModule:RegisterPages()
         {
             id = "player.indicators",
             title = BFUF.L.SETTINGS_PLAYER_INDICATORS,
+            navigation = true,
             builder = function(pages)
                 self:ShowPlayerIndicatorsPage(pages)
             end,
@@ -1459,6 +1476,7 @@ function SettingsModule:RegisterPages()
         {
             id = "player.resources",
             title = BFUF.L.SETTINGS_PLAYER_RESOURCES,
+            navigation = true,
             builder = function(pages)
                 pages:ShowPage(BFUF.L.SETTINGS_PLAYER_RESOURCES, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER, false)
             end,
@@ -1466,6 +1484,7 @@ function SettingsModule:RegisterPages()
         {
             id = "player.auras",
             title = BFUF.L.SETTINGS_PLAYER_AURAS,
+            navigation = true,
             builder = function(pages)
                 pages:ShowPage(BFUF.L.SETTINGS_PLAYER_AURAS, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER, false)
             end,
@@ -1476,6 +1495,7 @@ function SettingsModule:RegisterPages()
         table.insert(playerDefinitions, {
             id = "player.advanced",
             title = BFUF.L.SETTINGS_PLAYER_ADVANCED,
+            navigation = true,
             builder = function(pages)
                 pages:ShowPage(BFUF.L.SETTINGS_PLAYER_ADVANCED, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER, false)
             end,
@@ -1487,37 +1507,46 @@ function SettingsModule:RegisterPages()
     end
 end
 
--- Build the local navigation used by the Player settings entry.
+-- Show the contextual Bars tabs without changing existing health or power controls.
+function SettingsModule:ShowPlayerBarsPage()
+    local entries = {
+        {
+            key = "player.health",
+            label = BFUF.L.SETTINGS_PLAYER_HEALTH,
+            onSelect = function()
+                self:ShowPlayerHealthPage(self.shell.pages)
+            end,
+        },
+        {
+            key = "player.power",
+            label = BFUF.L.SETTINGS_PLAYER_POWER,
+            onSelect = function()
+                self:ShowPlayerPowerPage(self.shell.pages)
+            end,
+        },
+    }
+
+    self.shell:SetContextEntries(entries)
+    self.shell.contextTabs:Select("player.health")
+end
+
+-- Build the horizontal frame navigation used by the Player settings entry.
 function SettingsModule:ShowPlayerPage()
-    local page = self.shell.pages:ShowPage(BFUF.L.SETTINGS_PAGE_PLAYER, nil, false)
-
-    local navigation = UI.NavigationList:Create(page, 130)
-    navigation.frame:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -34)
-    navigation.frame:SetPoint("BOTTOMLEFT", page, "BOTTOMLEFT", 0, 0)
-
-    local divider = page:CreateTexture(nil, "ARTWORK")
-    divider:SetPoint("TOPLEFT", navigation.frame, "TOPRIGHT", 10, 0)
-    divider:SetPoint("BOTTOMLEFT", navigation.frame, "BOTTOMRIGHT", 10, 0)
-    divider:SetWidth(1)
-    divider:SetColorTexture(0.35, 0.35, 0.35, 0.8)
-
-    local localHost = CreateFrame("Frame", nil, page)
-    localHost:SetPoint("TOPLEFT", divider, "TOPRIGHT", 12, 0)
-    localHost:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", 0, 0)
-    local pages = UI.PagePanel:Create(localHost)
+    local entries = {}
 
     self.playerPages:ForEach(function(definition)
-        navigation:AddEntry({
-            key = definition.id,
-            label = definition.title,
-            disabled = definition.disabled,
-            onSelect = function()
-                definition.builder(pages)
-            end,
-        })
+        if definition.navigation then
+            table.insert(entries, {
+                key = definition.id,
+                label = definition.title,
+                disabled = definition.disabled,
+                onSelect = definition.builder,
+            })
+        end
     end)
 
-    navigation:Select("player.general")
+    self.shell:SetFrameEntries(entries)
+    self.shell.frameTabs:Select("player.general")
 end
 
 -- Register the shell and preserve legacy pages until each replacement has been validated.
