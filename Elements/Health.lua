@@ -49,17 +49,15 @@ function Health:Create(parent)
             return
         end
 
+        -- Unit values can be secret while the addon is tainted. Pass them only
+        -- to Blizzard status-bar APIs and never use them in Lua control flow.
         local maxHealth = UnitHealthMax(unit)
-        if not maxHealth or maxHealth == 0 then
-            return
-        end
-
         self.absorbBar:SetShown(settings.showAbsorb)
         self.healAbsorbBar:SetShown(settings.showHealAbsorb)
         self.absorbBar:SetMinMaxValues(0, maxHealth)
         self.healAbsorbBar:SetMinMaxValues(0, maxHealth)
-        self.absorbBar:SetValue(UnitGetTotalAbsorbs(unit) or 0)
-        self.healAbsorbBar:SetValue(UnitGetTotalHealAbsorbs(unit) or 0)
+        self.absorbBar:SetValue(UnitGetTotalAbsorbs(unit))
+        self.healAbsorbBar:SetValue(UnitGetTotalHealAbsorbs(unit))
     end
 
     function statusBar:Update()
@@ -68,14 +66,10 @@ function Health:Create(parent)
             return
         end
 
-        local health = UnitHealth(unit)
-        local maxHealth = UnitHealthMax(unit)
-        if not maxHealth or maxHealth == 0 then
-            return
-        end
-
-        self:SetMinMaxValues(0, maxHealth)
-        self:SetValue(health or 0)
+        -- Keep secret health values inside Blizzard API calls. In particular,
+        -- do not compare, coerce, or substitute the values in addon Lua.
+        self:SetMinMaxValues(0, UnitHealthMax(unit))
+        self:SetValue(UnitHealth(unit))
         self:UpdateStyle()
     end
 
