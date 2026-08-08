@@ -1923,10 +1923,24 @@ function SettingsModule:CreateStandaloneWindow()
     background:SetAllPoints()
     background:SetColorTexture(0.045, 0.045, 0.055, 0.98)
 
-    local border = window:CreateTexture(nil, "BORDER")
-    border:SetPoint("TOPLEFT", window, "TOPLEFT", 0, 0)
-    border:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", 0, 0)
-    border:SetColorTexture(0.22, 0.22, 0.28, 1)
+    local borderColor = { 0.22, 0.22, 0.28, 1 }
+    local borders = {
+        { "TOPLEFT", "TOPRIGHT", 1 },
+        { "BOTTOMLEFT", "BOTTOMRIGHT", 1 },
+        { "TOPLEFT", "BOTTOMLEFT", 1, true },
+        { "TOPRIGHT", "BOTTOMRIGHT", 1, true },
+    }
+    for _, edge in ipairs(borders) do
+        local border = window:CreateTexture(nil, "BORDER")
+        border:SetColorTexture(unpack(borderColor))
+        border:SetPoint(edge[1], window, edge[1], 0, 0)
+        border:SetPoint(edge[2], window, edge[2], 0, 0)
+        if edge[4] then
+            border:SetWidth(edge[3])
+        else
+            border:SetHeight(edge[3])
+        end
+    end
 
     local content = CreateFrame("Frame", nil, window)
     content:SetPoint("TOPLEFT", window, "TOPLEFT", 1, -38)
