@@ -70,6 +70,16 @@ local function setTextGeometry(text, geometry)
         geometry.offsetX,
         geometry.offsetY
     )
+
+    if geometry.right then
+        text:SetPoint(
+            geometry.right.point,
+            geometry.right.relativeTo,
+            geometry.right.relativePoint,
+            geometry.right.offsetX,
+            geometry.right.offsetY
+        )
+    end
 end
 
 local function applyBorderGeometry(border)
@@ -236,7 +246,7 @@ function PlayerLayout:ComputeBarGeometry(result)
     end
 end
 
-function PlayerLayout:ComputeTextRegions(settings, result)
+function PlayerLayout:ComputeTextRegions(root, settings, result)
     local bars = {}
     for _, bar in ipairs(result.bars) do
         bars[bar.key] = bar.frame
@@ -249,6 +259,13 @@ function PlayerLayout:ComputeTextRegions(settings, result)
         relativePoint = "LEFT",
         offsetX = texts.name.offsetX,
         offsetY = texts.name.offsetY,
+        right = {
+            point = "RIGHT",
+            relativeTo = root.healthText,
+            relativePoint = "LEFT",
+            offsetX = -6,
+            offsetY = 0,
+        },
     }
     result.textRegions.health = {
         point = "RIGHT",
@@ -400,7 +417,7 @@ function PlayerLayout:Apply(root)
     self:SortBars(result)
     self:ComputePortraitRegion(settings, result)
     self:ComputeBarGeometry(result)
-    self:ComputeTextRegions(settings, result)
+    self:ComputeTextRegions(root, settings, result)
     self:ComputeIndicatorRegions(settings, result)
     self:ApplyLayout(root, result)
     self:NotifyModules(root, result)
