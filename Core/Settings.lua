@@ -311,8 +311,14 @@ function UI.SidebarNavigation:Create(parent, width)
 
     function navigation:Clear()
         for _, item in pairs(self.buttons) do
-            item.button:Hide()
-            item.button:SetParent(nil)
+            if item.button then
+                item.button:Hide()
+                item.button:SetParent(nil)
+            end
+            if item.headerLabel then
+                item.headerLabel:Hide()
+                item.headerLabel:SetParent(nil)
+            end
         end
 
         wipe(self.buttons)
@@ -321,9 +327,24 @@ function UI.SidebarNavigation:Create(parent, width)
     end
 
     function navigation:AddEntry(entry)
+        if entry.header then
+            local headerLabel = self.frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+            headerLabel:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 10, self.nextOffset)
+            headerLabel:SetPoint("TOPRIGHT", self.frame, "TOPRIGHT", -8, self.nextOffset)
+            headerLabel:SetJustifyH("LEFT")
+            headerLabel:SetText(entry.label)
+            self.nextOffset = self.nextOffset - 24
+            self.buttons[entry.key] = {
+                entry = entry,
+                headerLabel = headerLabel,
+            }
+            return
+        end
+
+        local indent = (entry.depth or 0) * 12
         local button = CreateFrame("Button", nil, self.frame)
-        button:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 6, self.nextOffset)
-        button:SetSize(self.width - 12, 26)
+        button:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 6 + indent, self.nextOffset)
+        button:SetSize(self.width - 12 - indent, 26)
         self.nextOffset = self.nextOffset - 28
 
         local highlight = button:CreateTexture(nil, "BACKGROUND")
@@ -369,19 +390,21 @@ function UI.SidebarNavigation:Create(parent, width)
 
     function navigation:Select(key)
         local selected = self.buttons[key]
-        if not selected or selected.entry.disabled then
+        if not selected or selected.entry.header or selected.entry.disabled then
             return
         end
 
         self.selectedKey = key
         for buttonKey, item in pairs(self.buttons) do
-            local active = buttonKey == key
-            item.highlight:SetShown(active)
-            item.label:SetTextColor(
-                active and 1 or 0.85,
-                active and 1 or 0.85,
-                active and 1 or 0.85
-            )
+            if item.button then
+                local active = buttonKey == key
+                item.highlight:SetShown(active)
+                item.label:SetTextColor(
+                    active and 1 or 0.85,
+                    active and 1 or 0.85,
+                    active and 1 or 0.85
+                )
+            end
         end
 
         selected.entry.onSelect()
@@ -1266,6 +1289,8 @@ function SettingsModule:ShowPlayerIndicatorsPage()
         table.insert(entries, {
             key = definition.id,
             label = definition.title,
+            header = definition.groupHeader == true,
+            depth = definition.depth or 0,
             onSelect = definition.builder,
         })
     end)
@@ -1800,155 +1825,184 @@ function SettingsModule:OpenDeclarativePage(id)
 end
 
 -- Build the second-level navigation for a frame module.
-function SettingsModule:ShowShellFrame(frameKey, title, isFuture)
-    local hasBasicLayout = frameKey == "player" or frameKey == "target" or frameKey == "boss"
-    local pageDefinitions = {
-        { key = "general", title = BFUF.L.SETTINGS_PLAYER_GENERAL, disabled = isFuture == true },
-        { key = "bars", title = BFUF.L.SETTINGS_PLAYER_BARS, disabled = true },
-        { key = "portrait", title = BFUF.L.SETTINGS_PLAYER_PORTRAIT, disabled = frameKey ~= "player" and frameKey ~= "target" and frameKey ~= "boss" },
-        { key = "text", title = BFUF.L.SETTINGS_PLAYER_TEXT, disabled = frameKey ~= "boss" },
-        { key = "indicators", title = BFUF.L.SETTINGS_PLAYER_INDICATORS, disabled = true },
-        { key = "resources", title = BFUF.L.SETTINGS_PLAYER_RESOURCES, disabled = true },
-        { key = "auras", title = BFUF.L.SETTINGS_PLAYER_AURAS, disabled = true },
+function SettingsModule:ShowShellFrame(frameKey, title)
+    local frameDefinitions = {
+        {
+            key = "general",
+            title = BFUF.L.SETTINGS_PLAYER_GENERAL,
+        },
+        {
+            key = "layout",
+            title = BFUF.L.SETTINGS_PAGE_LAYOUT,
+        },
+        {
+            key = "elements",
+            title = BFUF.L.SETTINGS_PAGE_ELEMENTS,
+        },
     }
 
+    local function showExistingFrameSettings()
+        if frameKey == "player" then
+            self:ShowBasicFrameLayoutPage(
+                "Player",
+                BFUF.Frames.Player,
+                BFUF.L.SETTINGS_PLAYER_GENERAL,
+                BFUF.L.BUTTON_LOCK_PLAYER_FRAME,
+                BFUF.L.BUTTON_UNLOCK_PLAYER_FRAME
+            )
+        elseif frameKey == "target" then
+            self:ShowBasicFrameLayoutPage(
+                "Target",
+                BFUF.Frames.Target,
+                BFUF.L.SETTINGS_PLAYER_GENERAL,
+                BFUF.L.BUTTON_LOCK_TARGET_FRAME,
+                BFUF.L.BUTTON_UNLOCK_TARGET_FRAME
+            )
+        else
+            self:ShowBossFramePage()
+        end
+    end
+
     local entries = {}
-    for _, definition in ipairs(pageDefinitions) do
+    for _, definition in ipairs(frameDefinitions) do
         local pageId = frameKey .. "::" .. definition.key
         table.insert(entries, {
             key = pageId,
             label = definition.title,
-            disabled = definition.disabled,
             onSelect = function()
-                if definition.key == "general" and hasBasicLayout then
-                    if frameKey == "player" then
-                        self:ShowBasicFrameLayoutPage(
-                            "Player",
-                            BFUF.Frames.Player,
-                            definition.title,
-                            BFUF.L.BUTTON_LOCK_PLAYER_FRAME,
-                            BFUF.L.BUTTON_UNLOCK_PLAYER_FRAME
-                        )
-                    elseif frameKey == "target" then
-                        self:ShowBasicFrameLayoutPage(
-                            "Target",
-                            BFUF.Frames.Target,
-                            definition.title,
-                            BFUF.L.BUTTON_LOCK_TARGET_FRAME,
-                            BFUF.L.BUTTON_UNLOCK_TARGET_FRAME
-                        )
-                    else
-                        self:ShowBossFramePage()
-                    end
+                if definition.key == "general" or definition.key == "layout" then
+                    showExistingFrameSettings()
                     return
                 end
 
-                if definition.key == "text" and frameKey == "boss" then
-                    self:ShowBossTextPage()
-                    return
-                end
-
-                if definition.key == "portrait" then
-                    if self:OpenDeclarativePage("elements.portrait." .. frameKey) then
-                        return
-                    end
-
-                    self:ShowShellPage(pageId, definition.title)
-                    return
-                end
-
-                self:ShowShellPage(pageId, definition.title)
+                self:ShowShellPage(pageId, definition.title, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER)
             end,
         })
     end
 
     self.shell:SetFrameEntries(entries)
-    if isFuture then
-        self:ShowShellPage(frameKey, title)
+    self.shell.frameNavigation:Select(frameKey .. "::general")
+end
+
+-- Show a reusable element page with a second-level choice of supported frames.
+function SettingsModule:ShowElementFrameChoices(elementKey, title)
+    local definitions = {
+        portrait = {
+            { key = "player", title = BFUF.L.SETTINGS_PAGE_PLAYER, pageId = "elements.portrait.player" },
+            { key = "target", title = BFUF.L.SETTINGS_PAGE_TARGET, pageId = "elements.portrait.target" },
+            { key = "boss", title = BFUF.L.SETTINGS_PAGE_BOSS, pageId = "elements.portrait.boss" },
+        },
+        health = {
+            { key = "player", title = BFUF.L.SETTINGS_PAGE_PLAYER, pageId = "elements.health.player" },
+            { key = "target", title = BFUF.L.SETTINGS_PAGE_TARGET, disabled = true },
+            { key = "boss", title = BFUF.L.SETTINGS_PAGE_BOSS, disabled = true },
+        },
+    }
+
+    local entries = {}
+    for _, definition in ipairs(definitions[elementKey] or {}) do
+        table.insert(entries, {
+            key = "elements::" .. elementKey .. "::" .. definition.key,
+            label = definition.title,
+            disabled = definition.disabled,
+            onSelect = function()
+                self:OpenDeclarativePage(definition.pageId)
+            end,
+        })
+    end
+
+    self.shell:SetFrameEntries(entries)
+    if #entries > 0 then
+        self.shell.frameNavigation:Select(entries[1].key)
     else
-        self.shell.frameNavigation:Select(frameKey .. "::general")
+        self:ShowShellPage("elements::" .. elementKey, title, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER)
     end
 end
 
--- Register only the visual shell navigation used during this migration sprint.
+-- Register the production Settings 2.0 navigation tree.
 function SettingsModule:RegisterShellPages()
     if self.shellPages then
         return
     end
 
     self.shellPages = PageRegistry:Create()
-    local futureFrames = {
-        { key = "targetTarget", title = BFUF.L.SETTINGS_PAGE_TARGET_TARGET },
-        { key = "focus", title = BFUF.L.SETTINGS_PAGE_FOCUS },
-        { key = "focusTarget", title = BFUF.L.SETTINGS_PAGE_FOCUS_TARGET },
-        { key = "pet", title = BFUF.L.SETTINGS_PAGE_PET },
-        { key = "petTarget", title = BFUF.L.SETTINGS_PAGE_PET_TARGET },
-    }
 
-    self.shellPages:Register({
-        id = "general",
-        title = BFUF.L.SETTINGS_PAGE_GENERAL,
-        builder = function()
-            self.shell:SetFrameEntries({})
-            self:ShowShellPage("general", BFUF.L.SETTINGS_PAGE_GENERAL)
-        end,
-        refresh = function()
-        end,
-    })
+    local function registerHeader(id, title)
+        self.shellPages:Register({
+            id = id,
+            title = title,
+            groupHeader = true,
+            builder = function()
+            end,
+        })
+    end
+
+    local function registerPlaceholder(id, title, depth)
+        self.shellPages:Register({
+            id = id,
+            title = title,
+            depth = depth or 0,
+            builder = function()
+                self.shell:SetFrameEntries({})
+                self:ShowShellPage(id, title, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER)
+            end,
+        })
+    end
+
+    registerHeader("group.unitFrames", BFUF.L.SETTINGS_CATEGORY_UNIT_FRAMES)
+
     self.shellPages:Register({
         id = "player",
         title = BFUF.L.SETTINGS_PAGE_PLAYER,
-        category = "Unit Frames",
-        availability = function()
-            return self.DeclarativePages:IsAvailable("unit_frames.player", self)
-        end,
+        depth = 1,
         builder = function()
-            self:OpenDeclarativePage("unit_frames.player")
-        end,
-        refresh = function()
+            self:ShowShellFrame("player", BFUF.L.SETTINGS_PAGE_PLAYER)
         end,
     })
     self.shellPages:Register({
         id = "target",
         title = BFUF.L.SETTINGS_PAGE_TARGET,
-        category = "Unit Frames",
-        availability = function()
-            return self.DeclarativePages:IsAvailable("unit_frames.target", self)
-        end,
+        depth = 1,
         builder = function()
-            self:OpenDeclarativePage("unit_frames.target")
-        end,
-        refresh = function()
+            self:ShowShellFrame("target", BFUF.L.SETTINGS_PAGE_TARGET)
         end,
     })
-
     self.shellPages:Register({
         id = "boss",
         title = BFUF.L.SETTINGS_PAGE_BOSS,
-        category = "Unit Frames",
-        availability = function()
-            return self.DeclarativePages:IsAvailable("unit_frames.boss", self)
-        end,
+        depth = 1,
         builder = function()
-            self:OpenDeclarativePage("unit_frames.boss")
-        end,
-        refresh = function()
+            self:ShowShellFrame("boss", BFUF.L.SETTINGS_PAGE_BOSS)
         end,
     })
 
-    for _, frame in ipairs(futureFrames) do
-        local frameKey = frame.key
-        local frameTitle = frame.title
-        self.shellPages:Register({
-            id = frameKey,
-            title = frameTitle,
-            builder = function()
-                self:ShowShellFrame(frameKey, frameTitle, true)
-            end,
-            refresh = function()
-            end,
-        })
-    end
+    registerHeader("group.elements", BFUF.L.SETTINGS_CATEGORY_ELEMENTS)
+
+    self.shellPages:Register({
+        id = "portrait",
+        title = BFUF.L.SETTINGS_PLAYER_PORTRAIT,
+        depth = 1,
+        builder = function()
+            self:ShowElementFrameChoices("portrait", BFUF.L.SETTINGS_PLAYER_PORTRAIT)
+        end,
+    })
+    self.shellPages:Register({
+        id = "health",
+        title = BFUF.L.SETTINGS_PLAYER_HEALTH,
+        depth = 1,
+        builder = function()
+            self:ShowElementFrameChoices("health", BFUF.L.SETTINGS_PLAYER_HEALTH)
+        end,
+    })
+    registerPlaceholder("power", BFUF.L.SETTINGS_PLAYER_POWER, 1)
+    registerPlaceholder("text", BFUF.L.SETTINGS_PLAYER_TEXT, 1)
+    registerPlaceholder("castbar", BFUF.L.SETTINGS_PAGE_CASTBAR, 1)
+    registerPlaceholder("auras", BFUF.L.SETTINGS_PLAYER_AURAS, 1)
+    registerPlaceholder("indicators", BFUF.L.SETTINGS_PLAYER_INDICATORS, 1)
+
+    registerHeader("group.appearance", BFUF.L.SETTINGS_CATEGORY_APPEARANCE)
+    registerPlaceholder("colors", BFUF.L.SETTINGS_PAGE_COLORS, 1)
+    registerPlaceholder("media", BFUF.L.SETTINGS_PAGE_MEDIA, 1)
 
     self.shellPages:Register({
         id = "profiles",
@@ -1957,8 +2011,6 @@ function SettingsModule:RegisterShellPages()
             self.shell:SetFrameEntries({})
             self:ShowShellPage("profiles", BFUF.L.SETTINGS_PAGE_PROFILES, BFUF.L.DESCRIPTION_PROFILES)
         end,
-        refresh = function()
-        end,
     })
     self.shellPages:Register({
         id = "about",
@@ -1966,8 +2018,6 @@ function SettingsModule:RegisterShellPages()
         builder = function()
             self.shell:SetFrameEntries({})
             self:ShowShellPage("about", BFUF.L.SETTINGS_PAGE_ABOUT, BFUF.L.DESCRIPTION_ABOUT)
-        end,
-        refresh = function()
         end,
     })
 end
@@ -2392,7 +2442,7 @@ function SettingsModule:Initialize()
     end)
 
     self.shell:SetSidebarEntries(entries)
-    self.shell.sidebar:Select("general")
+    self.shell.sidebar:Select("player")
 
     -- Keep legacy modules available internally without publishing old pages to Blizzard Settings.
     self.legacyPages = {
