@@ -12,7 +12,6 @@ local Portrait = {
 BFUF.Elements.Portrait = Portrait
 
 local FALLBACK_MODEL = "Interface\\Buttons\\TalkToMeQuestionMark.m2"
-local INITIAL_3D_RETRY_DELAY = 1
 
 local function describeValue(value)
     if issecretvalue and issecretvalue(value) then
@@ -41,9 +40,6 @@ function Portrait:Create(parent)
     container.model = model
     container.mode = Portrait.Modes.TWO_D
     container.debugState = {}
-    container.retryPending = false
-    container.initialRetryScheduled = false
-    container.initialRetryCompleted = false
 
     function container:ClearRenderer()
         self.debugState.clearRenderer = true
@@ -52,37 +48,13 @@ function Portrait:Create(parent)
         self.model:ClearModel()
         self.model:Hide()
         self.activeRenderer = nil
-        self.retryPending = false
-        self.retryAttempt = nil
-        self.retryReason = nil
         self.debugState.activeRenderer = self.activeRenderer
-        self.debugState.retryPending = self.retryPending
-    end
-
-    function container:ScheduleInitialRetry(reason)
-        if self.initialRetryScheduled or self.initialRetryCompleted or not C_Timer or not C_Timer.After then
-            return
-        end
-
-        self.initialRetryScheduled = true
-        C_Timer.After(INITIAL_3D_RETRY_DELAY, function()
-            self.initialRetryScheduled = false
-            self.initialRetryCompleted = true
-
-            if self.mode == Portrait.Modes.THREE_D and self.retryPending then
-                self.retryAttempt = 2
-                self.retryReason = reason
-                self:Update("INITIAL_3D_RETRY")
-            end
-        end)
     end
 
     function container:ShowModelFallback()
         self.debugState.usedFallback = true
         self.activeRenderer = "3d-fallback"
-        self.retryPending = true
         self.debugState.activeRenderer = self.activeRenderer
-        self.debugState.retryPending = self.retryPending
         self.texture:Hide()
         self.model:ClearModel()
         self.model:SetCamDistanceScale(0.25)
@@ -108,27 +80,16 @@ function Portrait:Create(parent)
         end
 
         self.mode = mode
-        if mode == Portrait.Modes.THREE_D then
-            self.initialRetryCompleted = false
-        end
 
         self:Update("MODE_CHANGED")
     end
 
     function container:Update(event)
-        if event ~= "INITIAL_3D_RETRY" then
-            self.retryAttempt = nil
-            self.retryReason = nil
-        end
-
         local unit = self.unit
         self.debugState = {
             event = event or "DIRECT",
             unit = unit,
             mode = self.mode,
-            retryPending = self.retryPending,
-            retryAttempt = self.retryAttempt,
-            retryReason = self.retryReason,
         }
         if self.mode == Portrait.Modes.HIDDEN then
             self:ClearRenderer()
@@ -165,26 +126,13 @@ function Portrait:Create(parent)
             end
 
             if success ~= true then
-                -- Secret units cannot provide a 3D model to addons.
-                self.model:Hide()
-                SetPortraitTexture(self.texture, unit)
-                self.texture:Show()
-                self.activeRenderer = "2d-fallback"
-                self.retryPending = true
-                self.retryAttempt = 1
-                self.retryReason = event or "INITIALIZE"
-                self.debugState.activeRenderer = self.activeRenderer
-                self.debugState.retryPending = self.retryPending
-                self.debugState.retryAttempt = self.retryAttempt
-                self.debugState.retryReason = self.retryReason
-                self:ScheduleInitialRetry(self.retryReason)
+                -- Secret units cannot provide their 3D model to addons.
+                self:ShowModelFallback()
                 return
             end
 
             self.activeRenderer = "3d"
-            self.retryPending = false
             self.debugState.activeRenderer = self.activeRenderer
-            self.debugState.retryPending = self.retryPending
             self.debugState.setPortraitZoom = true
             self.model:SetPortraitZoom(1)
             self.debugState.setPosition = true
@@ -198,11 +146,7 @@ function Portrait:Create(parent)
         SetPortraitTexture(self.texture, unit)
         self.texture:Show()
         self.activeRenderer = "2d"
-        self.retryPending = false
-        self.retryAttempt = nil
-        self.retryReason = nil
         self.debugState.activeRenderer = self.activeRenderer
-        self.debugState.retryPending = self.retryPending
     end
 
     function container:PrintDebugState()
@@ -230,9 +174,6 @@ function Portrait:Create(parent)
                 .. " setUnit=" .. describeValue(state.setUnit)
                 .. " SetUnit result=" .. describeValue(state.setUnitResult)
                 .. " activeRenderer=" .. describeValue(state.activeRenderer)
-                .. " retryPending=" .. describeValue(state.retryPending)
-                .. " retryAttempt=" .. describeValue(state.retryAttempt)
-                .. " retryReason=" .. describeValue(state.retryReason)
                 .. " zoom=" .. describeValue(state.setPortraitZoom)
                 .. " position=" .. describeValue(state.setPosition)
                 .. " fallback=" .. describeValue(state.usedFallback)
