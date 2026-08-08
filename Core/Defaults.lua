@@ -143,6 +143,8 @@ BFUF.Defaults = {
             preview = false,
             previewUnlocked = false,
             show = true,
+            showHealthText = true,
+            showPowerText = true,
 
             portrait = {
                 enabled = true,

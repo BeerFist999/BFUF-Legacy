@@ -1659,6 +1659,18 @@ function SettingsModule:ShowBossFramePage()
                 return not BFUF.DB:Get("Boss").preview
             end,
         }),
+        showHealthText = BindingFactory:CreateProfileBinding({
+            path = "Boss.showHealthText",
+            label = BFUF.L.OPTION_SHOW_BOSS_HEALTH_TEXT,
+            refreshIntent = "BOSS_LAYOUT",
+            context = context,
+        }),
+        showPowerText = BindingFactory:CreateProfileBinding({
+            path = "Boss.showPowerText",
+            label = BFUF.L.OPTION_SHOW_BOSS_POWER_TEXT,
+            refreshIntent = "BOSS_LAYOUT",
+            context = context,
+        }),
         count = BindingFactory:CreateProfileBinding({
             path = "Boss.count",
             label = BFUF.L.OPTION_BOSS_FRAME_COUNT,
@@ -1700,11 +1712,13 @@ function SettingsModule:ShowBossFramePage()
         UI.CheckboxRow:Create(page, bindings.enabled, -66)
         UI.CheckboxRow:Create(page, bindings.preview, -94)
         UI.CheckboxRow:Create(page, bindings.previewUnlocked, -122)
-        UI.SliderRow:Create(page, bindings.count, -150, 1, 5, 1)
-        UI.SliderRow:Create(page, bindings.width, -208, 120, 600, 1)
-        UI.SliderRow:Create(page, bindings.height, -266, 20, 200, 1)
-        UI.SliderRow:Create(page, bindings.spacing, -324, 0, 100, 1)
-        UI.DropdownRow:Create(page, bindings.growth, -382)
+        UI.CheckboxRow:Create(page, bindings.showHealthText, -150)
+        UI.CheckboxRow:Create(page, bindings.showPowerText, -178)
+        UI.SliderRow:Create(page, bindings.count, -216, 1, 5, 1)
+        UI.SliderRow:Create(page, bindings.width, -274, 120, 600, 1)
+        UI.SliderRow:Create(page, bindings.height, -332, 20, 200, 1)
+        UI.SliderRow:Create(page, bindings.spacing, -390, 0, 100, 1)
+        UI.DropdownRow:Create(page, bindings.growth, -448)
     end, function()
         BindingFactory:Reset(bindings)
     end)
@@ -1712,18 +1726,28 @@ end
 
 -- Show the single Boss portrait visibility setting.
 function SettingsModule:ShowBossPortraitPage()
-    local binding = BindingFactory:CreateProfileBinding({
-        path = "Boss.portrait.enabled",
-        label = BFUF.L.OPTION_BOSS_PORTRAIT_ENABLED,
-        refreshIntent = "BOSS_LAYOUT",
-        context = { unit = "boss" },
-    })
+    local context = { unit = "boss" }
+    local bindings = {
+        enabled = BindingFactory:CreateProfileBinding({
+            path = "Boss.portrait.enabled",
+            label = BFUF.L.OPTION_BOSS_PORTRAIT_ENABLED,
+            refreshIntent = "BOSS_LAYOUT",
+            context = context,
+        }),
+        width = BindingFactory:CreateProfileBinding({
+            path = "Boss.portrait.width",
+            label = BFUF.L.OPTION_PORTRAIT_WIDTH,
+            refreshIntent = "BOSS_LAYOUT",
+            context = context,
+        }),
+    }
 
     self.shell.pages:ShowPage(BFUF.L.SECTION_PORTRAIT, nil, true, function(page)
         UI.SectionPanel:Create(page, BFUF.L.SECTION_PORTRAIT, -36)
-        UI.CheckboxRow:Create(page, binding, -66)
+        UI.CheckboxRow:Create(page, bindings.enabled, -66)
+        UI.SliderRow:Create(page, bindings.width, -124, 20, 160, 1)
     end, function()
-        BindingFactory:Reset({ binding })
+        BindingFactory:Reset(bindings)
     end)
 end
 

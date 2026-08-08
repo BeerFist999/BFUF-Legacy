@@ -75,6 +75,8 @@ BFUF.Localization:RegisterLocale("enUS", {
     OPTION_ENABLE_BOSS_FRAMES = "Enable Boss Frames",
     OPTION_PREVIEW_BOSS_FRAMES = "Preview Boss Frames",
     OPTION_UNLOCK_BOSS_POSITION = "Unlock Position",
+    OPTION_SHOW_BOSS_HEALTH_TEXT = "Show Health Text",
+    OPTION_SHOW_BOSS_POWER_TEXT = "Show Power Text",
     OPTION_BOSS_FRAME_COUNT = "Number of Boss Frames",
     OPTION_BOSS_SPACING = "Spacing",
     OPTION_BOSS_GROWTH = "Growth",

@@ -50,6 +50,10 @@ local function createPreviewFrame(parent)
     frame.barsContainer = CreateFrame("Frame", nil, frame)
     frame.barsContainer:SetFrameLevel(frame:GetFrameLevel() + 3)
 
+    frame.highFrame = CreateFrame("Frame", nil, frame)
+    frame.highFrame:SetFrameLevel(frame:GetFrameLevel() + 4)
+    frame.highFrame:SetClipsChildren(true)
+
     frame.healthBar = CreateFrame("StatusBar", nil, frame.barsContainer)
     frame.healthBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
     frame.healthBar:SetMinMaxValues(0, 100)
@@ -60,7 +64,7 @@ local function createPreviewFrame(parent)
     frame.powerBar:SetMinMaxValues(0, 100)
     frame.powerBar:SetStatusBarColor(0.2, 0.4, 1)
 
-    frame.nameText = BFUF.Elements.Text:Create(frame.barsContainer, {
+    frame.nameText = BFUF.Elements.Text:Create(frame.highFrame, {
         justifyH = "LEFT",
         justifyV = "MIDDLE",
         size = 12,
@@ -68,10 +72,16 @@ local function createPreviewFrame(parent)
     frame.nameText:SetWordWrap(false)
     frame.nameText:SetMaxLines(1)
 
-    frame.healthText = BFUF.Elements.Text:Create(frame.barsContainer, {
+    frame.healthText = BFUF.Elements.Text:Create(frame.highFrame, {
         justifyH = "RIGHT",
         justifyV = "MIDDLE",
         size = 12,
+    })
+
+    frame.powerText = BFUF.Elements.Text:Create(frame.highFrame, {
+        justifyH = "RIGHT",
+        justifyV = "MIDDLE",
+        size = 11,
     })
 
     return frame
@@ -151,11 +161,24 @@ local function applyPreviewGeometry(frame, previous, settings, index)
     frame.healthBar:SetPoint("BOTTOMLEFT", frame.powerBar, "TOPLEFT", 0, 2)
     frame.healthBar:SetPoint("BOTTOMRIGHT", frame.powerBar, "TOPRIGHT", 0, 2)
 
-    frame.nameText:ClearAllPoints()
-    frame.nameText:SetPoint("LEFT", frame.healthBar, "LEFT", 4, 0)
-    frame.nameText:SetPoint("RIGHT", frame.healthText, "LEFT", -6, 0)
+    frame.highFrame:ClearAllPoints()
+    frame.highFrame:SetAllPoints(frame.barsContainer)
+
     frame.healthText:ClearAllPoints()
     frame.healthText:SetPoint("RIGHT", frame.healthBar, "RIGHT", -4, 0)
+    frame.healthText:SetShown(settings.showHealthText ~= false)
+
+    frame.nameText:ClearAllPoints()
+    frame.nameText:SetPoint("LEFT", frame.healthBar, "LEFT", 4, 0)
+    if settings.showHealthText ~= false then
+        frame.nameText:SetPoint("RIGHT", frame.healthText, "LEFT", -6, 0)
+    else
+        frame.nameText:SetPoint("RIGHT", frame.healthBar, "RIGHT", -4, 0)
+    end
+
+    frame.powerText:ClearAllPoints()
+    frame.powerText:SetPoint("RIGHT", frame.powerBar, "RIGHT", -4, 0)
+    frame.powerText:SetShown(settings.showPowerText ~= false)
 end
 
 function Boss:HidePreview()
@@ -253,6 +276,7 @@ function Boss:UpdatePreview(settings)
             frame.powerBar:SetValue(100 - (index - 1) * 10)
             frame.nameText:SetText("Boss " .. index)
             frame.healthText:SetText(health .. "%")
+            frame.powerText:SetText((100 - (index - 1) * 10) .. "%")
             frame:Show()
             previous = frame
         else

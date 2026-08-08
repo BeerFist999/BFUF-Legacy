@@ -137,5 +137,21 @@ function BossLayout:Apply(root, previous, settings)
     setRectangle(root.healthBar.healAbsorbBar, root.healthBar, 0, 0, 0, 0)
     setRectangle(root.highFrame, root.barsContainer, 0, 0, 0, 0)
 
+    root.healthText:ClearAllPoints()
+    root.healthText:SetPoint("RIGHT", root.healthBar, "RIGHT", -4, 0)
+    root.healthText:SetShown(settings.showHealthText ~= false)
+
+    root.nameText:ClearAllPoints()
+    root.nameText:SetPoint("LEFT", root.healthBar, "LEFT", 4, 0)
+    if settings.showHealthText ~= false then
+        root.nameText:SetPoint("RIGHT", root.healthText, "LEFT", -6, 0)
+    else
+        root.nameText:SetPoint("RIGHT", root.healthBar, "RIGHT", -4, 0)
+    end
+
+    root.powerText:ClearAllPoints()
+    root.powerText:SetPoint("RIGHT", root.powerBar, "RIGHT", -4, 0)
+    root.powerText:SetShown(settings.showPowerText ~= false)
+
     root.layoutPending = false
 end
