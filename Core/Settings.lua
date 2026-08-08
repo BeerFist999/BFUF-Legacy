@@ -168,13 +168,14 @@ function UI.PagePanel:Create(parent)
                 text:SetText(definition.description)
             end
 
-            local reset = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
-            reset:SetPoint("TOPRIGHT", page, "TOPRIGHT", 0, 0)
-            reset:SetSize(150, 24)
-            reset:SetText(BFUF.L.SETTINGS_RESET_PAGE)
-            reset:SetEnabled(definition.hasSettings == true)
-            if definition.reset then
-                reset:SetScript("OnClick", definition.reset)
+            if definition.hasSettings then
+                local reset = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
+                reset:SetPoint("TOPRIGHT", page, "TOPRIGHT", 0, 0)
+                reset:SetSize(150, 24)
+                reset:SetText(BFUF.L.SETTINGS_RESET_PAGE)
+                if definition.reset then
+                    reset:SetScript("OnClick", definition.reset)
+                end
             end
 
             if definition.builder then
