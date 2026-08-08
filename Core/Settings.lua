@@ -1601,22 +1601,17 @@ end
 
 -- Show the contextual Bars tabs without changing existing health or power controls.
 function SettingsModule:ShowPlayerBarsPage()
-    local entries = {
-        {
-            key = "player.health",
-            label = BFUF.L.SETTINGS_PLAYER_HEALTH,
-            onSelect = function()
-                self:ShowPlayerHealthPage(self.shell.pages)
-            end,
-        },
-        {
-            key = "player.power",
-            label = BFUF.L.SETTINGS_PLAYER_POWER,
-            onSelect = function()
-                self:ShowPlayerPowerPage(self.shell.pages)
-            end,
-        },
-    }
+    local entries = {}
+
+    self.playerPages:ForEach(function(definition)
+        if definition.context == "bars" then
+            table.insert(entries, {
+                key = definition.id,
+                label = definition.title,
+                onSelect = definition.builder,
+            })
+        end
+    end)
 
     self.shell:SetContextEntries(entries)
     self.shell.contextTabs:Select("player.health")
