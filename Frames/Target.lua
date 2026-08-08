@@ -88,15 +88,15 @@ function Target:UpdateTexts(root)
     setText(root.levelText, level and level > 0 and tostring(level) or nil)
 end
 
--- Keep Target visibility independent from the Player frame.
+-- Read the current target state without directly changing protected frame visibility.
 function Target:UpdateVisibility(root)
     root = root or BFUF.Framework.Registry:GetFrame("target")
     if not root then
-        return
+        return false
     end
 
     root.visible = UnitExists("target")
-    root:SetShown(root.visible)
+    return root.visible
 end
 
 -- Apply only Target geometry from its own profile fields.
@@ -175,8 +175,9 @@ function Target:SetLayoutUnlocked(unlocked)
     end
 
     root.layoutUnlocked = unlocked
-    root:EnableMouse(unlocked)
-    root.interaction:EnableMouse(not unlocked)
+    root:EnableMouse(true)
+    root:SetAttribute("*type1", unlocked and nil or "target")
+    root:SetAttribute("*type2", unlocked and nil or "togglemenu")
 end
 
 -- Attach Blizzard's native movement lifecycle to the Target root.
@@ -251,7 +252,10 @@ function Target:Create()
         return root
     end
 
-    root = BFUF.Framework.Factory:CreateUnitFrame("target")
+    -- The visible Target root is the protected unit button, so UnitWatch can
+    -- control its visibility without insecure SetShown calls during combat.
+    root = CreateFrame("Button", nil, UIParent, "SecureUnitButtonTemplate")
+    root.unit = "target"
     root.layoutUnlocked = false
 
     local portraitSettings = getPortraitSettings()
@@ -290,12 +294,14 @@ function Target:Create()
     root.auraContainer:SetHeight(1)
     root.auraContainer:SetFrameLevel(rootLevel + 5)
 
-    root.interaction = CreateFrame("Button", nil, root, "SecureUnitButtonTemplate")
-    root.interaction:SetAllPoints(root)
-    root.interaction:RegisterForClicks("AnyUp")
-    root.interaction:SetAttribute("unit", "target")
-    root.interaction:SetAttribute("*type1", "target")
-    root.interaction:SetAttribute("*type2", "togglemenu")
+    -- Keep the existing interaction reference while the root itself provides
+    -- the secure click surface and secure unit visibility.
+    root.interaction = root
+    root:RegisterForClicks("AnyUp")
+    root:SetAttribute("unit", "target")
+    root:SetAttribute("*type1", "target")
+    root:SetAttribute("*type2", "togglemenu")
+    RegisterUnitWatch(root)
 
     root.portrait = BFUF.Elements.Portrait:Create(root.portraitContainer)
     root.portrait:SetAllPoints(root.portraitContainer)
