@@ -11,8 +11,6 @@ local Portrait = {
 }
 BFUF.Elements.Portrait = Portrait
 
-local FALLBACK_MODEL = "Interface\\Buttons\\TalkToMeQuestionMark.m2"
-
 local function describeValue(value)
     if issecretvalue and issecretvalue(value) then
         return "<secret>"
@@ -51,17 +49,14 @@ function Portrait:Create(parent)
         self.debugState.activeRenderer = self.activeRenderer
     end
 
-    function container:ShowModelFallback()
+    function container:ShowTwoDFallback(unit)
         self.debugState.usedFallback = true
-        self.activeRenderer = "3d-fallback"
-        self.debugState.activeRenderer = self.activeRenderer
-        self.texture:Hide()
         self.model:ClearModel()
-        self.model:SetCamDistanceScale(0.25)
-        self.model:SetPortraitZoom(0)
-        self.model:SetPosition(0, 0, 0.25)
-        self.model:SetModel(FALLBACK_MODEL)
-        self.model:Show()
+        self.model:Hide()
+        SetPortraitTexture(self.texture, unit)
+        self.texture:Show()
+        self.activeRenderer = "2d-fallback"
+        self.debugState.activeRenderer = self.activeRenderer
     end
 
     function container:SetUnit(unit)
@@ -108,7 +103,7 @@ function Portrait:Create(parent)
             self.texture:Hide()
 
             if not UnitIsConnected(unit) or not UnitIsVisible(unit) then
-                self:ShowModelFallback()
+                self:ShowTwoDFallback(unit)
                 return
             end
 
@@ -127,7 +122,7 @@ function Portrait:Create(parent)
 
             if success ~= true then
                 -- Secret units cannot provide their 3D model to addons.
-                self:ShowModelFallback()
+                self:ShowTwoDFallback(unit)
                 return
             end
 
