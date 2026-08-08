@@ -17,8 +17,6 @@ local UNIT_FRAME_DEFAULTS = {
 
 -- Default values are stored in AceDB's profile scope.
 BFUF.Defaults = {
-    UnitFrame = UNIT_FRAME_DEFAULTS,
-
     profile = {
         General = {
             debugMode = false,
@@ -149,6 +147,15 @@ BFUF.Defaults = {
         Indicators = { enabled = true, show = true },
     },
 }
+
+-- Keep shared layout metadata outside AceDB's iterable defaults schema.
+-- AceDB sees only the valid profile scope, while BFUF code still accesses
+-- the centralized values through BFUF.Defaults.UnitFrame.
+setmetatable(BFUF.Defaults, {
+    __index = {
+        UnitFrame = UNIT_FRAME_DEFAULTS,
+    },
+})
 
 local Defaults = {}
 BFUF.Core.Defaults = Defaults
