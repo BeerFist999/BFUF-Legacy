@@ -51,7 +51,28 @@ local function applyTextStyle(text, settings, value)
     text:SetShown(settings.show ~= false and value ~= nil)
 end
 
+-- Fill only missing portrait fields for profiles created before Player portrait settings.
+function Player:EnsurePortraitSettings()
+    local settings = BFUF.DB:Get("Player")
+    local defaults = BFUF.Defaults.profile.Player.portrait
+
+    if type(settings.portrait) ~= "table" then
+        settings.portrait = {}
+    end
+
+    if settings.portrait.mode == nil then
+        settings.portrait.mode = defaults.mode
+    end
+
+    if settings.portrait.width == nil then
+        settings.portrait.width = defaults.width
+    end
+
+    return settings.portrait
+end
+
 function Player:UpdateLayout()
+    self:EnsurePortraitSettings()
     local root = BFUF.Framework.Registry:GetFrame("player")
     if not root then
         return
@@ -115,6 +136,7 @@ function Player:Create()
     local root = BFUF.Framework.Registry:GetFrame("player")
     if root then return root end
 
+    self:EnsurePortraitSettings()
     root = BFUF.Framework.Factory:CreateUnitFrame("player")
 
     local rootLevel = root:GetFrameLevel()
@@ -194,7 +216,11 @@ function Player:Create()
     root:RegisterEvent("UNIT_DISPLAYPOWER")
     root:RegisterEvent("UNIT_PORTRAIT_UPDATE")
     root:SetScript("OnEvent", function(self, event, unit)
-        if event == "PLAYER_REGEN_ENABLED" and self.layoutPending then BFUF.Layouts.Player:Apply(self); return end
+        if event == "PLAYER_REGEN_ENABLED" and self.layoutPending then
+            Player:EnsurePortraitSettings()
+            BFUF.Layouts.Player:Apply(self)
+            return
+        end
         if event == "PLAYER_ENTERING_WORLD" then refresh(); return end
         if unit == "player" then refresh() end
     end)
@@ -202,6 +228,7 @@ function Player:Create()
     BFUF.Framework.Registry:RegisterFrame("player", root)
     BFUF.Layouts.PlayerEdit:Attach(root)
     self:SetLayoutUnlocked(false)
+    self:EnsurePortraitSettings()
     BFUF.Layouts.Player:Apply(root)
     refresh()
     return root

@@ -1687,13 +1687,66 @@ function SettingsModule:ShowTargetPortraitPage()
     end, resetPortrait)
 end
 
+-- Show the Player portrait page with the same controls as Target.
+function SettingsModule:ShowPlayerPortraitPage()
+    local function updatePortrait()
+        BFUF.Frames.Player:UpdateLayout()
+    end
+
+    local function resetPortrait()
+        local portrait = BFUF.DB:Get("Player").portrait
+        local defaults = BFUF.Defaults.profile.Player.portrait
+        portrait.mode = defaults.mode
+        portrait.width = defaults.width
+        updatePortrait()
+    end
+
+    self.shell.pages:ShowPage(BFUF.L.SETTINGS_PLAYER_PORTRAIT, nil, true, function(page)
+        UI.SectionPanel:Create(page, BFUF.L.SECTION_PORTRAIT, -36)
+
+        UI.DropdownRow:Create(page, {
+            label = BFUF.L.OPTION_DISPLAY_MODE,
+            get = function()
+                return BFUF.Frames.Player:EnsurePortraitSettings().mode
+            end,
+            set = function(value)
+                BFUF.Frames.Player:EnsurePortraitSettings().mode = value
+                updatePortrait()
+            end,
+            values = {
+                { value = BFUF.Elements.Portrait.Modes.HIDDEN, label = BFUF.L.OPTION_PORTRAIT_HIDDEN },
+                { value = BFUF.Elements.Portrait.Modes.TWO_D, label = BFUF.L.OPTION_PORTRAIT_2D },
+                { value = BFUF.Elements.Portrait.Modes.THREE_D, label = BFUF.L.OPTION_PORTRAIT_3D },
+            },
+        }, -66)
+
+        UI.SliderRow:Create(
+            page,
+            {
+                label = BFUF.L.OPTION_PORTRAIT_WIDTH,
+                get = function()
+                    return BFUF.Frames.Player:EnsurePortraitSettings().width
+                end,
+                set = function(value)
+                    BFUF.Frames.Player:EnsurePortraitSettings().width = value
+                    updatePortrait()
+                end,
+            },
+            -112,
+            20,
+            160,
+            1
+        )
+    end, resetPortrait)
+end
+
 -- Build the second-level navigation for a frame module.
 function SettingsModule:ShowShellFrame(frameKey, title, isFuture)
     local hasBasicLayout = frameKey == "player" or frameKey == "target"
     local pageDefinitions = {
         { key = "general", title = BFUF.L.SETTINGS_PLAYER_GENERAL, disabled = isFuture == true },
         { key = "bars", title = BFUF.L.SETTINGS_PLAYER_BARS, disabled = true },
-        { key = "portrait", title = BFUF.L.SETTINGS_PLAYER_PORTRAIT, disabled = frameKey ~= "target" },
+        { key = "portrait", title = BFUF.L.SETTINGS_PLAYER_PORTRAIT, disabled = frameKey ~= "player" and frameKey ~= "target" },
         { key = "text", title = BFUF.L.SETTINGS_PLAYER_TEXT, disabled = true },
         { key = "indicators", title = BFUF.L.SETTINGS_PLAYER_INDICATORS, disabled = true },
         { key = "resources", title = BFUF.L.SETTINGS_PLAYER_RESOURCES, disabled = true },
@@ -1729,8 +1782,12 @@ function SettingsModule:ShowShellFrame(frameKey, title, isFuture)
                     return
                 end
 
-                if definition.key == "portrait" and frameKey == "target" then
-                    self:ShowTargetPortraitPage()
+                if definition.key == "portrait" then
+                    if frameKey == "player" then
+                        self:ShowPlayerPortraitPage()
+                    elseif frameKey == "target" then
+                        self:ShowTargetPortraitPage()
+                    end
                     return
                 end
 
