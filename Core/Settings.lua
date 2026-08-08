@@ -6,6 +6,7 @@ BFUF.Core.Settings = SettingsModule
 local UI = {
     PagePanel = {},
     NavigationList = {},
+    SidebarNavigation = {},
     TabBar = {},
     SettingsShell = {},
     SectionPanel = {},
@@ -320,6 +321,104 @@ function UI.NavigationList:Create(parent, width)
     return list
 end
 
+-- Create a stable vertical navigation list for Settings modules and pages.
+function UI.SidebarNavigation:Create(parent, width)
+    local frame = CreateFrame("Frame", nil, parent)
+    frame:SetWidth(width)
+
+    local background = frame:CreateTexture(nil, "BACKGROUND")
+    background:SetAllPoints()
+    background:SetColorTexture(0.06, 0.06, 0.06, 0.72)
+
+    local navigation = {
+        frame = frame,
+        width = width,
+        buttons = {},
+        selectedKey = nil,
+        nextOffset = -8,
+    }
+
+    function navigation:Clear()
+        for _, item in pairs(self.buttons) do
+            item.button:Hide()
+            item.button:SetParent(nil)
+        end
+
+        wipe(self.buttons)
+        self.selectedKey = nil
+        self.nextOffset = -8
+    end
+
+    function navigation:AddEntry(entry)
+        local button = CreateFrame("Button", nil, self.frame)
+        button:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 6, self.nextOffset)
+        button:SetSize(self.width - 12, 26)
+        self.nextOffset = self.nextOffset - 28
+
+        local highlight = button:CreateTexture(nil, "BACKGROUND")
+        highlight:SetAllPoints()
+        highlight:SetColorTexture(0.2, 0.55, 0.35, 0.32)
+        highlight:Hide()
+
+        local label = button:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+        label:SetPoint("LEFT", button, "LEFT", 8, 0)
+        label:SetPoint("RIGHT", button, "RIGHT", -8, 0)
+        label:SetJustifyH("LEFT")
+        label:SetWordWrap(false)
+        label:SetText(entry.label)
+
+        if entry.disabled then
+            label:SetTextColor(0.5, 0.5, 0.5)
+            button:SetScript("OnEnter", function(self)
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetText(BFUF.L.SETTINGS_COMING_LATER)
+                GameTooltip:Show()
+            end)
+            button:SetScript("OnLeave", GameTooltip_Hide)
+        else
+            button:SetScript("OnClick", function()
+                self:Select(entry.key)
+            end)
+        end
+
+        self.buttons[entry.key] = {
+            button = button,
+            entry = entry,
+            highlight = highlight,
+            label = label,
+        }
+    end
+
+    function navigation:SetEntries(entries)
+        self:Clear()
+        for _, entry in ipairs(entries) do
+            self:AddEntry(entry)
+        end
+    end
+
+    function navigation:Select(key)
+        local selected = self.buttons[key]
+        if not selected or selected.entry.disabled then
+            return
+        end
+
+        self.selectedKey = key
+        for buttonKey, item in pairs(self.buttons) do
+            local active = buttonKey == key
+            item.highlight:SetShown(active)
+            item.label:SetTextColor(
+                active and 1 or 0.85,
+                active and 1 or 0.85,
+                active and 1 or 0.85
+            )
+        end
+
+        selected.entry.onSelect()
+    end
+
+    return navigation
+end
+
 -- Create a reusable horizontal tab bar with an overflow popup.
 function UI.TabBar:Create(parent)
     local frame = CreateFrame("Frame", nil, parent)
@@ -472,70 +571,64 @@ function UI.TabBar:Create(parent)
     return tabBar
 end
 
--- Create the root shell with horizontal tab navigation and one shared content host.
+-- Create the stable Settings shell with sidebar navigation and one content host.
 function UI.SettingsShell:Create(parent)
     local shell = CreateFrame("Frame", nil, parent)
     shell:SetAllPoints()
 
-    local topTabs = UI.TabBar:Create(shell)
-    local frameTabs = UI.TabBar:Create(shell)
-    local contextTabs = UI.TabBar:Create(shell)
-    local layerTabs = UI.TabBar:Create(shell)
+    local sidebar = UI.SidebarNavigation:Create(shell, 160)
+    sidebar.frame:SetPoint("TOPLEFT", shell, "TOPLEFT", 12, -12)
+    sidebar.frame:SetPoint("BOTTOMLEFT", shell, "BOTTOMLEFT", 12, 12)
+
+    local sidebarDivider = shell:CreateTexture(nil, "ARTWORK")
+    sidebarDivider:SetPoint("TOPLEFT", sidebar.frame, "TOPRIGHT", 10, 0)
+    sidebarDivider:SetPoint("BOTTOMLEFT", sidebar.frame, "BOTTOMRIGHT", 10, 0)
+    sidebarDivider:SetWidth(1)
+    sidebarDivider:SetColorTexture(0.35, 0.35, 0.35, 0.7)
+
+    local frameNavigation = UI.SidebarNavigation:Create(shell, 132)
+    frameNavigation.frame:SetPoint("TOPLEFT", sidebarDivider, "TOPRIGHT", 12, 0)
+    frameNavigation.frame:SetPoint("BOTTOMLEFT", sidebarDivider, "BOTTOMRIGHT", 12, 0)
+    frameNavigation.frame:Hide()
+
+    local frameDivider = shell:CreateTexture(nil, "ARTWORK")
+    frameDivider:SetPoint("TOPLEFT", frameNavigation.frame, "TOPRIGHT", 10, 0)
+    frameDivider:SetPoint("BOTTOMLEFT", frameNavigation.frame, "BOTTOMRIGHT", 10, 0)
+    frameDivider:SetWidth(1)
+    frameDivider:SetColorTexture(0.35, 0.35, 0.35, 0.7)
+    frameDivider:Hide()
+
     local pageHost = UI.ScrollablePageHost:Create(shell)
 
     local settingsShell = {
         frame = shell,
-        topTabs = topTabs,
-        frameTabs = frameTabs,
-        contextTabs = contextTabs,
-        layerTabs = layerTabs,
+        sidebar = sidebar,
+        frameNavigation = frameNavigation,
         pageHost = pageHost,
     }
-    settingsShell.navigation = topTabs
+    settingsShell.navigation = sidebar
     settingsShell.pages = UI.PagePanel:Create(pageHost)
 
     function settingsShell:UpdateLayout()
-        local y = -12
-        local rows = { self.topTabs, self.frameTabs, self.contextTabs, self.layerTabs }
-
-        for _, tabBar in ipairs(rows) do
-            tabBar.frame:ClearAllPoints()
-            if next(tabBar.buttons) then
-                tabBar.frame:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 12, y)
-                tabBar.frame:SetPoint("TOPRIGHT", self.frame, "TOPRIGHT", -12, y)
-                tabBar.frame:Show()
-                tabBar:Relayout()
-                y = y - 30
-            else
-                tabBar.frame:Hide()
-            end
-        end
-
         self.pageHost.frame:ClearAllPoints()
-        self.pageHost.frame:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 12, y)
+        if next(self.frameNavigation.buttons) then
+            self.frameNavigation.frame:Show()
+            frameDivider:Show()
+            self.pageHost.frame:SetPoint("TOPLEFT", frameDivider, "TOPRIGHT", 12, 0)
+        else
+            self.frameNavigation.frame:Hide()
+            frameDivider:Hide()
+            self.pageHost.frame:SetPoint("TOPLEFT", sidebarDivider, "TOPRIGHT", 12, 0)
+        end
         self.pageHost.frame:SetPoint("BOTTOMRIGHT", self.frame, "BOTTOMRIGHT", -12, 12)
     end
 
-    function settingsShell:SetTopEntries(entries)
-        self.topTabs:SetEntries(entries)
-        self:UpdateLayout()
+    function settingsShell:SetSidebarEntries(entries)
+        self.sidebar:SetEntries(entries)
     end
 
     function settingsShell:SetFrameEntries(entries)
-        self.frameTabs:SetEntries(entries)
-        self.contextTabs:Clear()
-        self.layerTabs:Clear()
-        self:UpdateLayout()
-    end
-
-    function settingsShell:SetContextEntries(entries)
-        self.contextTabs:SetEntries(entries)
-        self.layerTabs:Clear()
-        self:UpdateLayout()
-    end
-
-    function settingsShell:SetLayerEntries(entries)
-        self.layerTabs:SetEntries(entries)
+        self.frameNavigation:SetEntries(entries or {})
         self:UpdateLayout()
     end
 
