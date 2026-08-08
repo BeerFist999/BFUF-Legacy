@@ -82,6 +82,7 @@ BFUF.Localization:RegisterLocale("enUS", {
     SETTINGS_PAGE_PROFILES = "Profiles",
     SETTINGS_PAGE_ABOUT = "About",
     SETTINGS_PLAYER_GENERAL = "General",
+    SETTINGS_PLAYER_BARS = "Bars",
     SETTINGS_PLAYER_PORTRAIT = "Portrait",
     SETTINGS_PLAYER_HEALTH = "Health",
     SETTINGS_PLAYER_POWER = "Power",
