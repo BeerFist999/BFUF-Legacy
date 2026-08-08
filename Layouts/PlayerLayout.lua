@@ -353,7 +353,6 @@ function PlayerLayout:ApplyLayout(root, result)
         setPortraitContainerGeometry(root.portraitContainer, root, result.portrait)
         setRectangle(root.portrait, root.portraitContainer, 0, 0, 0, 0)
         setRectangle(root.portrait.texture, root.portrait, 0, 0, 0, 0)
-        setRectangle(root.portrait.model, root.portrait, 0, 0, 0, 0)
         root.portraitContainer:Show()
 
         local compatibleBarCount = 0
