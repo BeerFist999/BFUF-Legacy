@@ -49,7 +49,7 @@ function Portrait:Create(parent)
         end
 
         self:Show()
-        SetPortraitTexture(self.texture, unit)
+        SetPortraitTexture(self.texture, unit, true)
         self.texture:Show()
         self.activeRenderer = "2d"
     end
