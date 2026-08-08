@@ -320,7 +320,7 @@ function UI.NavigationList:Create(parent, width)
     return list
 end
 
--- Create a reusable horizontal tab bar for a navigation level.
+-- Create a reusable horizontal tab bar with an overflow popup.
 function UI.TabBar:Create(parent)
     local frame = CreateFrame("Frame", nil, parent)
     frame:SetHeight(24)
@@ -331,8 +331,15 @@ function UI.TabBar:Create(parent)
         entries = {},
         entryOrder = {},
         selectedKey = nil,
-        nextOffset = 0,
+        overflowWidth = 30,
+        tabSpacing = 4,
     }
+
+    local overflowButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    overflowButton:SetSize(tabBar.overflowWidth, 24)
+    overflowButton:SetText("»")
+    overflowButton:Hide()
+    tabBar.overflowButton = overflowButton
 
     function tabBar:Clear()
         for _, item in pairs(self.buttons) do
@@ -344,7 +351,7 @@ function UI.TabBar:Create(parent)
         wipe(self.entries)
         wipe(self.entryOrder)
         self.selectedKey = nil
-        self.nextOffset = 0
+        self.overflowButton:Hide()
         self.frame:Hide()
     end
 
@@ -354,11 +361,7 @@ function UI.TabBar:Create(parent)
 
         local fontString = button:GetFontString()
         local textWidth = fontString and fontString:GetStringWidth() or 0
-        local width = math.max(58, math.min(textWidth + 24, 120))
-
-        button:SetPoint("LEFT", self.frame, "LEFT", self.nextOffset, 0)
-        button:SetSize(width, 24)
-        self.nextOffset = self.nextOffset + width + 4
+        local width = math.max(58, textWidth + 24)
 
         if entry.disabled then
             button:Disable()
@@ -378,34 +381,64 @@ function UI.TabBar:Create(parent)
             button = button,
             entry = entry,
             desiredWidth = width,
+            inOverflow = false,
         }
         self.entries[entry.key] = entry
         table.insert(self.entryOrder, entry)
         self.frame:Show()
     end
 
+    function tabBar:ShowOverflowMenu()
+        MenuUtil.CreateContextMenu(self.overflowButton, function(_, rootDescription)
+            for _, entry in ipairs(self.entryOrder) do
+                local item = self.buttons[entry.key]
+                if item and item.inOverflow then
+                    rootDescription:CreateButton(entry.label, function()
+                        self:Select(entry.key)
+                    end)
+                end
+            end
+        end)
+    end
+
+    overflowButton:SetScript("OnClick", function()
+        tabBar:ShowOverflowMenu()
+    end)
+
     function tabBar:Relayout()
-        local availableWidth = self.frame:GetWidth()
-        if availableWidth <= 0 then
-            return
-        end
-
+        local availableWidth = math.max(self.frame:GetWidth(), 0)
         local totalWidth = 0
-        for _, item in pairs(self.buttons) do
-            totalWidth = totalWidth + item.desiredWidth + 4
-        end
-
-        local scale = totalWidth > availableWidth and availableWidth / totalWidth or 1
-        local offset = 0
         for _, entry in ipairs(self.entryOrder) do
             local item = self.buttons[entry.key]
-            if item then
-                local width = math.max(32, math.floor(item.desiredWidth * scale))
+            totalWidth = totalWidth + item.desiredWidth
+        end
+        totalWidth = totalWidth + math.max(#self.entryOrder - 1, 0) * self.tabSpacing
+
+        local hasOverflow = totalWidth > availableWidth
+        local visibleWidth = hasOverflow and availableWidth - self.overflowWidth - self.tabSpacing or availableWidth
+        local usedWidth = 0
+
+        for _, entry in ipairs(self.entryOrder) do
+            local item = self.buttons[entry.key]
+            local spacing = usedWidth > 0 and self.tabSpacing or 0
+            local fits = usedWidth + spacing + item.desiredWidth <= visibleWidth
+
+            item.inOverflow = hasOverflow and not fits
+            item.button:Hide()
+
+            if not item.inOverflow then
                 item.button:ClearAllPoints()
-                item.button:SetPoint("LEFT", self.frame, "LEFT", offset, 0)
-                item.button:SetSize(width, 24)
-                offset = offset + width + 4
+                item.button:SetPoint("LEFT", self.frame, "LEFT", usedWidth + spacing, 0)
+                item.button:SetSize(item.desiredWidth, 24)
+                item.button:Show()
+                usedWidth = usedWidth + spacing + item.desiredWidth
             end
+        end
+
+        self.overflowButton:ClearAllPoints()
+        self.overflowButton:SetShown(hasOverflow)
+        if hasOverflow then
+            self.overflowButton:SetPoint("RIGHT", self.frame, "RIGHT", 0, 0)
         end
     end
 
@@ -503,6 +536,10 @@ function UI.SettingsShell:Create(parent)
         self.layerTabs:SetEntries(entries)
         self:UpdateLayout()
     end
+
+    shell:SetScript("OnSizeChanged", function()
+        settingsShell:UpdateLayout()
+    end)
 
     settingsShell:UpdateLayout()
     return settingsShell
