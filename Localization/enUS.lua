@@ -26,6 +26,7 @@ BFUF.Localization:RegisterLocale("enUS", {
     BUTTON_UNLOCK_TARGET_FRAME = "Unlock Target Frame",
     BUTTON_LOCK_TARGET_FRAME = "Lock Target Frame",
     BUTTON_RESET_POSITION = "Reset Position",
+    BUTTON_RESET_DEFAULTS = "Defaults",
     SECTION_PORTRAIT = "Portrait",
     OPTION_PORTRAIT_HIDDEN = "Hidden",
     OPTION_PORTRAIT_2D = "2D Portrait",
