@@ -225,7 +225,8 @@ function Boss:UpdatePreview(settings)
 
     anchor:SetSize(settings.width, settings.height)
     anchor:SetShown(true)
-    anchor:EnableMouse(settings.previewUnlocked == true)
+    anchor.unlocked = settings.previewUnlocked == true
+    anchor:EnableMouse(anchor.unlocked)
 
     if not anchor.dragging then
         anchor:ClearAllPoints()
