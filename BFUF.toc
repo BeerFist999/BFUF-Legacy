@@ -12,6 +12,7 @@ Core\Init.lua
 Core\API.lua
 Core\Defaults.lua
 Core\Database.lua
+Core\SettingsBindings.lua
 Core\Events.lua
 Localization\Init.lua
 Localization\enUS.lua

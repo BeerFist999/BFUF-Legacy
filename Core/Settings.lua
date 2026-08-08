@@ -1,5 +1,8 @@
 local addonName, BFUF = ...
 
+local SettingsInfrastructure = BFUF.Core.SettingsInfrastructure
+local BindingFactory = SettingsInfrastructure.BindingFactory
+
 local SettingsModule = {}
 BFUF.Core.Settings = SettingsModule
 
@@ -1527,8 +1530,10 @@ function SettingsModule:RefreshFrameLayoutControls(profileKey)
     end
 end
 
--- Build the temporary shared layout page used by Player and Target.
+-- Build the shared layout page through profile bindings and refresh intents.
 function SettingsModule:ShowBasicFrameLayoutPage(profileKey, frameModule, title, lockLabel, unlockLabel)
+    local intent = profileKey == "Player" and "PLAYER_LAYOUT" or "TARGET_LAYOUT"
+    local context = { unit = profileKey == "Player" and "player" or "target" }
     local options = {
         { key = "width", label = "OPTION_FRAME_WIDTH", minValue = 120, maxValue = 600, step = 1 },
         { key = "height", label = "OPTION_FRAME_HEIGHT", minValue = 20, maxValue = 200, step = 1 },
@@ -1539,48 +1544,39 @@ function SettingsModule:ShowBasicFrameLayoutPage(profileKey, frameModule, title,
 
     self.frameLayoutControls = self.frameLayoutControls or {}
     local controls = {}
+    local anchorBinding = BindingFactory:CreateProfileBinding({
+        path = profileKey .. ".positionAnchor",
+        refreshIntent = "NONE",
+        context = context,
+    })
+    local bindings = {}
+
+    for _, option in ipairs(options) do
+        local optionKey = option.key
+        bindings[optionKey] = BindingFactory:CreateProfileBinding({
+            path = profileKey .. "." .. optionKey,
+            label = BFUF.L[option.label],
+            refreshIntent = intent,
+            context = context,
+            afterSet = function()
+                if optionKey == "positionX" or optionKey == "positionY" then
+                    anchorBinding.set(nil)
+                end
+            end,
+        })
+    end
 
     local function refreshControls()
         self:RefreshFrameLayoutControls(profileKey)
     end
 
     local function resetPosition()
-        local profile = BFUF.DB:Get(profileKey)
-        local defaults = BFUF.Defaults.profile[profileKey]
-
-        profile.positionX = defaults.positionX
-        profile.positionY = defaults.positionY
-        profile.positionAnchor = nil
-        frameModule:UpdateLayout()
+        BindingFactory:ResetPosition(profileKey, intent, context)
         refreshControls()
     end
 
-    local function copyDefaults(source)
-        local copy = {}
-        for key, value in pairs(source) do
-            if type(value) == "table" then
-                copy[key] = copyDefaults(value)
-            else
-                copy[key] = value
-            end
-        end
-        return copy
-    end
-
     local function resetFrameDefaults()
-        local profile = BFUF.DB:Get(profileKey)
-        local defaults = BFUF.Defaults.profile[profileKey]
-
-        -- Reset only the selected frame section without sharing nested default tables.
-        wipe(profile)
-        for key, value in pairs(copyDefaults(defaults)) do
-            profile[key] = value
-        end
-
-        frameModule:UpdateLayout()
-        if profileKey == "Target" then
-            frameModule:Update()
-        end
+        BindingFactory:ResetProfileSection(profileKey, intent, context)
         refreshControls()
     end
 
@@ -1588,26 +1584,9 @@ function SettingsModule:ShowBasicFrameLayoutPage(profileKey, frameModule, title,
         UI.SectionPanel:Create(page, BFUF.L.SECTION_LAYOUT, -36)
 
         for index, option in ipairs(options) do
-            local optionKey = option.key
-            controls[optionKey] = UI.SliderRow:Create(
+            controls[option.key] = UI.SliderRow:Create(
                 page,
-                {
-                    label = BFUF.L[option.label],
-                    get = function()
-                        return BFUF.DB:Get(profileKey)[optionKey]
-                    end,
-                    set = function(value)
-                        local profile = BFUF.DB:Get(profileKey)
-                        profile[optionKey] = value
-
-                        -- Manual X/Y input takes precedence over a native drag anchor.
-                        if optionKey == "positionX" or optionKey == "positionY" then
-                            profile.positionAnchor = nil
-                        end
-
-                        frameModule:UpdateLayout()
-                    end,
-                },
+                bindings[option.key],
                 -66 - (index - 1) * 58,
                 option.minValue,
                 option.maxValue,
@@ -1633,110 +1612,69 @@ function SettingsModule:ShowBasicFrameLayoutPage(profileKey, frameModule, title,
     self.frameLayoutControls[profileKey] = controls
 end
 
--- Show the small Target portrait page without changing the Settings shell.
+-- Show the Target portrait page through shared profile bindings.
 function SettingsModule:ShowTargetPortraitPage()
-    local function updatePortrait()
-        BFUF.Frames.Target:UpdateLayout()
-        BFUF.Frames.Target:Update()
-    end
+    local context = { unit = "target" }
+    local modeBinding = BindingFactory:CreateProfileBinding({
+        path = "Target.portrait.mode",
+        label = BFUF.L.OPTION_DISPLAY_MODE,
+        refreshIntent = "PORTRAIT",
+        context = context,
+        values = {
+            { value = BFUF.Elements.Portrait.Modes.HIDDEN, label = BFUF.L.OPTION_PORTRAIT_HIDDEN },
+            { value = BFUF.Elements.Portrait.Modes.TWO_D, label = BFUF.L.OPTION_PORTRAIT_2D },
+            { value = BFUF.Elements.Portrait.Modes.THREE_D, label = BFUF.L.OPTION_PORTRAIT_3D },
+        },
+    })
+    local widthBinding = BindingFactory:CreateProfileBinding({
+        path = "Target.portrait.width",
+        label = BFUF.L.OPTION_PORTRAIT_WIDTH,
+        refreshIntent = "PORTRAIT",
+        context = context,
+    })
 
     local function resetPortrait()
-        local portrait = BFUF.DB:Get("Target").portrait
-        local defaults = BFUF.Defaults.profile.Target.portrait
-        portrait.mode = defaults.mode
-        portrait.width = defaults.width
-        updatePortrait()
+        BindingFactory:Reset({ modeBinding, widthBinding })
     end
 
     self.shell.pages:ShowPage(BFUF.L.SETTINGS_PLAYER_PORTRAIT, nil, true, function(page)
         UI.SectionPanel:Create(page, BFUF.L.SECTION_PORTRAIT, -36)
-
-        UI.DropdownRow:Create(page, {
-            label = BFUF.L.OPTION_DISPLAY_MODE,
-            get = function()
-                return BFUF.DB:Get("Target").portrait.mode
-            end,
-            set = function(value)
-                BFUF.DB:Get("Target").portrait.mode = value
-                updatePortrait()
-            end,
-            values = {
-                { value = BFUF.Elements.Portrait.Modes.HIDDEN, label = BFUF.L.OPTION_PORTRAIT_HIDDEN },
-                { value = BFUF.Elements.Portrait.Modes.TWO_D, label = BFUF.L.OPTION_PORTRAIT_2D },
-                { value = BFUF.Elements.Portrait.Modes.THREE_D, label = BFUF.L.OPTION_PORTRAIT_3D },
-            },
-        }, -66)
-
-        UI.SliderRow:Create(
-            page,
-            {
-                label = BFUF.L.OPTION_PORTRAIT_WIDTH,
-                get = function()
-                    return BFUF.DB:Get("Target").portrait.width
-                end,
-                set = function(value)
-                    BFUF.DB:Get("Target").portrait.width = value
-                    updatePortrait()
-                end,
-            },
-            -112,
-            20,
-            160,
-            1
-        )
+        UI.DropdownRow:Create(page, modeBinding, -66)
+        UI.SliderRow:Create(page, widthBinding, -112, 20, 160, 1)
     end, resetPortrait)
 end
 
--- Show the Player portrait page with the same controls as Target.
+-- Show the Player portrait page through shared profile bindings.
 function SettingsModule:ShowPlayerPortraitPage()
-    local function updatePortrait()
-        BFUF.Frames.Player:UpdateLayout()
-    end
+    BFUF.Frames.Player:EnsurePortraitSettings()
+
+    local context = { unit = "player" }
+    local modeBinding = BindingFactory:CreateProfileBinding({
+        path = "Player.portrait.mode",
+        label = BFUF.L.OPTION_DISPLAY_MODE,
+        refreshIntent = "PORTRAIT",
+        context = context,
+        values = {
+            { value = BFUF.Elements.Portrait.Modes.HIDDEN, label = BFUF.L.OPTION_PORTRAIT_HIDDEN },
+            { value = BFUF.Elements.Portrait.Modes.TWO_D, label = BFUF.L.OPTION_PORTRAIT_2D },
+            { value = BFUF.Elements.Portrait.Modes.THREE_D, label = BFUF.L.OPTION_PORTRAIT_3D },
+        },
+    })
+    local widthBinding = BindingFactory:CreateProfileBinding({
+        path = "Player.portrait.width",
+        label = BFUF.L.OPTION_PORTRAIT_WIDTH,
+        refreshIntent = "PORTRAIT",
+        context = context,
+    })
 
     local function resetPortrait()
-        local portrait = BFUF.DB:Get("Player").portrait
-        local defaults = BFUF.Defaults.profile.Player.portrait
-        portrait.mode = defaults.mode
-        portrait.width = defaults.width
-        updatePortrait()
+        BindingFactory:Reset({ modeBinding, widthBinding })
     end
 
     self.shell.pages:ShowPage(BFUF.L.SETTINGS_PLAYER_PORTRAIT, nil, true, function(page)
         UI.SectionPanel:Create(page, BFUF.L.SECTION_PORTRAIT, -36)
-
-        UI.DropdownRow:Create(page, {
-            label = BFUF.L.OPTION_DISPLAY_MODE,
-            get = function()
-                return BFUF.Frames.Player:EnsurePortraitSettings().mode
-            end,
-            set = function(value)
-                BFUF.Frames.Player:EnsurePortraitSettings().mode = value
-                updatePortrait()
-            end,
-            values = {
-                { value = BFUF.Elements.Portrait.Modes.HIDDEN, label = BFUF.L.OPTION_PORTRAIT_HIDDEN },
-                { value = BFUF.Elements.Portrait.Modes.TWO_D, label = BFUF.L.OPTION_PORTRAIT_2D },
-                { value = BFUF.Elements.Portrait.Modes.THREE_D, label = BFUF.L.OPTION_PORTRAIT_3D },
-            },
-        }, -66)
-
-        UI.SliderRow:Create(
-            page,
-            {
-                label = BFUF.L.OPTION_PORTRAIT_WIDTH,
-                get = function()
-                    return BFUF.Frames.Player:EnsurePortraitSettings().width
-                end,
-                set = function(value)
-                    BFUF.Frames.Player:EnsurePortraitSettings().width = value
-                    updatePortrait()
-                end,
-            },
-            -112,
-            20,
-            160,
-            1
-        )
+        UI.DropdownRow:Create(page, modeBinding, -66)
+        UI.SliderRow:Create(page, widthBinding, -112, 20, 160, 1)
     end, resetPortrait)
 end
 
