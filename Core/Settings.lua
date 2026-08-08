@@ -1801,11 +1801,22 @@ function SettingsModule:ShowDeclarativeControlsPage(definition)
         end
     end
 
-    self.shell.pages:ShowPage(definition.title, definition.description, true, function(page)
-        self.ControlRegistry:Render(page, definition.controls)
-    end, function()
-        BindingFactory:Reset(bindings)
-    end)
+    -- Declarative pages must retain their registry identity. Routing them
+    -- through ShowPage(title, ...) made pages sharing a title indistinguishable
+    -- to the page host, including Health > General.
+    return self.shell.pages:ShowDefinition({
+        id = "declarative:" .. definition.id,
+        title = definition.title,
+        description = definition.description,
+        hasSettings = true,
+        cache = false,
+        builder = function(page)
+            page._bfufControls = self.ControlRegistry:Render(page, definition.controls)
+        end,
+        reset = function()
+            BindingFactory:Reset(bindings)
+        end,
+    })
 end
 
 -- Open a declarative page through the shared registry.
