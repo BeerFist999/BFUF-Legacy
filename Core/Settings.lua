@@ -6,6 +6,7 @@ BFUF.Core.Settings = SettingsModule
 local UI = {
     PagePanel = {},
     NavigationList = {},
+    TabBar = {},
     SettingsShell = {},
     SectionPanel = {},
     CheckboxRow = {},
@@ -306,31 +307,162 @@ function UI.NavigationList:Create(parent, width)
     return list
 end
 
--- Create the root shell with persistent left navigation and a page host.
+-- Create a reusable horizontal tab bar for a navigation level.
+function UI.TabBar:Create(parent)
+    local frame = CreateFrame("Frame", nil, parent)
+    frame:SetHeight(24)
+
+    local tabBar = {
+        frame = frame,
+        buttons = {},
+        entries = {},
+        selectedKey = nil,
+        nextOffset = 0,
+    }
+
+    function tabBar:Clear()
+        for _, item in pairs(self.buttons) do
+            item.button:Hide()
+            item.button:SetParent(nil)
+        end
+
+        wipe(self.buttons)
+        wipe(self.entries)
+        self.selectedKey = nil
+        self.nextOffset = 0
+        self.frame:Hide()
+    end
+
+    function tabBar:AddEntry(entry)
+        local button = CreateFrame("Button", nil, self.frame, "UIPanelButtonTemplate")
+        button:SetText(entry.label)
+
+        local fontString = button:GetFontString()
+        local textWidth = fontString and fontString:GetStringWidth() or 0
+        local width = math.max(58, math.min(textWidth + 24, 120))
+
+        button:SetPoint("LEFT", self.frame, "LEFT", self.nextOffset, 0)
+        button:SetSize(width, 24)
+        self.nextOffset = self.nextOffset + width + 4
+
+        if entry.disabled then
+            button:Disable()
+            button:SetScript("OnEnter", function(self)
+                GameTooltip:SetOwner(self, "ANCHOR_TOP")
+                GameTooltip:SetText(BFUF.L.SETTINGS_COMING_LATER)
+                GameTooltip:Show()
+            end)
+            button:SetScript("OnLeave", GameTooltip_Hide)
+        else
+            button:SetScript("OnClick", function()
+                self:Select(entry.key)
+            end)
+        end
+
+        self.buttons[entry.key] = {
+            button = button,
+            entry = entry,
+        }
+        self.entries[entry.key] = entry
+        self.frame:Show()
+    end
+
+    function tabBar:SetEntries(entries)
+        self:Clear()
+        for _, entry in ipairs(entries) do
+            self:AddEntry(entry)
+        end
+    end
+
+    function tabBar:Select(key)
+        local item = self.buttons[key]
+        if not item or item.entry.disabled then
+            return
+        end
+
+        self.selectedKey = key
+        for buttonKey, buttonItem in pairs(self.buttons) do
+            if buttonItem.entry.disabled then
+                buttonItem.button:Disable()
+            else
+                buttonItem.button:SetEnabled(buttonKey ~= key)
+            end
+        end
+
+        item.entry.onSelect()
+    end
+
+    return tabBar
+end
+
+-- Create the root shell with horizontal tab navigation and one shared content host.
 function UI.SettingsShell:Create(parent)
     local shell = CreateFrame("Frame", nil, parent)
     shell:SetAllPoints()
 
-    local navigation = UI.NavigationList:Create(shell, 150)
-    navigation.frame:SetPoint("TOPLEFT", shell, "TOPLEFT", 12, -12)
-    navigation.frame:SetPoint("BOTTOMLEFT", shell, "BOTTOMLEFT", 12, 12)
-
-    local divider = shell:CreateTexture(nil, "ARTWORK")
-    divider:SetPoint("TOPLEFT", navigation.frame, "TOPRIGHT", 12, 0)
-    divider:SetPoint("BOTTOMLEFT", navigation.frame, "BOTTOMRIGHT", 12, 0)
-    divider:SetWidth(1)
-    divider:SetColorTexture(0.35, 0.35, 0.35, 0.8)
-
+    local topTabs = UI.TabBar:Create(shell)
+    local frameTabs = UI.TabBar:Create(shell)
+    local contextTabs = UI.TabBar:Create(shell)
+    local layerTabs = UI.TabBar:Create(shell)
     local pageHost = UI.ScrollablePageHost:Create(shell)
-    pageHost.frame:SetPoint("TOPLEFT", divider, "TOPRIGHT", 16, 0)
-    pageHost.frame:SetPoint("BOTTOMRIGHT", shell, "BOTTOMRIGHT", -16, 12)
 
-    return {
+    local settingsShell = {
         frame = shell,
-        navigation = navigation,
+        topTabs = topTabs,
+        frameTabs = frameTabs,
+        contextTabs = contextTabs,
+        layerTabs = layerTabs,
         pageHost = pageHost,
-        pages = UI.PagePanel:Create(pageHost),
     }
+    settingsShell.navigation = topTabs
+    settingsShell.pages = UI.PagePanel:Create(pageHost)
+
+    function settingsShell:UpdateLayout()
+        local y = -12
+        local rows = { self.topTabs, self.frameTabs, self.contextTabs, self.layerTabs }
+
+        for _, tabBar in ipairs(rows) do
+            tabBar.frame:ClearAllPoints()
+            if next(tabBar.buttons) then
+                tabBar.frame:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 12, y)
+                tabBar.frame:SetPoint("TOPRIGHT", self.frame, "TOPRIGHT", -12, y)
+                tabBar.frame:Show()
+                y = y - 30
+            else
+                tabBar.frame:Hide()
+            end
+        end
+
+        self.pageHost.frame:ClearAllPoints()
+        self.pageHost.frame:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 12, y)
+        self.pageHost.frame:SetPoint("BOTTOMRIGHT", self.frame, "BOTTOMRIGHT", -12, 12)
+    end
+
+    function settingsShell:SetTopEntries(entries)
+        self.topTabs:SetEntries(entries)
+        self:UpdateLayout()
+    end
+
+    function settingsShell:SetFrameEntries(entries)
+        self.frameTabs:SetEntries(entries)
+        self.contextTabs:Clear()
+        self.layerTabs:Clear()
+        self:UpdateLayout()
+    end
+
+    function settingsShell:SetContextEntries(entries)
+        self.contextTabs:SetEntries(entries)
+        self.layerTabs:Clear()
+        self:UpdateLayout()
+    end
+
+    function settingsShell:SetLayerEntries(entries)
+        self.layerTabs:SetEntries(entries)
+        self:UpdateLayout()
+    end
+
+    settingsShell:UpdateLayout()
+    return settingsShell
 end
 
 -- Create a reusable titled content section.
@@ -1406,8 +1538,9 @@ function SettingsModule:Initialize()
 
     self:RegisterPages()
 
+    local topEntries = {}
     self.topLevelPages:ForEach(function(definition)
-        self.shell.navigation:AddEntry({
+        table.insert(topEntries, {
             key = definition.id,
             label = definition.title,
             disabled = definition.disabled,
@@ -1415,7 +1548,8 @@ function SettingsModule:Initialize()
         })
     end)
 
-    self.shell.navigation:Select("general")
+    self.shell:SetTopEntries(topEntries)
+    self.shell.topTabs:Select("general")
 
     -- Keep legacy modules available internally without publishing old pages to Blizzard Settings.
     self.legacyPages = {
