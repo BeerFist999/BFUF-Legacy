@@ -95,6 +95,12 @@ function Portrait:Create(parent)
 
     -- Activate the 3D renderer before its first regular portrait update.
     function container:ActivateThreeDRenderer()
+        -- Activate the complete portrait renderer chain before SetUnit.
+        local portraitContainer = self:GetParent()
+        if portraitContainer then
+            portraitContainer:Show()
+        end
+
         self:Show()
         self.texture:Hide()
         self.model:Show()
