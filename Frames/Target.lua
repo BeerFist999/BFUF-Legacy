@@ -279,8 +279,19 @@ function Target:Create()
     root:SetAttribute("*type2", "togglemenu")
     RegisterUnitWatch(root)
 
-    root.portrait = BFUF.Elements.Portrait:Create(root.portraitContainer)
-    root.portrait:SetAllPoints(root.portraitContainer)
+    root.portrait = BFUF.Elements.Portrait:Create(root.portraitContainer, {
+        frame = root,
+        unit = "target",
+        unitType = "Target",
+        getSettings = getPortraitSettings,
+    })
+    root.portrait:ApplyLayout({
+        parent = root.portraitContainer,
+        left = 0,
+        right = 0,
+        top = 0,
+        bottom = 0,
+    })
     root.portrait:SetUnit("target")
 
     root.healthBar = BFUF.Elements.Health:Create(root.barsContainer)

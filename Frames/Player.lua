@@ -159,7 +159,14 @@ function Player:Create()
     root.overlayContainer = CreateFrame("Frame", nil, root)
     root.overlayContainer:SetFrameLevel(rootLevel + 5)
 
-    root.portrait = BFUF.Elements.Portrait:Create(root.portraitContainer)
+    root.portrait = BFUF.Elements.Portrait:Create(root.portraitContainer, {
+        frame = root,
+        unit = "player",
+        unitType = "Player",
+        getSettings = function()
+            return Player:EnsurePortraitSettings()
+        end,
+    })
     root.portrait:SetUnit("player")
     root.healthBar = BFUF.Elements.Health:Create(root.barsContainer)
     root.healthBar:SetUnit("player")

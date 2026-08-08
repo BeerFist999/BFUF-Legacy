@@ -422,8 +422,21 @@ local function createBossFrame(index)
     root.highFrame:SetFrameLevel(rootLevel + 4)
     root.highFrame:SetClipsChildren(true)
 
-    root.portrait = BFUF.Elements.Portrait:Create(root.portraitContainer)
-    root.portrait:SetAllPoints(root.portraitContainer)
+    root.portrait = BFUF.Elements.Portrait:Create(root.portraitContainer, {
+        frame = root,
+        unit = unit,
+        unitType = "Boss",
+        getSettings = function()
+            return Boss:EnsureSettings().portrait
+        end,
+    })
+    root.portrait:ApplyLayout({
+        parent = root.portraitContainer,
+        left = 0,
+        right = 0,
+        top = 0,
+        bottom = 0,
+    })
     root.portrait:SetUnit(unit)
 
     root.healthBar = BFUF.Elements.Health:Create(root.barsContainer)

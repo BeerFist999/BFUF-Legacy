@@ -351,8 +351,13 @@ function PlayerLayout:ApplyLayout(root, result)
 
     if result.portrait.visible then
         setPortraitContainerGeometry(root.portraitContainer, root, result.portrait)
-        setRectangle(root.portrait, root.portraitContainer, 0, 0, 0, 0)
-        setRectangle(root.portrait.texture, root.portrait, 0, 0, 0, 0)
+        root.portrait:ApplyLayout({
+            parent = root.portraitContainer,
+            left = 0,
+            right = 0,
+            top = 0,
+            bottom = 0,
+        })
         root.portraitContainer:Show()
 
         local compatibleBarCount = 0
