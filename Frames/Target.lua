@@ -325,6 +325,11 @@ function Target:Create()
     root.healthBar:SetPoint("BOTTOMLEFT", root.powerBar, "TOPLEFT", 0, BAR_GAP)
     root.healthBar:SetPoint("BOTTOMRIGHT", root.powerBar, "TOPRIGHT", 0, BAR_GAP)
 
+    -- Target owns its manually anchored health-bar geometry, including the
+    -- independent absorb overlays created by the shared Health element.
+    root.healthBar.absorbBar:SetAllPoints(root.healthBar)
+    root.healthBar.healAbsorbBar:SetAllPoints(root.healthBar)
+
     root.nameText = BFUF.Elements.Text:Create(root.highFrame, {
         justifyH = "LEFT",
         justifyV = "MIDDLE",
