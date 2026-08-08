@@ -47,10 +47,14 @@ function Portrait:Create(parent)
         self.texture:Hide()
         self.model:ClearModel()
         self.model:Hide()
+        self.activeRenderer = nil
+        self.debugState.activeRenderer = self.activeRenderer
     end
 
     function container:ShowModelFallback()
         self.debugState.usedFallback = true
+        self.activeRenderer = "3d-fallback"
+        self.debugState.activeRenderer = self.activeRenderer
         self.texture:Hide()
         self.model:ClearModel()
         self.model:SetCamDistanceScale(0.25)
@@ -87,6 +91,7 @@ function Portrait:Create(parent)
             mode = self.mode,
         }
         if self.mode == Portrait.Modes.HIDDEN then
+            self:ClearRenderer()
             self:Hide()
             return
         end
@@ -116,13 +121,21 @@ function Portrait:Create(parent)
 
             local success = self.debugState.setUnitResult
             if issecretvalue and issecretvalue(success) then
-                return
+                success = nil
             end
 
             if success ~= true then
+                -- Secret units cannot provide a 3D model to addons.
+                self.model:Hide()
+                SetPortraitTexture(self.texture, unit)
+                self.texture:Show()
+                self.activeRenderer = "2d-fallback"
+                self.debugState.activeRenderer = self.activeRenderer
                 return
             end
 
+            self.activeRenderer = "3d"
+            self.debugState.activeRenderer = self.activeRenderer
             self.debugState.setPortraitZoom = true
             self.model:SetPortraitZoom(1)
             self.debugState.setPosition = true
@@ -135,6 +148,8 @@ function Portrait:Create(parent)
         self.model:Hide()
         SetPortraitTexture(self.texture, unit)
         self.texture:Show()
+        self.activeRenderer = "2d"
+        self.debugState.activeRenderer = self.activeRenderer
     end
 
     function container:PrintDebugState()
@@ -161,6 +176,7 @@ function Portrait:Create(parent)
                 .. " CanSetUnit=" .. describeValue(state.canSetUnit)
                 .. " setUnit=" .. describeValue(state.setUnit)
                 .. " SetUnit result=" .. describeValue(state.setUnitResult)
+                .. " activeRenderer=" .. describeValue(state.activeRenderer)
                 .. " zoom=" .. describeValue(state.setPortraitZoom)
                 .. " position=" .. describeValue(state.setPosition)
                 .. " fallback=" .. describeValue(state.usedFallback)
