@@ -13,6 +13,14 @@ BFUF.Elements.Portrait = Portrait
 
 local FALLBACK_MODEL = "Interface\\Buttons\\TalkToMeQuestionMark.m2"
 
+local function describeValue(value)
+    if issecretvalue and issecretvalue(value) then
+        return "<secret>"
+    end
+
+    return tostring(value)
+end
+
 local function isTargetUnit(unit)
     return unit == "target"
 end
@@ -30,8 +38,10 @@ function Portrait:Create(parent)
     model:Hide()
     container.model = model
     container.mode = Portrait.Modes.TWO_D
+    container.debugState = {}
 
     function container:ClearRenderer()
+        self.debugState.clearRenderer = true
         self.texture:SetTexture(nil)
         self.texture:Hide()
         self.model:ClearModel()
@@ -39,6 +49,7 @@ function Portrait:Create(parent)
     end
 
     function container:ShowModelFallback()
+        self.debugState.usedFallback = true
         self.texture:Hide()
         self.model:ClearModel()
         self.model:SetCamDistanceScale(0.25)
@@ -67,8 +78,13 @@ function Portrait:Create(parent)
         self:Update("MODE_CHANGED")
     end
 
-    function container:Update()
+    function container:Update(event)
         local unit = self.unit
+        self.debugState = {
+            event = event or "DIRECT",
+            unit = unit,
+            mode = self.mode,
+        }
         if self.mode == Portrait.Modes.HIDDEN then
             self:Hide()
             return
@@ -89,9 +105,13 @@ function Portrait:Create(parent)
                 return
             end
 
+            self.debugState.clearModel = true
             self.model:ClearModel()
+            self.debugState.setUnit = unit
             self.model:SetUnit(unit)
+            self.debugState.setPortraitZoom = true
             self.model:SetPortraitZoom(1)
+            self.debugState.setPosition = true
             self.model:SetPosition(0, 0, 0)
             self.model:Show()
             return
@@ -100,6 +120,34 @@ function Portrait:Create(parent)
         self.model:Hide()
         SetPortraitTexture(self.texture, unit)
         self.texture:Show()
+    end
+
+    function container:PrintDebugState()
+        local state = self.debugState or {}
+        local target = "target"
+
+        BFUF:Print("[BFUF Portrait] unit=" .. describeValue(self.unit))
+        BFUF:Print("[BFUF Portrait] UnitGUID(target)=" .. describeValue(UnitGUID(target)))
+        BFUF:Print("[BFUF Portrait] UnitIsPlayer(target)=" .. describeValue(UnitIsPlayer(target)))
+        BFUF:Print("[BFUF Portrait] UnitCreatureType(target)=" .. describeValue(UnitCreatureType(target)))
+        BFUF:Print("[BFUF Portrait] UnitClassification(target)=" .. describeValue(UnitClassification(target)))
+        BFUF:Print("[BFUF Portrait] UnitExists(target)=" .. describeValue(UnitExists(target)))
+        BFUF:Print("[BFUF Portrait] mode=" .. describeValue(self.mode))
+        BFUF:Print("[BFUF Portrait] PlayerModel exists=" .. describeValue(self.model ~= nil))
+        BFUF:Print(
+            "[BFUF Portrait] model shown=" .. describeValue(self.model:IsShown())
+                .. " visible=" .. describeValue(self.model:IsVisible())
+                .. " width=" .. describeValue(self.model:GetWidth())
+                .. " height=" .. describeValue(self.model:GetHeight())
+        )
+        BFUF:Print(
+            "[BFUF Portrait] last refresh=" .. describeValue(state.event)
+                .. " clearModel=" .. describeValue(state.clearModel)
+                .. " setUnit=" .. describeValue(state.setUnit)
+                .. " zoom=" .. describeValue(state.setPortraitZoom)
+                .. " position=" .. describeValue(state.setPosition)
+                .. " fallback=" .. describeValue(state.usedFallback)
+        )
     end
 
     function container:RegisterEvents()
@@ -111,24 +159,46 @@ function Portrait:Create(parent)
         self:RegisterEvent("UNIT_CONNECTION")
 
         self:SetScript("OnEvent", function(renderer, event, unit)
+            local refreshed = false
+
             if event == "PLAYER_ENTERING_WORLD" or event == "PORTRAITS_UPDATED" then
                 renderer:Update(event)
-                return
-            end
-
-            if event == "PLAYER_TARGET_CHANGED" then
+                refreshed = true
+            elseif event == "PLAYER_TARGET_CHANGED" then
                 if isTargetUnit(renderer.unit) then
                     renderer:Update(event)
+                    refreshed = true
                 end
-                return
+            elseif unit == renderer.unit then
+                renderer:Update(event)
+                refreshed = true
             end
 
-            if unit == renderer.unit then
-                renderer:Update(event)
+            if Portrait.debugEnabled and isTargetUnit(renderer.unit) then
+                BFUF:Print(
+                    "[BFUF Portrait] EVENT -> " .. event
+                        .. " -> unit=" .. describeValue(unit)
+                        .. " -> 3D refresh=" .. describeValue(refreshed)
+                )
             end
         end)
     end
 
     container:RegisterEvents()
     return container
+end
+
+
+-- Temporary diagnostic command for the current Target portrait renderer.
+SLASH_BFUFPORTRAITDEBUG1 = "/bfufportraitdebug"
+SlashCmdList.BFUFPORTRAITDEBUG = function()
+    Portrait.debugEnabled = true
+
+    local root = BFUF.Framework.Registry:GetFrame("target")
+    if not root or not root.portrait then
+        BFUF:Print("[BFUF Portrait] Target portrait is not available.")
+        return
+    end
+
+    root.portrait:PrintDebugState()
 end
