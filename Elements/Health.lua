@@ -160,7 +160,14 @@ function Health:Create(parent, context)
         self.incomingHealBar:SetMinMaxValues(0, maxHealth)
         self.absorbBar:SetValue(UnitGetTotalAbsorbs(unit))
         self.healAbsorbBar:SetValue(UnitGetTotalHealAbsorbs(unit))
-        self.incomingHealBar:SetValue(UnitGetIncomingHeals(unit))
+
+        if settings.incomingHeal then
+            -- Blizzard returns nil when no prediction is available. Coalesce
+            -- only that absence to zero before passing the value to StatusBar.
+            self.incomingHealBar:SetValue(UnitGetIncomingHeals(unit) or 0)
+        else
+            self.incomingHealBar:SetValue(0)
+        end
     end
 
     function statusBar:Update()
