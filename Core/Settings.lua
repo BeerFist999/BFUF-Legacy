@@ -1500,6 +1500,126 @@ function SettingsModule:ShowPlayerPortraitPage(pages)
     self.playerPortraitControls = controls
 end
 
+-- Show one lightweight shell page without creating configuration controls.
+function SettingsModule:ShowShellPage(id, title, description)
+    self.shell.pages:ShowDefinition({
+        id = id,
+        title = title,
+        description = description or BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER,
+        hasSettings = false,
+        builder = function()
+        end,
+        refresh = function()
+        end,
+    })
+end
+
+-- Build the second-level navigation for a frame module.
+function SettingsModule:ShowShellFrame(frameKey, title, isFuture)
+    local pageDefinitions = {
+        { key = "general", title = BFUF.L.SETTINGS_PLAYER_GENERAL },
+        { key = "bars", title = BFUF.L.SETTINGS_PLAYER_BARS },
+        { key = "portrait", title = BFUF.L.SETTINGS_PLAYER_PORTRAIT },
+        { key = "text", title = BFUF.L.SETTINGS_PLAYER_TEXT },
+        { key = "indicators", title = BFUF.L.SETTINGS_PLAYER_INDICATORS },
+        { key = "resources", title = BFUF.L.SETTINGS_PLAYER_RESOURCES },
+        { key = "auras", title = BFUF.L.SETTINGS_PLAYER_AURAS },
+    }
+
+    local entries = {}
+    for _, definition in ipairs(pageDefinitions) do
+        local pageId = frameKey .. "::" .. definition.key
+        table.insert(entries, {
+            key = pageId,
+            label = definition.title,
+            disabled = isFuture == true,
+            onSelect = function()
+                self:ShowShellPage(pageId, definition.title)
+            end,
+        })
+    end
+
+    self.shell:SetFrameEntries(entries)
+    if isFuture then
+        self:ShowShellPage(frameKey, title)
+    else
+        self.shell.frameNavigation:Select(frameKey .. "::general")
+    end
+end
+
+-- Register only the visual shell navigation used during this migration sprint.
+function SettingsModule:RegisterShellPages()
+    if self.shellPages then
+        return
+    end
+
+    self.shellPages = PageRegistry:Create()
+    local futureFrames = {
+        { key = "target", title = BFUF.L.SETTINGS_PAGE_TARGET },
+        { key = "targetTarget", title = BFUF.L.SETTINGS_PAGE_TARGET_TARGET },
+        { key = "focus", title = BFUF.L.SETTINGS_PAGE_FOCUS },
+        { key = "focusTarget", title = BFUF.L.SETTINGS_PAGE_FOCUS_TARGET },
+        { key = "pet", title = BFUF.L.SETTINGS_PAGE_PET },
+        { key = "petTarget", title = BFUF.L.SETTINGS_PAGE_PET_TARGET },
+        { key = "boss", title = BFUF.L.SETTINGS_PAGE_BOSS },
+    }
+
+    self.shellPages:Register({
+        id = "general",
+        title = BFUF.L.SETTINGS_PAGE_GENERAL,
+        builder = function()
+            self.shell:SetFrameEntries({})
+            self:ShowShellPage("general", BFUF.L.SETTINGS_PAGE_GENERAL)
+        end,
+        refresh = function()
+        end,
+    })
+    self.shellPages:Register({
+        id = "player",
+        title = BFUF.L.SETTINGS_PAGE_PLAYER,
+        builder = function()
+            self:ShowShellFrame("player", BFUF.L.SETTINGS_PAGE_PLAYER, false)
+        end,
+        refresh = function()
+        end,
+    })
+
+    for _, frame in ipairs(futureFrames) do
+        local frameKey = frame.key
+        local frameTitle = frame.title
+        self.shellPages:Register({
+            id = frameKey,
+            title = frameTitle,
+            builder = function()
+                self:ShowShellFrame(frameKey, frameTitle, true)
+            end,
+            refresh = function()
+            end,
+        })
+    end
+
+    self.shellPages:Register({
+        id = "profiles",
+        title = BFUF.L.SETTINGS_PAGE_PROFILES,
+        builder = function()
+            self.shell:SetFrameEntries({})
+            self:ShowShellPage("profiles", BFUF.L.SETTINGS_PAGE_PROFILES, BFUF.L.DESCRIPTION_PROFILES)
+        end,
+        refresh = function()
+        end,
+    })
+    self.shellPages:Register({
+        id = "about",
+        title = BFUF.L.SETTINGS_PAGE_ABOUT,
+        builder = function()
+            self.shell:SetFrameEntries({})
+            self:ShowShellPage("about", BFUF.L.SETTINGS_PAGE_ABOUT, BFUF.L.DESCRIPTION_ABOUT)
+        end,
+        refresh = function()
+        end,
+    })
+end
+
 -- Register all navigation definitions independently from the settings views.
 function SettingsModule:RegisterPages()
     if self.topLevelPages then
@@ -1796,20 +1916,19 @@ function SettingsModule:Initialize()
         self.shell.pages:ClearCache()
     end)
 
-    self:RegisterPages()
+    self:RegisterShellPages()
 
-    local topEntries = {}
-    self.topLevelPages:ForEach(function(definition)
-        table.insert(topEntries, {
+    local entries = {}
+    self.shellPages:ForEach(function(definition)
+        table.insert(entries, {
             key = definition.id,
             label = definition.title,
-            disabled = definition.disabled,
             onSelect = definition.builder,
         })
     end)
 
-    self.shell:SetTopEntries(topEntries)
-    self.shell.topTabs:Select("general")
+    self.shell:SetSidebarEntries(entries)
+    self.shell.sidebar:Select("general")
 
     -- Keep legacy modules available internally without publishing old pages to Blizzard Settings.
     self.legacyPages = {
