@@ -134,6 +134,11 @@ function UI.PagePanel:Create(parent)
             self.cache[id] = nil
         end
 
+        if self.currentPage and self.currentPage._bfufTransient then
+            self.currentPage:Hide()
+            self.currentPage:SetParent(nil)
+        end
+
         wipe(self.cacheOrder)
         self.currentPage = nil
     end
