@@ -387,7 +387,9 @@ function Target:Create()
         end
 
         if event == "UNIT_ABSORB_AMOUNT_CHANGED" or event == "UNIT_HEAL_ABSORB_AMOUNT_CHANGED" then
-            if unit == "target" then
+            -- The event may identify the displayed target through another
+            -- valid unit alias, such as "player" when targeting yourself.
+            if unit and UnitIsUnit("target", unit) then
                 root.healthBar:UpdateOverlays()
             end
             return
