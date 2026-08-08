@@ -35,6 +35,7 @@ function Portrait:Create(parent)
 
     local model = CreateFrame("PlayerModel", nil, container)
     model:SetAllPoints(container)
+    model:SetCamera(0)
     model:Hide()
     container.model = model
     container.mode = Portrait.Modes.TWO_D
@@ -105,16 +106,29 @@ function Portrait:Create(parent)
                 return
             end
 
+            -- The PlayerModel must be visible before it accepts a unit.
+            self.model:Show()
             self.debugState.clearModel = true
             self.model:ClearModel()
             self.debugState.canSetUnit = self.model:CanSetUnit(unit)
             self.debugState.setUnit = unit
             self.debugState.setUnitResult = self.model:SetUnit(unit)
+
+            local success = self.debugState.setUnitResult
+            if issecretvalue and issecretvalue(success) then
+                return
+            end
+
+            if success ~= true then
+                return
+            end
+
             self.debugState.setPortraitZoom = true
             self.model:SetPortraitZoom(1)
             self.debugState.setPosition = true
             self.model:SetPosition(0, 0, 0)
-            self.model:Show()
+            self.debugState.setCamDistanceScale = true
+            self.model:SetCamDistanceScale(1)
             return
         end
 
