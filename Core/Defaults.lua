@@ -41,7 +41,11 @@ BFUF.Defaults = {
                 colorMode = "class",
                 customColor = { r = 0.2, g = 0.8, b = 0.2 },
                 showAbsorb = true,
+                absorbColor = { r = 0.8, g = 0.8, b = 1 },
+                absorbAlpha = 0.65,
                 showHealAbsorb = true,
+                healAbsorbColor = { r = 0.85, g = 0.15, b = 0.15 },
+                healAbsorbAlpha = 0.65,
             },
 
             power = {

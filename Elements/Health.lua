@@ -9,7 +9,11 @@ local DEFAULT_SETTINGS = {
     colorMode = "custom",
     customColor = { r = 1, g = 1, b = 1 },
     showAbsorb = true,
+    absorbColor = { r = 0.8, g = 0.8, b = 1 },
+    absorbAlpha = 0.65,
     showHealAbsorb = true,
+    healAbsorbColor = { r = 0.85, g = 0.15, b = 0.15 },
+    healAbsorbAlpha = 0.65,
 }
 
 local function getSettings(statusBar)
@@ -50,12 +54,10 @@ function Health:Create(parent, context)
 
     local absorbBar = CreateFrame("StatusBar", nil, statusBar)
     absorbBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
-    absorbBar:SetStatusBarColor(0.8, 0.8, 1, 0.65)
     statusBar.absorbBar = absorbBar
 
     local healAbsorbBar = CreateFrame("StatusBar", nil, statusBar)
     healAbsorbBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
-    healAbsorbBar:SetStatusBarColor(0.85, 0.15, 0.15, 0.65)
     statusBar.healAbsorbBar = healAbsorbBar
 
     function statusBar:SetUnit(unit)
@@ -75,7 +77,31 @@ function Health:Create(parent, context)
 
     function statusBar:UpdateStyle()
         local settings = getSettings(self)
+        local absorbColor = settings.absorbColor or DEFAULT_SETTINGS.absorbColor
+        local healAbsorbColor = settings.healAbsorbColor or DEFAULT_SETTINGS.healAbsorbColor
+        local absorbAlpha = settings.absorbAlpha
+        local healAbsorbAlpha = settings.healAbsorbAlpha
+
+        if absorbAlpha == nil then
+            absorbAlpha = DEFAULT_SETTINGS.absorbAlpha
+        end
+        if healAbsorbAlpha == nil then
+            healAbsorbAlpha = DEFAULT_SETTINGS.healAbsorbAlpha
+        end
+
         applyColor(self, settings)
+        self.absorbBar:SetStatusBarColor(
+            absorbColor.r,
+            absorbColor.g,
+            absorbColor.b,
+            absorbAlpha
+        )
+        self.healAbsorbBar:SetStatusBarColor(
+            healAbsorbColor.r,
+            healAbsorbColor.g,
+            healAbsorbColor.b,
+            healAbsorbAlpha
+        )
         self:UpdateOverlays(settings)
     end
 

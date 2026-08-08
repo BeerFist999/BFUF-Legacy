@@ -210,9 +210,37 @@ playerHealthBindings.showAbsorb = BindingFactory:CreateProfileBinding({
     context = { scope = "sharedHealth" },
 })
 
+playerHealthBindings.absorbColor = BindingFactory:CreateProfileBinding({
+    path = "Player.health.absorbColor",
+    label = BFUF.L.OPTION_ABSORB_COLOR,
+    refreshIntent = "HEALTH",
+    context = { scope = "sharedHealth" },
+})
+
+playerHealthBindings.absorbAlpha = BindingFactory:CreateProfileBinding({
+    path = "Player.health.absorbAlpha",
+    label = BFUF.L.OPTION_ABSORB_ALPHA,
+    refreshIntent = "HEALTH",
+    context = { scope = "sharedHealth" },
+})
+
 playerHealthBindings.showHealAbsorb = BindingFactory:CreateProfileBinding({
     path = "Player.health.showHealAbsorb",
     label = BFUF.L.OPTION_SHOW_HEAL_ABSORB,
+    refreshIntent = "HEALTH",
+    context = { scope = "sharedHealth" },
+})
+
+playerHealthBindings.healAbsorbColor = BindingFactory:CreateProfileBinding({
+    path = "Player.health.healAbsorbColor",
+    label = BFUF.L.OPTION_HEAL_ABSORB_COLOR,
+    refreshIntent = "HEALTH",
+    context = { scope = "sharedHealth" },
+})
+
+playerHealthBindings.healAbsorbAlpha = BindingFactory:CreateProfileBinding({
+    path = "Player.health.healAbsorbAlpha",
+    label = BFUF.L.OPTION_HEAL_ABSORB_ALPHA,
     refreshIntent = "HEALTH",
     context = { scope = "sharedHealth" },
 })
@@ -276,9 +304,11 @@ pages:Register({
     availability = settingsAvailable,
     bindings = {
         "Player.health.showAbsorb",
+        "Player.health.absorbColor",
+        "Player.health.absorbAlpha",
     },
     refreshIntent = "HEALTH",
-    resetScope = "Player.health.showAbsorb",
+    resetScope = "Player.health",
     controls = {
         {
             type = "header",
@@ -291,6 +321,23 @@ pages:Register({
             label = BFUF.L.OPTION_SHOW_ABSORB,
             binding = playerHealthBindings.showAbsorb,
             refreshIntent = "HEALTH",
+        },
+        {
+            type = "color",
+            key = "absorbColor",
+            label = BFUF.L.OPTION_ABSORB_COLOR,
+            binding = playerHealthBindings.absorbColor,
+            refreshIntent = "HEALTH",
+        },
+        {
+            type = "slider",
+            key = "absorbAlpha",
+            label = BFUF.L.OPTION_ABSORB_ALPHA,
+            binding = playerHealthBindings.absorbAlpha,
+            refreshIntent = "HEALTH",
+            min = 0,
+            max = 1,
+            step = 0.05,
         },
     },
     builder = function(settings, definition)
@@ -305,9 +352,11 @@ pages:Register({
     availability = settingsAvailable,
     bindings = {
         "Player.health.showHealAbsorb",
+        "Player.health.healAbsorbColor",
+        "Player.health.healAbsorbAlpha",
     },
     refreshIntent = "HEALTH",
-    resetScope = "Player.health.showHealAbsorb",
+    resetScope = "Player.health",
     controls = {
         {
             type = "header",
@@ -320,6 +369,23 @@ pages:Register({
             label = BFUF.L.OPTION_SHOW_HEAL_ABSORB,
             binding = playerHealthBindings.showHealAbsorb,
             refreshIntent = "HEALTH",
+        },
+        {
+            type = "color",
+            key = "healAbsorbColor",
+            label = BFUF.L.OPTION_HEAL_ABSORB_COLOR,
+            binding = playerHealthBindings.healAbsorbColor,
+            refreshIntent = "HEALTH",
+        },
+        {
+            type = "slider",
+            key = "healAbsorbAlpha",
+            label = BFUF.L.OPTION_HEAL_ABSORB_ALPHA,
+            binding = playerHealthBindings.healAbsorbAlpha,
+            refreshIntent = "HEALTH",
+            min = 0,
+            max = 1,
+            step = 0.05,
         },
     },
     builder = function(settings, definition)
