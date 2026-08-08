@@ -98,6 +98,11 @@ BFUF.Defaults = {
             positionX = 320,
             positionY = 0,
             show = true,
+
+            portrait = {
+                mode = "2d",
+                width = 54,
+            },
         },
 
         TargetTarget = {
