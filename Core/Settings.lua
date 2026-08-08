@@ -1634,13 +1634,89 @@ function SettingsModule:ShowPlayerPortraitPage()
     end, resetPortrait)
 end
 
+-- Show the Boss Frames foundation controls without changing Player or Target settings.
+function SettingsModule:ShowBossFramePage()
+    local context = { unit = "boss" }
+    local bindings = {
+        enabled = BindingFactory:CreateProfileBinding({
+            path = "Boss.enabled",
+            label = BFUF.L.OPTION_ENABLE_BOSS_FRAMES,
+            refreshIntent = "BOSS_LAYOUT",
+            context = context,
+        }),
+        count = BindingFactory:CreateProfileBinding({
+            path = "Boss.count",
+            label = BFUF.L.OPTION_BOSS_FRAME_COUNT,
+            refreshIntent = "BOSS_LAYOUT",
+            context = context,
+        }),
+        width = BindingFactory:CreateProfileBinding({
+            path = "Boss.width",
+            label = BFUF.L.OPTION_FRAME_WIDTH,
+            refreshIntent = "BOSS_LAYOUT",
+            context = context,
+        }),
+        height = BindingFactory:CreateProfileBinding({
+            path = "Boss.height",
+            label = BFUF.L.OPTION_FRAME_HEIGHT,
+            refreshIntent = "BOSS_LAYOUT",
+            context = context,
+        }),
+        spacing = BindingFactory:CreateProfileBinding({
+            path = "Boss.spacing",
+            label = BFUF.L.OPTION_BOSS_SPACING,
+            refreshIntent = "BOSS_LAYOUT",
+            context = context,
+        }),
+        growth = BindingFactory:CreateProfileBinding({
+            path = "Boss.growth",
+            label = BFUF.L.OPTION_BOSS_GROWTH,
+            refreshIntent = "BOSS_LAYOUT",
+            context = context,
+            values = {
+                { value = "UP", label = BFUF.L.GROWTH_UP },
+                { value = "DOWN", label = BFUF.L.GROWTH_DOWN },
+            },
+        }),
+    }
+
+    self.shell.pages:ShowPage(BFUF.L.SETTINGS_BOSS_FRAMES, nil, true, function(page)
+        UI.SectionPanel:Create(page, BFUF.L.SETTINGS_BOSS_FRAMES, -36)
+        UI.CheckboxRow:Create(page, bindings.enabled, -66)
+        UI.SliderRow:Create(page, bindings.count, -94, 1, 5, 1)
+        UI.SliderRow:Create(page, bindings.width, -152, 120, 600, 1)
+        UI.SliderRow:Create(page, bindings.height, -210, 20, 200, 1)
+        UI.SliderRow:Create(page, bindings.spacing, -268, 0, 100, 1)
+        UI.DropdownRow:Create(page, bindings.growth, -326)
+    end, function()
+        BindingFactory:Reset(bindings)
+    end)
+end
+
+-- Show the single Boss portrait visibility setting.
+function SettingsModule:ShowBossPortraitPage()
+    local binding = BindingFactory:CreateProfileBinding({
+        path = "Boss.portrait.enabled",
+        label = BFUF.L.OPTION_BOSS_PORTRAIT_ENABLED,
+        refreshIntent = "BOSS_LAYOUT",
+        context = { unit = "boss" },
+    })
+
+    self.shell.pages:ShowPage(BFUF.L.SECTION_PORTRAIT, nil, true, function(page)
+        UI.SectionPanel:Create(page, BFUF.L.SECTION_PORTRAIT, -36)
+        UI.CheckboxRow:Create(page, binding, -66)
+    end, function()
+        BindingFactory:Reset({ binding })
+    end)
+end
+
 -- Build the second-level navigation for a frame module.
 function SettingsModule:ShowShellFrame(frameKey, title, isFuture)
-    local hasBasicLayout = frameKey == "player" or frameKey == "target"
+    local hasBasicLayout = frameKey == "player" or frameKey == "target" or frameKey == "boss"
     local pageDefinitions = {
         { key = "general", title = BFUF.L.SETTINGS_PLAYER_GENERAL, disabled = isFuture == true },
         { key = "bars", title = BFUF.L.SETTINGS_PLAYER_BARS, disabled = true },
-        { key = "portrait", title = BFUF.L.SETTINGS_PLAYER_PORTRAIT, disabled = frameKey ~= "player" and frameKey ~= "target" },
+        { key = "portrait", title = BFUF.L.SETTINGS_PLAYER_PORTRAIT, disabled = frameKey ~= "player" and frameKey ~= "target" and frameKey ~= "boss" },
         { key = "text", title = BFUF.L.SETTINGS_PLAYER_TEXT, disabled = true },
         { key = "indicators", title = BFUF.L.SETTINGS_PLAYER_INDICATORS, disabled = true },
         { key = "resources", title = BFUF.L.SETTINGS_PLAYER_RESOURCES, disabled = true },
@@ -1664,7 +1740,7 @@ function SettingsModule:ShowShellFrame(frameKey, title, isFuture)
                             BFUF.L.BUTTON_LOCK_PLAYER_FRAME,
                             BFUF.L.BUTTON_UNLOCK_PLAYER_FRAME
                         )
-                    else
+                    elseif frameKey == "target" then
                         self:ShowBasicFrameLayoutPage(
                             "Target",
                             BFUF.Frames.Target,
@@ -1672,6 +1748,8 @@ function SettingsModule:ShowShellFrame(frameKey, title, isFuture)
                             BFUF.L.BUTTON_LOCK_TARGET_FRAME,
                             BFUF.L.BUTTON_UNLOCK_TARGET_FRAME
                         )
+                    else
+                        self:ShowBossFramePage()
                     end
                     return
                 end
@@ -1681,6 +1759,8 @@ function SettingsModule:ShowShellFrame(frameKey, title, isFuture)
                         self:ShowPlayerPortraitPage()
                     elseif frameKey == "target" then
                         self:ShowTargetPortraitPage()
+                    elseif frameKey == "boss" then
+                        self:ShowBossPortraitPage()
                     end
                     return
                 end
@@ -1711,7 +1791,6 @@ function SettingsModule:RegisterShellPages()
         { key = "focusTarget", title = BFUF.L.SETTINGS_PAGE_FOCUS_TARGET },
         { key = "pet", title = BFUF.L.SETTINGS_PAGE_PET },
         { key = "petTarget", title = BFUF.L.SETTINGS_PAGE_PET_TARGET },
-        { key = "boss", title = BFUF.L.SETTINGS_PAGE_BOSS },
     }
 
     self.shellPages:Register({
@@ -1738,6 +1817,16 @@ function SettingsModule:RegisterShellPages()
         title = BFUF.L.SETTINGS_PAGE_TARGET,
         builder = function()
             self:ShowShellFrame("target", BFUF.L.SETTINGS_PAGE_TARGET, false)
+        end,
+        refresh = function()
+        end,
+    })
+
+    self.shellPages:Register({
+        id = "boss",
+        title = BFUF.L.SETTINGS_PAGE_BOSS,
+        builder = function()
+            self:ShowShellFrame("boss", BFUF.L.SETTINGS_PAGE_BOSS, false)
         end,
         refresh = function()
         end,

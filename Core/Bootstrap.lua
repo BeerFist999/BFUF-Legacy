@@ -18,5 +18,10 @@ function Bootstrap:Initialize()
         BFUF:Debug("Target Frame created")
     end
 
+    local bossFrames = BFUF.Frames.Boss:Create()
+    if bossFrames then
+        BFUF:Debug("Boss Frames created")
+    end
+
     BFUF.Core.BlizzardFrameController:Initialize()
 end

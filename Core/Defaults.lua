@@ -132,12 +132,20 @@ BFUF.Defaults = {
 
         Boss = {
             enabled = true,
+            count = 5,
             width = UNIT_FRAME_DEFAULTS.width,
             height = UNIT_FRAME_DEFAULTS.height,
             scale = UNIT_FRAME_DEFAULTS.scale,
             positionX = UNIT_FRAME_DEFAULTS.positions.boss.x,
             positionY = UNIT_FRAME_DEFAULTS.positions.boss.y,
+            spacing = 8,
+            growth = "DOWN",
             show = true,
+
+            portrait = {
+                enabled = true,
+                width = UNIT_FRAME_DEFAULTS.portraitWidth,
+            },
         },
 
         -- Future unit frames inherit the shared Target-based geometry.

@@ -32,6 +32,7 @@ Framework\LayoutEngine.lua
 Framework\Factory.lua
 Layouts\PlayerLayout.lua
 Layouts\PlayerEdit.lua
+Layouts\BossLayout.lua
 Frames\Player.lua
 Frames\Target.lua
 Frames\TargetTarget.lua

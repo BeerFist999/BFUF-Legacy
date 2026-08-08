@@ -85,6 +85,12 @@ local function refreshTargetLayout()
     end
 end
 
+local function refreshBossLayout()
+    if BFUF.Frames and BFUF.Frames.Boss then
+        BFUF.Frames.Boss:UpdateLayout()
+    end
+end
+
 local function refreshPortrait(context)
     if context and context.unit == "target" then
         refreshTargetLayout()
@@ -126,6 +132,7 @@ end
 local handlers = {
     PLAYER_LAYOUT = refreshPlayerLayout,
     TARGET_LAYOUT = refreshTargetLayout,
+    BOSS_LAYOUT = refreshBossLayout,
     PORTRAIT = refreshPortrait,
     TEXT = refreshText,
     HEALTH = refreshHealth,
