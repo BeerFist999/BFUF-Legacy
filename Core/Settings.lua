@@ -1396,8 +1396,8 @@ function SettingsModule:RegisterPages()
             id = "player.general",
             title = BFUF.L.SETTINGS_PLAYER_GENERAL,
             navigation = true,
-            builder = function(pages)
-                self:ShowPlayerGeneralPage(pages)
+            builder = function()
+                self:ShowPlayerGeneralPage(self.shell.pages)
             end,
         },
         {
@@ -1412,56 +1412,56 @@ function SettingsModule:RegisterPages()
             id = "player.portrait",
             title = BFUF.L.SETTINGS_PLAYER_PORTRAIT,
             navigation = true,
-            builder = function(pages)
-                self:ShowPlayerPortraitPage(pages)
+            builder = function()
+                self:ShowPlayerPortraitPage(self.shell.pages)
             end,
         },
         {
             id = "player.health",
             title = BFUF.L.SETTINGS_PLAYER_HEALTH,
             context = "bars",
-            builder = function(pages)
-                self:ShowPlayerHealthPage(pages)
+            builder = function()
+                self:ShowPlayerHealthPage(self.shell.pages)
             end,
         },
         {
             id = "player.power",
             title = BFUF.L.SETTINGS_PLAYER_POWER,
             context = "bars",
-            builder = function(pages)
-                self:ShowPlayerPowerPage(pages)
+            builder = function()
+                self:ShowPlayerPowerPage(self.shell.pages)
             end,
         },
         {
             id = "player.text",
             title = BFUF.L.SETTINGS_PLAYER_TEXT,
             navigation = true,
-            builder = function(pages)
-                self:ShowPlayerTextPage(pages)
+            builder = function()
+                self:ShowPlayerTextPage()
             end,
         },
         {
             id = "player.indicators",
             title = BFUF.L.SETTINGS_PLAYER_INDICATORS,
             navigation = true,
-            builder = function(pages)
-                self:ShowPlayerIndicatorsPage(pages)
+            builder = function()
+                self:ShowPlayerIndicatorsPage()
             end,
         },
         {
             id = "player.resources",
             title = BFUF.L.SETTINGS_PLAYER_RESOURCES,
             navigation = true,
-            builder = function(pages)
-                pages:ShowPage(BFUF.L.SETTINGS_PLAYER_RESOURCES, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER, false)
+            builder = function()
+                self.shell.pages:ShowPage(BFUF.L.SETTINGS_PLAYER_RESOURCES, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER, false)
             end,
         },
         {
             id = "player.auras",
             title = BFUF.L.SETTINGS_PLAYER_AURAS,
             navigation = true,
-            builder = function(pages)
-                pages:ShowPage(BFUF.L.SETTINGS_PLAYER_AURAS, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER, false)
+            builder = function()
+                self.shell.pages:ShowPage(BFUF.L.SETTINGS_PLAYER_AURAS, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER, false)
             end,
         },
     }
@@ -1471,8 +1471,8 @@ function SettingsModule:RegisterPages()
             id = "player.advanced",
             title = BFUF.L.SETTINGS_PLAYER_ADVANCED,
             navigation = true,
-            builder = function(pages)
-                pages:ShowPage(BFUF.L.SETTINGS_PLAYER_ADVANCED, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER, false)
+            builder = function()
+                self.shell.pages:ShowPage(BFUF.L.SETTINGS_PLAYER_ADVANCED, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER, false)
             end,
         })
     end
