@@ -92,9 +92,11 @@ BFUF.Defaults = {
 
         Target = {
             enabled = true,
-            width = 220,
-            height = 40,
+            width = 260,
+            height = 58,
             scale = 1,
+            positionX = 320,
+            positionY = 0,
             show = true,
         },
 
