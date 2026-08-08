@@ -59,6 +59,22 @@ function Portrait:Create(parent)
         self.debugState.activeRenderer = self.activeRenderer
     end
 
+    -- Activate the 3D renderer before its first regular portrait update.
+    function container:ActivateThreeDRenderer()
+        self:Show()
+        self.texture:Hide()
+        self.model:Show()
+    end
+
+    -- Keep the mode switch explicit: activate first, then refresh normally.
+    function container:ForceUpdate(event)
+        if self.mode == Portrait.Modes.THREE_D then
+            self:ActivateThreeDRenderer()
+        end
+
+        self:Update(event)
+    end
+
     function container:SetUnit(unit)
         if self.unit == unit then
             return
@@ -75,8 +91,7 @@ function Portrait:Create(parent)
         end
 
         self.mode = mode
-
-        self:Update("MODE_CHANGED")
+        self:ForceUpdate("MODE_CHANGED")
     end
 
     function container:Update(event)
@@ -100,7 +115,7 @@ function Portrait:Create(parent)
 
         self:Show()
         if self.mode == Portrait.Modes.THREE_D then
-            self.texture:Hide()
+            self:ActivateThreeDRenderer()
 
             if not UnitIsConnected(unit) or not UnitIsVisible(unit) then
                 self:ShowTwoDFallback(unit)
