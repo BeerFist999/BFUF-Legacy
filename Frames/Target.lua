@@ -161,9 +161,6 @@ function Target:Create()
     root.portrait:SetUnit("target")
 
     root.healthBar = BFUF.Elements.Health:Create(root.barsContainer)
-    root.healthBar:SetPoint("TOPLEFT", root.barsContainer, "TOPLEFT", 0, 0)
-    root.healthBar:SetPoint("TOPRIGHT", root.barsContainer, "TOPRIGHT", 0, 0)
-    root.healthBar:SetPoint("BOTTOMLEFT", root.powerBar or root.barsContainer, "BOTTOMLEFT", 0, POWER_HEIGHT + BAR_GAP)
     root.healthBar:SetUnit("target")
     root.healthBar.background = root.healthBar:CreateTexture(nil, "BACKGROUND")
     root.healthBar.background:SetAllPoints()
@@ -177,6 +174,11 @@ function Target:Create()
     root.powerBar.background = root.powerBar:CreateTexture(nil, "BACKGROUND")
     root.powerBar.background:SetAllPoints()
     root.powerBar.background:SetColorTexture(0, 0, 0, 0.2)
+
+    root.healthBar:SetPoint("TOPLEFT", root.barsContainer, "TOPLEFT", 0, 0)
+    root.healthBar:SetPoint("TOPRIGHT", root.barsContainer, "TOPRIGHT", 0, 0)
+    root.healthBar:SetPoint("BOTTOMLEFT", root.powerBar, "TOPLEFT", 0, BAR_GAP)
+    root.healthBar:SetPoint("BOTTOMRIGHT", root.powerBar, "TOPRIGHT", 0, BAR_GAP)
 
     root.nameText = BFUF.Elements.Text:Create(root.highFrame, {
         justifyH = "LEFT",
