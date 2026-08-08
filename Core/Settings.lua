@@ -23,45 +23,11 @@ local UI = {
 }
 SettingsModule.UI = UI
 
--- Store page definitions independently from their navigation and rendering.
-local PageRegistry = {}
-PageRegistry.__index = PageRegistry
+-- The shared declarative registry owns page metadata. Existing UI builders remain
+-- available as migration adapters until each page has been converted.
+local PageRegistry = BFUF.Core.SettingsPageRegistry
 SettingsModule.PageRegistry = PageRegistry
-
-function PageRegistry:Create()
-    return setmetatable({
-        pages = {},
-        order = {},
-    }, self)
-end
-
-function PageRegistry:Register(definition)
-    assert(type(definition) == "table", "Page definition must be a table")
-    assert(definition.id, "Page definition must have an id")
-    assert(definition.title, "Page definition must have a title")
-    assert(type(definition.builder) == "function", "Page definition must have a builder")
-
-    definition.refresh = definition.refresh or function()
-    end
-
-    if self.pages[definition.id] then
-        return false
-    end
-
-    self.pages[definition.id] = definition
-    table.insert(self.order, definition.id)
-    return true
-end
-
-function PageRegistry:Get(id)
-    return self.pages[id]
-end
-
-function PageRegistry:ForEach(callback)
-    for _, id in ipairs(self.order) do
-        callback(self.pages[id])
-    end
-end
+SettingsModule.DeclarativePages = BFUF.Core.SettingsPageDefinitions
 
 -- Normalize the shared binding contract used by interactive settings widgets.
 local function normalizeBinding(labelOrBinding, getValue, setValue)
@@ -1810,6 +1776,11 @@ function SettingsModule:ShowBossPortraitPage()
     end)
 end
 
+-- Open a declarative page through the shared registry.
+function SettingsModule:OpenDeclarativePage(id)
+    return self.DeclarativePages:Open(id, self)
+end
+
 -- Build the second-level navigation for a frame module.
 function SettingsModule:ShowShellFrame(frameKey, title, isFuture)
     local hasBasicLayout = frameKey == "player" or frameKey == "target" or frameKey == "boss"
@@ -1860,13 +1831,11 @@ function SettingsModule:ShowShellFrame(frameKey, title, isFuture)
                 end
 
                 if definition.key == "portrait" then
-                    if frameKey == "player" then
-                        self:ShowPlayerPortraitPage()
-                    elseif frameKey == "target" then
-                        self:ShowTargetPortraitPage()
-                    elseif frameKey == "boss" then
-                        self:ShowBossPortraitPage()
+                    if self:OpenDeclarativePage("elements.portrait." .. frameKey) then
+                        return
                     end
+
+                    self:ShowShellPage(pageId, definition.title)
                     return
                 end
 
@@ -1911,8 +1880,12 @@ function SettingsModule:RegisterShellPages()
     self.shellPages:Register({
         id = "player",
         title = BFUF.L.SETTINGS_PAGE_PLAYER,
+        category = "Unit Frames",
+        availability = function()
+            return self.DeclarativePages:IsAvailable("unit_frames.player", self)
+        end,
         builder = function()
-            self:ShowShellFrame("player", BFUF.L.SETTINGS_PAGE_PLAYER, false)
+            self:OpenDeclarativePage("unit_frames.player")
         end,
         refresh = function()
         end,
@@ -1920,8 +1893,12 @@ function SettingsModule:RegisterShellPages()
     self.shellPages:Register({
         id = "target",
         title = BFUF.L.SETTINGS_PAGE_TARGET,
+        category = "Unit Frames",
+        availability = function()
+            return self.DeclarativePages:IsAvailable("unit_frames.target", self)
+        end,
         builder = function()
-            self:ShowShellFrame("target", BFUF.L.SETTINGS_PAGE_TARGET, false)
+            self:OpenDeclarativePage("unit_frames.target")
         end,
         refresh = function()
         end,
@@ -1930,8 +1907,12 @@ function SettingsModule:RegisterShellPages()
     self.shellPages:Register({
         id = "boss",
         title = BFUF.L.SETTINGS_PAGE_BOSS,
+        category = "Unit Frames",
+        availability = function()
+            return self.DeclarativePages:IsAvailable("unit_frames.boss", self)
+        end,
         builder = function()
-            self:ShowShellFrame("boss", BFUF.L.SETTINGS_PAGE_BOSS, false)
+            self:OpenDeclarativePage("unit_frames.boss")
         end,
         refresh = function()
         end,

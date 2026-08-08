@@ -13,11 +13,16 @@ Core\API.lua
 Core\Defaults.lua
 Core\Database.lua
 Core\SettingsBindings.lua
+Core\Settings\PageRegistry.lua
+Core\Settings\BindingFactory.lua
 Core\Events.lua
 Localization\Init.lua
 Localization\enUS.lua
 Localization\ruRU.lua
 Core\Settings.lua
+Core\Settings\Shell.lua
+Core\Settings\Pages\UnitFrames.lua
+Core\Settings\Pages\Elements.lua
 Core\SlashCommands.lua
 Config\General.lua
 Config\Player.lua
