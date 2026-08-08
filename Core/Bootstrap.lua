@@ -10,6 +10,18 @@ local function hideBlizzardPlayerFrame()
     end
 end
 
+local function hideBlizzardTargetFrame()
+    if TargetFrame then
+        TargetFrame:UnregisterAllEvents()
+        TargetFrame:Hide()
+    end
+end
+
+local function hideBlizzardUnitFrames()
+    hideBlizzardPlayerFrame()
+    hideBlizzardTargetFrame()
+end
+
 function Bootstrap:Initialize()
     BFUF:Debug("Factory initialized")
     BFUF:Debug("Registry initialized")
@@ -28,6 +40,7 @@ function Bootstrap:Initialize()
     local eventFrame = CreateFrame("Frame")
     eventFrame:RegisterEvent("PLAYER_LOGIN")
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-    eventFrame:SetScript("OnEvent", hideBlizzardPlayerFrame)
-    hideBlizzardPlayerFrame()
+    eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
+    eventFrame:SetScript("OnEvent", hideBlizzardUnitFrames)
+    hideBlizzardUnitFrames()
 end
