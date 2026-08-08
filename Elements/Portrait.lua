@@ -107,8 +107,9 @@ function Portrait:Create(parent)
 
             self.debugState.clearModel = true
             self.model:ClearModel()
+            self.debugState.canSetUnit = self.model:CanSetUnit(unit)
             self.debugState.setUnit = unit
-            self.model:SetUnit(unit)
+            self.debugState.setUnitResult = self.model:SetUnit(unit)
             self.debugState.setPortraitZoom = true
             self.model:SetPortraitZoom(1)
             self.debugState.setPosition = true
@@ -143,7 +144,9 @@ function Portrait:Create(parent)
         BFUF:Print(
             "[BFUF Portrait] last refresh=" .. describeValue(state.event)
                 .. " clearModel=" .. describeValue(state.clearModel)
+                .. " CanSetUnit=" .. describeValue(state.canSetUnit)
                 .. " setUnit=" .. describeValue(state.setUnit)
+                .. " SetUnit result=" .. describeValue(state.setUnitResult)
                 .. " zoom=" .. describeValue(state.setPortraitZoom)
                 .. " position=" .. describeValue(state.setPosition)
                 .. " fallback=" .. describeValue(state.usedFallback)
