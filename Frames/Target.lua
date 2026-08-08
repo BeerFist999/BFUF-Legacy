@@ -57,7 +57,7 @@ function Target:UpdateTexts(root)
 
     local health = UnitHealth("target")
     local maxHealth = UnitHealthMax("target")
-    if health and maxHealth and maxHealth > 0 then
+    if health and maxHealth then
         setText(root.healthText, string.format("%d / %d", health, maxHealth))
     else
         setText(root.healthText, nil)
@@ -66,7 +66,7 @@ function Target:UpdateTexts(root)
     local powerType = UnitPowerType("target")
     local power = UnitPower("target", powerType)
     local maxPower = UnitPowerMax("target", powerType)
-    if power and maxPower and maxPower > 0 then
+    if power and maxPower then
         setText(root.powerText, string.format("%d / %d", power, maxPower))
     else
         setText(root.powerText, nil)
