@@ -32,6 +32,174 @@ local function createBorder(parent)
     return border
 end
 
+
+local function createPreviewFrame(parent)
+    local frame = CreateFrame("Frame", nil, parent)
+    frame.background = frame:CreateTexture(nil, "BACKGROUND", nil, 0)
+    frame.background:SetColorTexture(0, 0, 0, 0.8)
+    frame.border = createBorder(frame)
+
+    frame.portraitContainer = CreateFrame("Frame", nil, frame)
+    frame.portraitContainer:SetFrameLevel(frame:GetFrameLevel() + 2)
+    frame.portraitContainer:SetClipsChildren(true)
+
+    frame.portrait = frame.portraitContainer:CreateTexture(nil, "ARTWORK")
+    frame.portrait:SetAllPoints(frame.portraitContainer)
+    frame.portrait:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+
+    frame.barsContainer = CreateFrame("Frame", nil, frame)
+    frame.barsContainer:SetFrameLevel(frame:GetFrameLevel() + 3)
+
+    frame.healthBar = CreateFrame("StatusBar", nil, frame.barsContainer)
+    frame.healthBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+    frame.healthBar:SetMinMaxValues(0, 100)
+    frame.healthBar:SetStatusBarColor(0.8, 0.15, 0.15)
+
+    frame.powerBar = CreateFrame("StatusBar", nil, frame.barsContainer)
+    frame.powerBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+    frame.powerBar:SetMinMaxValues(0, 100)
+    frame.powerBar:SetStatusBarColor(0.2, 0.4, 1)
+
+    frame.nameText = BFUF.Elements.Text:Create(frame.barsContainer, {
+        justifyH = "LEFT",
+        justifyV = "MIDDLE",
+        size = 12,
+    })
+    frame.nameText:SetWordWrap(false)
+    frame.nameText:SetMaxLines(1)
+
+    frame.healthText = BFUF.Elements.Text:Create(frame.barsContainer, {
+        justifyH = "RIGHT",
+        justifyV = "MIDDLE",
+        size = 12,
+    })
+
+    return frame
+end
+
+local function applyPreviewBorder(frame)
+    frame.border:ClearAllPoints()
+    frame.border:SetAllPoints(frame)
+
+    local top = frame.border.lines.top
+    top:ClearAllPoints()
+    top:SetPoint("TOPLEFT", frame.border, "TOPLEFT")
+    top:SetPoint("TOPRIGHT", frame.border, "TOPRIGHT")
+    top:SetHeight(1)
+
+    local bottom = frame.border.lines.bottom
+    bottom:ClearAllPoints()
+    bottom:SetPoint("BOTTOMLEFT", frame.border, "BOTTOMLEFT")
+    bottom:SetPoint("BOTTOMRIGHT", frame.border, "BOTTOMRIGHT")
+    bottom:SetHeight(1)
+
+    local left = frame.border.lines.left
+    left:ClearAllPoints()
+    left:SetPoint("TOPLEFT", frame.border, "TOPLEFT")
+    left:SetPoint("BOTTOMLEFT", frame.border, "BOTTOMLEFT")
+    left:SetWidth(1)
+
+    local right = frame.border.lines.right
+    right:ClearAllPoints()
+    right:SetPoint("TOPRIGHT", frame.border, "TOPRIGHT")
+    right:SetPoint("BOTTOMRIGHT", frame.border, "BOTTOMRIGHT")
+    right:SetWidth(1)
+end
+
+local function applyPreviewGeometry(frame, previous, settings, index)
+    frame:ClearAllPoints()
+    frame:SetSize(settings.width, settings.height)
+    frame:SetScale(settings.scale or 1)
+
+    if index == 1 then
+        frame:SetPoint("CENTER", UIParent, "CENTER", settings.positionX or 0, settings.positionY or 0)
+    elseif settings.growth == "UP" then
+        frame:SetPoint("BOTTOMLEFT", previous, "TOPLEFT", 0, settings.spacing or 0)
+    else
+        frame:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, -(settings.spacing or 0))
+    end
+
+    frame.background:ClearAllPoints()
+    frame.background:SetAllPoints(frame)
+    applyPreviewBorder(frame)
+
+    local portraitEnabled = settings.portrait and settings.portrait.enabled ~= false
+    frame.portraitContainer:SetShown(portraitEnabled)
+    frame.portraitContainer:ClearAllPoints()
+
+    if portraitEnabled then
+        frame.portraitContainer:SetPoint("TOPLEFT", frame, "TOPLEFT", 2, -2)
+        frame.portraitContainer:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 2, 2)
+        frame.portraitContainer:SetWidth(settings.portrait.width)
+        frame.barsContainer:ClearAllPoints()
+        frame.barsContainer:SetPoint("TOPLEFT", frame, "TOPLEFT", 4 + settings.portrait.width, -2)
+        frame.barsContainer:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -2, 2)
+    else
+        frame.barsContainer:ClearAllPoints()
+        frame.barsContainer:SetPoint("TOPLEFT", frame, "TOPLEFT", 2, -2)
+        frame.barsContainer:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -2, 2)
+    end
+
+    frame.powerBar:ClearAllPoints()
+    frame.powerBar:SetPoint("BOTTOMLEFT", frame.barsContainer, "BOTTOMLEFT")
+    frame.powerBar:SetPoint("BOTTOMRIGHT", frame.barsContainer, "BOTTOMRIGHT")
+    frame.powerBar:SetHeight(8)
+
+    frame.healthBar:ClearAllPoints()
+    frame.healthBar:SetPoint("TOPLEFT", frame.barsContainer, "TOPLEFT")
+    frame.healthBar:SetPoint("TOPRIGHT", frame.barsContainer, "TOPRIGHT")
+    frame.healthBar:SetPoint("BOTTOMLEFT", frame.powerBar, "TOPLEFT", 0, 2)
+    frame.healthBar:SetPoint("BOTTOMRIGHT", frame.powerBar, "TOPRIGHT", 0, 2)
+
+    frame.nameText:ClearAllPoints()
+    frame.nameText:SetPoint("LEFT", frame.healthBar, "LEFT", 4, 0)
+    frame.nameText:SetPoint("RIGHT", frame.healthText, "LEFT", -6, 0)
+    frame.healthText:ClearAllPoints()
+    frame.healthText:SetPoint("RIGHT", frame.healthBar, "RIGHT", -4, 0)
+end
+
+function Boss:HidePreview()
+    if self.previewFrames then
+        for _, frame in ipairs(self.previewFrames) do
+            frame:Hide()
+        end
+    end
+end
+
+function Boss:UpdatePreview(settings)
+    settings = settings or self:EnsureSettings()
+
+    if not settings.preview or InCombatLockdown() then
+        self:HidePreview()
+        return
+    end
+
+    self.previewFrames = self.previewFrames or {}
+    local previous
+    local count = math.max(1, math.min(MAX_BOSS_FRAMES, settings.count or MAX_BOSS_FRAMES))
+
+    for index = 1, MAX_BOSS_FRAMES do
+        local frame = self.previewFrames[index]
+        if not frame then
+            frame = createPreviewFrame(UIParent)
+            self.previewFrames[index] = frame
+        end
+
+        if index <= count then
+            applyPreviewGeometry(frame, previous, settings, index)
+            local health = math.max(20, 100 - (index - 1) * 15)
+            frame.healthBar:SetValue(health)
+            frame.powerBar:SetValue(100 - (index - 1) * 10)
+            frame.nameText:SetText("Boss " .. index)
+            frame.healthText:SetText(health .. "%")
+            frame:Show()
+            previous = frame
+        else
+            frame:Hide()
+        end
+    end
+end
+
 function Boss:EnsureSettings()
     local settings = BFUF.DB:Get("Boss")
     copyDefaults(BFUF.Defaults.profile.Boss, settings)
@@ -69,6 +237,8 @@ function Boss:UpdateLayout()
             end
         end
     end
+
+    self:UpdatePreview(settings)
 end
 
 local function createBossFrame(index)
@@ -135,6 +305,7 @@ local function createBossFrame(index)
 
     root:RegisterEvent("PLAYER_ENTERING_WORLD")
     root:RegisterEvent("PLAYER_REGEN_ENABLED")
+    root:RegisterEvent("PLAYER_REGEN_DISABLED")
     root:RegisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
     root:RegisterEvent("UNIT_HEALTH")
     root:RegisterEvent("UNIT_MAXHEALTH")
@@ -144,8 +315,17 @@ local function createBossFrame(index)
     root:RegisterEvent("UNIT_NAME_UPDATE")
 
     root:SetScript("OnEvent", function(frame, event, eventUnit)
-        if event == "PLAYER_REGEN_ENABLED" and frame.layoutPending then
-            Boss:UpdateLayout()
+        if event == "PLAYER_REGEN_DISABLED" then
+            Boss:HidePreview()
+            return
+        end
+
+        if event == "PLAYER_REGEN_ENABLED" then
+            if frame.layoutPending then
+                Boss:UpdateLayout()
+            else
+                Boss:UpdatePreview()
+            end
             return
         end
 

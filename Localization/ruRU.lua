@@ -73,6 +73,7 @@ BFUF.Localization:RegisterLocale("ruRU", {
 
     SETTINGS_BOSS_FRAMES = "Рамки боссов",
     OPTION_ENABLE_BOSS_FRAMES = "Включить рамки боссов",
+    OPTION_PREVIEW_BOSS_FRAMES = "Предпросмотр рамок боссов",
     OPTION_BOSS_FRAME_COUNT = "Количество рамок боссов",
     OPTION_BOSS_SPACING = "Интервал",
     OPTION_BOSS_GROWTH = "Направление роста",

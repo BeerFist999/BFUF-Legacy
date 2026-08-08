@@ -24,4 +24,5 @@ function Bootstrap:Initialize()
     end
 
     BFUF.Core.BlizzardFrameController:Initialize()
+    BFUF.Core.BlizzardBossController:Initialize()
 end

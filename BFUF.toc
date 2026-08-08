@@ -25,6 +25,7 @@ Config\Indicators.lua
 Config\Profiles.lua
 Config\About.lua
 Core\BlizzardFrameController.lua
+Core\BlizzardBossController.lua
 Core\Bootstrap.lua
 Framework\Registry.lua
 Framework\Builder.lua

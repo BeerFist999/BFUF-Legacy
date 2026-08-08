@@ -140,6 +140,7 @@ BFUF.Defaults = {
             positionY = UNIT_FRAME_DEFAULTS.positions.boss.y,
             spacing = 8,
             growth = "DOWN",
+            preview = false,
             show = true,
 
             portrait = {
