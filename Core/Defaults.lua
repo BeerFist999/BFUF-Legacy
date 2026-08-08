@@ -140,6 +140,39 @@ BFUF.Defaults = {
             show = true,
         },
 
+        -- Future unit frames inherit the shared Target-based geometry.
+        Focus = {
+            enabled = true,
+            width = UNIT_FRAME_DEFAULTS.width,
+            height = UNIT_FRAME_DEFAULTS.height,
+            scale = UNIT_FRAME_DEFAULTS.scale,
+            show = true,
+        },
+
+        FocusTarget = {
+            enabled = true,
+            width = UNIT_FRAME_DEFAULTS.width,
+            height = UNIT_FRAME_DEFAULTS.height,
+            scale = UNIT_FRAME_DEFAULTS.scale,
+            show = true,
+        },
+
+        Pet = {
+            enabled = true,
+            width = UNIT_FRAME_DEFAULTS.width,
+            height = UNIT_FRAME_DEFAULTS.height,
+            scale = UNIT_FRAME_DEFAULTS.scale,
+            show = true,
+        },
+
+        PetTarget = {
+            enabled = true,
+            width = UNIT_FRAME_DEFAULTS.width,
+            height = UNIT_FRAME_DEFAULTS.height,
+            scale = UNIT_FRAME_DEFAULTS.scale,
+            show = true,
+        },
+
         Auras = { enabled = true, show = true },
         Castbar = { enabled = true, width = 220, height = 18, show = true },
         Portrait = { enabled = true, width = 50, height = 50, show = true },
