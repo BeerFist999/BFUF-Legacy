@@ -1444,7 +1444,6 @@ function SettingsModule:RegisterPages()
         { id = "pet", title = BFUF.L.SETTINGS_PAGE_PET },
         { id = "petTarget", title = BFUF.L.SETTINGS_PAGE_PET_TARGET },
         { id = "boss", title = BFUF.L.SETTINGS_PAGE_BOSS },
-        { id = "arena", title = BFUF.L.SETTINGS_PAGE_ARENA },
     }
 
     for _, page in ipairs(unavailablePages) do
