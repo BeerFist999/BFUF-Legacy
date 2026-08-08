@@ -15,9 +15,8 @@ function PageRegistry:Create()
 end
 
 function PageRegistry:Register(definition)
-    assert(type(definition) == "table", "Settings page definition must be a table")
-    assert(type(definition.id) == "string" and definition.id ~= "", "Settings page definition must have an id")
-    assert(type(definition.title) == "string" and definition.title ~= "", "Settings page definition must have a title")
+    assert(type(definition) == "table", "Settings definition must be a table")
+    assert(type(definition.id) == "string" and definition.id ~= "", "Settings definition must have an id")
 
     definition.type = definition.type or "page"
     assert(
@@ -25,10 +24,18 @@ function PageRegistry:Register(definition)
         "Settings definition type must be page or category"
     )
 
-    if definition.type == "page" then
-        assert(type(definition.builder) == "function", "Settings page definition must have a builder")
+    if definition.type == "category" then
+        assert(
+            type(definition.title) == "string" and definition.title ~= "",
+            "Settings category definition must have a title"
+        )
+        assert(type(definition.children) == "table", "Settings category definition must have children")
     else
-        definition.children = definition.children or {}
+        assert(
+            type(definition.title) == "string" and definition.title ~= "",
+            "Settings page definition must have a title"
+        )
+        assert(type(definition.builder) == "function", "Settings page definition must have a builder")
     end
 
     if self.pages[definition.id] then
