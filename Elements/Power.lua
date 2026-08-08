@@ -50,14 +50,10 @@ function Power:Create(parent)
             return
         end
 
-        local power = UnitPower(unit, powerType)
-        local maxPower = UnitPowerMax(unit, powerType)
-        if not maxPower or maxPower == 0 then
-            return
-        end
-
-        self:SetMinMaxValues(0, maxPower)
-        self:SetValue(power or 0)
+        -- Unit values can be secret while the addon is tainted. Pass them
+        -- directly to Blizzard status-bar APIs without Lua comparisons or fallbacks.
+        self:SetMinMaxValues(0, UnitPowerMax(unit, powerType))
+        self:SetValue(UnitPower(unit, powerType))
         applyColor(self, powerType, powerToken)
     end
 
