@@ -315,10 +315,6 @@ function UI.SidebarNavigation:Create(parent, width)
                 item.button:Hide()
                 item.button:SetParent(nil)
             end
-            if item.headerLabel then
-                item.headerLabel:Hide()
-                item.headerLabel:SetParent(nil)
-            end
         end
 
         wipe(self.buttons)
@@ -327,50 +323,41 @@ function UI.SidebarNavigation:Create(parent, width)
     end
 
     function navigation:AddEntry(entry)
-        if entry.header then
-            local headerLabel = self.frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-            headerLabel:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 10, self.nextOffset)
-            headerLabel:SetPoint("TOPRIGHT", self.frame, "TOPRIGHT", -8, self.nextOffset)
-            headerLabel:SetJustifyH("LEFT")
-            headerLabel:SetText(entry.label)
-            self.nextOffset = self.nextOffset - 24
-            self.buttons[entry.key] = {
-                entry = entry,
-                headerLabel = headerLabel,
-            }
-            return
-        end
-
         local indent = (entry.depth or 0) * 12
         local button = CreateFrame("Button", nil, self.frame)
         button:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 6 + indent, self.nextOffset)
-        button:SetSize(self.width - 12 - indent, 26)
-        self.nextOffset = self.nextOffset - 28
+        button:SetSize(self.width - 12 - indent, entry.type == "category" and 26 or 24)
+        self.nextOffset = self.nextOffset - (entry.type == "category" and 28 or 26)
 
         local highlight = button:CreateTexture(nil, "BACKGROUND")
         highlight:SetAllPoints()
         highlight:SetColorTexture(0.2, 0.55, 0.35, 0.32)
         highlight:Hide()
 
-        local label = button:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+        local label = button:CreateFontString(nil, "ARTWORK", entry.type == "category" and "GameFontHighlight" or "GameFontNormal")
         label:SetPoint("LEFT", button, "LEFT", 8, 0)
         label:SetPoint("RIGHT", button, "RIGHT", -8, 0)
         label:SetJustifyH("LEFT")
         label:SetWordWrap(false)
-        label:SetText(entry.label)
 
-        if entry.disabled then
-            label:SetTextColor(0.5, 0.5, 0.5)
-            button:SetScript("OnEnter", function(self)
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetText(BFUF.L.SETTINGS_COMING_LATER)
-                GameTooltip:Show()
-            end)
-            button:SetScript("OnLeave", GameTooltip_Hide)
+        if entry.type == "category" then
+            label:SetText((entry.expanded and "▼ " or "▶ ") .. entry.label)
+            button:SetScript("OnClick", entry.onToggle)
         else
-            button:SetScript("OnClick", function()
-                self:Select(entry.key)
-            end)
+            label:SetText(entry.label)
+            if entry.disabled then
+                label:SetTextColor(0.5, 0.5, 0.5)
+                button:SetScript("OnEnter", function(self)
+                    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                    GameTooltip:SetText(BFUF.L.SETTINGS_COMING_LATER)
+                    GameTooltip:Show()
+                end)
+                button:SetScript("OnLeave", GameTooltip_Hide)
+            else
+                button:SetScript("OnClick", function()
+                    self:Select(entry.key)
+                end)
+            end
         end
 
         self.buttons[entry.key] = {
@@ -388,17 +375,17 @@ function UI.SidebarNavigation:Create(parent, width)
         end
     end
 
-    function navigation:Select(key)
+    function navigation:Select(key, suppressCallback)
         local selected = self.buttons[key]
-        if not selected or selected.entry.header or selected.entry.disabled then
+        if not selected or selected.entry.type == "category" or selected.entry.disabled then
             return
         end
 
         self.selectedKey = key
         for buttonKey, item in pairs(self.buttons) do
-            if item.button then
-                local active = buttonKey == key
-                item.highlight:SetShown(active)
+            local active = buttonKey == key
+            item.highlight:SetShown(active)
+            if item.entry.type ~= "category" then
                 item.label:SetTextColor(
                     active and 1 or 0.85,
                     active and 1 or 0.85,
@@ -407,7 +394,9 @@ function UI.SidebarNavigation:Create(parent, width)
             end
         end
 
-        selected.entry.onSelect()
+        if not suppressCallback then
+            selected.entry.onSelect()
+        end
     end
 
     return navigation
@@ -1920,6 +1909,63 @@ function SettingsModule:ShowElementFrameChoices(elementKey, title)
 end
 
 -- Register the production Settings 2.0 navigation tree.
+function SettingsModule:GetNavigationState()
+    local general = BFUF.DB:Get("General")
+    general.settingsNavigation = general.settingsNavigation or {}
+    general.settingsNavigation.collapsed = general.settingsNavigation.collapsed or {}
+    return general.settingsNavigation
+end
+
+function SettingsModule:RefreshShellNavigation()
+    local state = self:GetNavigationState()
+    local previousSelection = self.shell.navigation.selectedKey
+    local entries = {}
+    local visibleKeys = {}
+
+    for _, node in ipairs(self.shellPages:GetNavigationTree(self)) do
+        local definition = node.definition
+        if definition.type == "category" then
+            local expanded = state.collapsed[definition.id] ~= true
+            table.insert(entries, {
+                key = definition.id,
+                label = definition.title,
+                type = "category",
+                expanded = expanded,
+                onToggle = function()
+                    state.collapsed[definition.id] = expanded
+                    self:RefreshShellNavigation()
+                end,
+            })
+
+            if expanded then
+                for _, child in ipairs(node.children) do
+                    visibleKeys[child.id] = true
+                    table.insert(entries, {
+                        key = child.id,
+                        label = child.title,
+                        depth = 1,
+                        disabled = child.disabled == true,
+                        onSelect = child.builder,
+                    })
+                end
+            end
+        else
+            visibleKeys[definition.id] = true
+            table.insert(entries, {
+                key = definition.id,
+                label = definition.title,
+                disabled = definition.disabled == true,
+                onSelect = definition.builder,
+            })
+        end
+    end
+
+    self.shell:SetSidebarEntries(entries)
+    if previousSelection and visibleKeys[previousSelection] then
+        self.shell.sidebar:Select(previousSelection, true)
+    end
+end
+
 function SettingsModule:RegisterShellPages()
     if self.shellPages then
         return
@@ -1927,21 +1973,10 @@ function SettingsModule:RegisterShellPages()
 
     self.shellPages = PageRegistry:Create()
 
-    local function registerHeader(id, title)
+    local function registerPlaceholder(id, title)
         self.shellPages:Register({
             id = id,
             title = title,
-            groupHeader = true,
-            builder = function()
-            end,
-        })
-    end
-
-    local function registerPlaceholder(id, title, depth)
-        self.shellPages:Register({
-            id = id,
-            title = title,
-            depth = depth or 0,
             builder = function()
                 self.shell:SetFrameEntries({})
                 self:ShowShellPage(id, title, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER)
@@ -1949,12 +1984,15 @@ function SettingsModule:RegisterShellPages()
         })
     end
 
-    registerHeader("group.unitFrames", BFUF.L.SETTINGS_CATEGORY_UNIT_FRAMES)
-
+    self.shellPages:Register({
+        id = "unitframes",
+        title = BFUF.L.SETTINGS_CATEGORY_UNIT_FRAMES,
+        type = "category",
+        children = { "player", "target", "boss", "focus", "party", "raid" },
+    })
     self.shellPages:Register({
         id = "player",
         title = BFUF.L.SETTINGS_PAGE_PLAYER,
-        depth = 1,
         builder = function()
             self:ShowShellFrame("player", BFUF.L.SETTINGS_PAGE_PLAYER)
         end,
@@ -1962,7 +2000,6 @@ function SettingsModule:RegisterShellPages()
     self.shellPages:Register({
         id = "target",
         title = BFUF.L.SETTINGS_PAGE_TARGET,
-        depth = 1,
         builder = function()
             self:ShowShellFrame("target", BFUF.L.SETTINGS_PAGE_TARGET)
         end,
@@ -1970,18 +2007,23 @@ function SettingsModule:RegisterShellPages()
     self.shellPages:Register({
         id = "boss",
         title = BFUF.L.SETTINGS_PAGE_BOSS,
-        depth = 1,
         builder = function()
             self:ShowShellFrame("boss", BFUF.L.SETTINGS_PAGE_BOSS)
         end,
     })
+    registerPlaceholder("focus", BFUF.L.SETTINGS_PAGE_FOCUS)
+    registerPlaceholder("party", BFUF.L.SETTINGS_PAGE_PARTY)
+    registerPlaceholder("raid", BFUF.L.SETTINGS_PAGE_RAID)
 
-    registerHeader("group.elements", BFUF.L.SETTINGS_CATEGORY_ELEMENTS)
-
+    self.shellPages:Register({
+        id = "elements",
+        title = BFUF.L.SETTINGS_CATEGORY_ELEMENTS,
+        type = "category",
+        children = { "portrait", "health", "power", "text", "castbar", "auras", "indicators" },
+    })
     self.shellPages:Register({
         id = "portrait",
         title = BFUF.L.SETTINGS_PLAYER_PORTRAIT,
-        depth = 1,
         builder = function()
             self:ShowElementFrameChoices("portrait", BFUF.L.SETTINGS_PLAYER_PORTRAIT)
         end,
@@ -1989,20 +2031,24 @@ function SettingsModule:RegisterShellPages()
     self.shellPages:Register({
         id = "health",
         title = BFUF.L.SETTINGS_PLAYER_HEALTH,
-        depth = 1,
         builder = function()
             self:ShowElementFrameChoices("health", BFUF.L.SETTINGS_PLAYER_HEALTH)
         end,
     })
-    registerPlaceholder("power", BFUF.L.SETTINGS_PLAYER_POWER, 1)
-    registerPlaceholder("text", BFUF.L.SETTINGS_PLAYER_TEXT, 1)
-    registerPlaceholder("castbar", BFUF.L.SETTINGS_PAGE_CASTBAR, 1)
-    registerPlaceholder("auras", BFUF.L.SETTINGS_PLAYER_AURAS, 1)
-    registerPlaceholder("indicators", BFUF.L.SETTINGS_PLAYER_INDICATORS, 1)
+    registerPlaceholder("power", BFUF.L.SETTINGS_PLAYER_POWER)
+    registerPlaceholder("text", BFUF.L.SETTINGS_PLAYER_TEXT)
+    registerPlaceholder("castbar", BFUF.L.SETTINGS_PAGE_CASTBAR)
+    registerPlaceholder("auras", BFUF.L.SETTINGS_PLAYER_AURAS)
+    registerPlaceholder("indicators", BFUF.L.SETTINGS_PLAYER_INDICATORS)
 
-    registerHeader("group.appearance", BFUF.L.SETTINGS_CATEGORY_APPEARANCE)
-    registerPlaceholder("colors", BFUF.L.SETTINGS_PAGE_COLORS, 1)
-    registerPlaceholder("media", BFUF.L.SETTINGS_PAGE_MEDIA, 1)
+    self.shellPages:Register({
+        id = "appearance",
+        title = BFUF.L.SETTINGS_CATEGORY_APPEARANCE,
+        type = "category",
+        children = { "colors", "media" },
+    })
+    registerPlaceholder("colors", BFUF.L.SETTINGS_PAGE_COLORS)
+    registerPlaceholder("media", BFUF.L.SETTINGS_PAGE_MEDIA)
 
     self.shellPages:Register({
         id = "profiles",
@@ -2397,7 +2443,7 @@ function SettingsModule:OpenStandalone()
     self.window:Show()
     self.window:Raise()
 
-    local selectedPage = self.shell.navigation.selectedKey or "general"
+    local selectedPage = self.shell.navigation.selectedKey or "player"
     self.shell.navigation:Select(selectedPage)
 end
 
@@ -2442,16 +2488,7 @@ function SettingsModule:Initialize()
     self:CreateStandaloneWindow()
     self:RegisterShellPages()
 
-    local entries = {}
-    self.shellPages:ForEach(function(definition)
-        table.insert(entries, {
-            key = definition.id,
-            label = definition.title,
-            onSelect = definition.builder,
-        })
-    end)
-
-    self.shell:SetSidebarEntries(entries)
+    self:RefreshShellNavigation()
     self.shell.sidebar:Select("player")
 
     -- Keep legacy modules available internally without publishing old pages to Blizzard Settings.
