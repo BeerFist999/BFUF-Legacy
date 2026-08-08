@@ -141,9 +141,13 @@ function UI.PagePanel:Create(parent)
     function panel:ShowDefinition(definition)
         if self.currentPage then
             self.currentPage:Hide()
+            if self.currentPage._bfufTransient then
+                self.currentPage:SetParent(nil)
+            end
         end
 
-        local page = self.cache[definition.id]
+        local cacheable = definition.cache ~= false
+        local page = cacheable and self.cache[definition.id] or nil
         if not page then
             page = CreateFrame("Frame", nil, self.frame)
             page:SetAllPoints()
@@ -172,9 +176,12 @@ function UI.PagePanel:Create(parent)
             end
 
             page._bfufRefresh = definition.refresh
-            self.cache[definition.id] = page
-            table.insert(self.cacheOrder, definition.id)
-            self:TrimCache()
+            page._bfufTransient = not cacheable
+            if cacheable then
+                self.cache[definition.id] = page
+                table.insert(self.cacheOrder, definition.id)
+                self:TrimCache()
+            end
         end
 
         self.currentPage = page
@@ -196,6 +203,7 @@ function UI.PagePanel:Create(parent)
             hasSettings = hasSettings,
             builder = buildContent,
             reset = resetAction,
+            cache = false,
         })
     end
 
