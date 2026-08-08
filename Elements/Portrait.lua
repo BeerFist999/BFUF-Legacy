@@ -161,13 +161,34 @@ function Portrait:Create(parent)
             self.debugState.clearModel = true
             self.model:ClearModel()
             self.debugState.canSetUnit = self.model:CanSetUnit(unit)
-            printBeforeSetUnit(self.model, unit, event, self.mode, self.debugState.canSetUnit)
+
+            -- Temporary direct trace at the exact PlayerModel:SetUnit call site.
+            local parent = self.model:GetParent()
+            local eventPath = debugstack and debugstack(2, 1, 0) or "<unavailable>"
+            BFUF:Print("[BFUF Portrait TRACE]")
+            BFUF:Print(
+                "[BFUF Portrait TRACE] event=" .. describeValue(event)
+                    .. " unit=" .. describeValue(unit)
+                    .. " Update called from=" .. describeValue(eventPath)
+            )
+            BFUF:Print(
+                "[BFUF Portrait TRACE] model exists=" .. describeValue(self.model ~= nil)
+                    .. " shown=" .. describeValue(self.model:IsShown())
+                    .. " visible=" .. describeValue(self.model:IsVisible())
+                    .. " width=" .. describeValue(self.model:GetWidth())
+                    .. " height=" .. describeValue(self.model:GetHeight())
+                    .. " alpha=" .. describeValue(self.model:GetEffectiveAlpha())
+            )
+            BFUF:Print(
+                "[BFUF Portrait TRACE] parent exists=" .. describeValue(parent ~= nil)
+                    .. " shown=" .. describeValue(parent and parent:IsShown())
+                    .. " visible=" .. describeValue(parent and parent:IsVisible())
+            )
+            BFUF:Print("[BFUF Portrait TRACE] CanSetUnit=" .. describeValue(self.debugState.canSetUnit))
+
             self.debugState.setUnit = unit
             self.debugState.setUnitResult = self.model:SetUnit(unit)
-
-            if Portrait.debugEnabled then
-                BFUF:Print("[BFUF Portrait] SetUnit result=" .. describeValue(self.debugState.setUnitResult))
-            end
+            BFUF:Print("[BFUF Portrait TRACE] SetUnit result=" .. describeValue(self.debugState.setUnitResult))
 
             local success = self.debugState.setUnitResult
             if issecretvalue and issecretvalue(success) then
