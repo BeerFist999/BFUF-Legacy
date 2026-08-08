@@ -55,22 +55,17 @@ function Target:UpdateTexts(root)
 
     setText(root.nameText, UnitName("target") or "")
 
-    local health = UnitHealth("target")
-    local maxHealth = UnitHealthMax("target")
-    if health and maxHealth then
-        setText(root.healthText, string.format("%d / %d", health, maxHealth))
-    else
-        setText(root.healthText, nil)
-    end
+    -- Format unit values without comparing or performing arithmetic on them.
+    setText(
+        root.healthText,
+        string.format("%d / %d", UnitHealth("target"), UnitHealthMax("target"))
+    )
 
     local powerType = UnitPowerType("target")
-    local power = UnitPower("target", powerType)
-    local maxPower = UnitPowerMax("target", powerType)
-    if power and maxPower then
-        setText(root.powerText, string.format("%d / %d", power, maxPower))
-    else
-        setText(root.powerText, nil)
-    end
+    setText(
+        root.powerText,
+        string.format("%d / %d", UnitPower("target", powerType), UnitPowerMax("target", powerType))
+    )
 
     local level = UnitLevel("target")
     setText(root.levelText, level and level > 0 and tostring(level) or nil)
@@ -111,6 +106,20 @@ function Target:UpdateLayout(root)
     root:SetPoint(anchor.point, UIParent, anchor.relativePoint, anchor.offsetX, anchor.offsetY)
     root:SetSize(settings.width, settings.height)
     root:SetScale(settings.scale)
+
+    local portraitSettings = settings.portrait
+    local portraitVisible = portraitSettings.mode ~= BFUF.Elements.Portrait.Modes.HIDDEN
+    root.portraitContainer:SetShown(portraitVisible)
+    root.portraitContainer:SetWidth(portraitSettings.width)
+
+    root.barsContainer:ClearAllPoints()
+    root.barsContainer:SetPoint("TOPLEFT", root, "TOPLEFT", CONTENT_PADDING, -CONTENT_PADDING)
+    if portraitVisible then
+        root.barsContainer:SetPoint("BOTTOMRIGHT", root.portraitContainer, "BOTTOMLEFT", -BAR_GAP, CONTENT_PADDING)
+    else
+        root.barsContainer:SetPoint("BOTTOMRIGHT", root, "BOTTOMRIGHT", -CONTENT_PADDING, CONTENT_PADDING)
+    end
+
     root.position = anchor
     root.layoutPending = nil
 end
@@ -188,7 +197,7 @@ function Target:Update(root)
         return
     end
 
-    root.portrait:Update()
+    root.portrait:SetMode(BFUF.DB:Get("Target").portrait.mode)
     root.healthBar:Update()
     root.powerBar:Update()
     self:UpdateTexts(root)
