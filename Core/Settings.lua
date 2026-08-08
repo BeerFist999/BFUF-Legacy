@@ -1976,6 +1976,7 @@ function SettingsModule:RegisterShellPages()
     local function registerPlaceholder(id, title)
         self.shellPages:Register({
             id = id,
+            type = "page",
             title = title,
             builder = function()
                 self.shell:SetFrameEntries({})
