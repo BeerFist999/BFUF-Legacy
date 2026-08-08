@@ -28,6 +28,7 @@ SettingsModule.UI = UI
 local PageRegistry = BFUF.Core.SettingsPageRegistry
 SettingsModule.PageRegistry = PageRegistry
 SettingsModule.DeclarativePages = BFUF.Core.SettingsPageDefinitions
+SettingsModule.ControlRegistry = BFUF.Core.SettingsControlRegistry
 
 -- Normalize the shared binding contract used by interactive settings widgets.
 local function normalizeBinding(labelOrBinding, getValue, setValue)
@@ -1771,6 +1772,23 @@ function SettingsModule:ShowBossPortraitPage()
         UI.SectionPanel:Create(page, BFUF.L.SECTION_PORTRAIT, -36)
         UI.CheckboxRow:Create(page, bindings.enabled, -66)
         UI.SliderRow:Create(page, bindings.width, -124, 20, 160, 1)
+    end, function()
+        BindingFactory:Reset(bindings)
+    end)
+end
+
+
+-- Render a declarative page through the existing shell page host and widget rows.
+function SettingsModule:ShowDeclarativeControlsPage(definition)
+    local bindings = {}
+    for _, descriptor in ipairs(definition.controls or {}) do
+        if descriptor.binding then
+            table.insert(bindings, descriptor.binding)
+        end
+    end
+
+    self.shell.pages:ShowPage(definition.title, definition.description, true, function(page)
+        self.ControlRegistry:Render(page, definition.controls)
     end, function()
         BindingFactory:Reset(bindings)
     end)

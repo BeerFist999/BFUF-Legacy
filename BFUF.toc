@@ -15,6 +15,7 @@ Core\Database.lua
 Core\SettingsBindings.lua
 Core\Settings\PageRegistry.lua
 Core\Settings\BindingFactory.lua
+Core\Settings\ControlRegistry.lua
 Core\Events.lua
 Localization\Init.lua
 Localization\enUS.lua
