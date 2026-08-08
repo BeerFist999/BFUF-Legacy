@@ -273,41 +273,6 @@ playerHealthBindings.healAbsorbTexture = BindingFactory:CreateProfileBinding({
     context = { scope = "sharedHealth" },
 })
 
-playerHealthBindings.incomingHeal = BindingFactory:CreateProfileBinding({
-    path = "Player.health.incomingHeal",
-    label = BFUF.L.OPTION_SHOW_INCOMING_HEALS,
-    refreshIntent = "HEALTH",
-    context = { scope = "sharedHealth" },
-})
-
-playerHealthBindings.incomingHealColor = BindingFactory:CreateProfileBinding({
-    path = "Player.health.incomingHealColor",
-    label = BFUF.L.OPTION_INCOMING_HEALS_COLOR,
-    refreshIntent = "HEALTH",
-    context = { scope = "sharedHealth" },
-})
-
-playerHealthBindings.incomingHealAlpha = BindingFactory:CreateProfileBinding({
-    path = "Player.health.incomingHealAlpha",
-    label = BFUF.L.OPTION_INCOMING_HEALS_ALPHA,
-    refreshIntent = "HEALTH",
-    context = { scope = "sharedHealth" },
-})
-
-playerHealthBindings.incomingHealPosition = BindingFactory:CreateProfileBinding({
-    path = "Player.health.incomingHealPosition",
-    label = BFUF.L.OPTION_INCOMING_HEALS_POSITION,
-    refreshIntent = "HEALTH",
-    context = { scope = "sharedHealth" },
-})
-
-playerHealthBindings.incomingHealTexture = BindingFactory:CreateProfileBinding({
-    path = "Player.health.incomingHealTexture",
-    label = BFUF.L.OPTION_INCOMING_HEALS_TEXTURE,
-    refreshIntent = "HEALTH",
-    context = { scope = "sharedHealth" },
-})
-
 pages:Register({
     id = "elements.health.general",
     title = BFUF.L.SETTINGS_HEALTH_GENERAL,
@@ -489,76 +454,6 @@ pages:Register({
             key = "healAbsorbTexture",
             label = BFUF.L.OPTION_HEAL_ABSORB_TEXTURE,
             binding = playerHealthBindings.healAbsorbTexture,
-            refreshIntent = "HEALTH",
-            values = BFUF.Media:GetTextureList(),
-        },
-    },
-    builder = function(settings, definition)
-        settings:ShowDeclarativeControlsPage(definition)
-    end,
-})
-
-
-pages:Register({
-    id = "elements.health.incomingHeals",
-    title = BFUF.L.SETTINGS_HEALTH_INCOMING_HEALS,
-    category = "Elements",
-    availability = settingsAvailable,
-    bindings = {
-        "Player.health.incomingHeal",
-        "Player.health.incomingHealColor",
-        "Player.health.incomingHealAlpha",
-        "Player.health.incomingHealPosition",
-        "Player.health.incomingHealTexture",
-    },
-    refreshIntent = "HEALTH",
-    resetScope = "Player.health",
-    controls = {
-        {
-            type = "header",
-            key = "incomingHeals",
-            label = BFUF.L.SETTINGS_HEALTH_INCOMING_HEALS,
-        },
-        {
-            type = "checkbox",
-            key = "incomingHeal",
-            label = BFUF.L.OPTION_SHOW_INCOMING_HEALS,
-            binding = playerHealthBindings.incomingHeal,
-            refreshIntent = "HEALTH",
-        },
-        {
-            type = "color",
-            key = "incomingHealColor",
-            label = BFUF.L.OPTION_INCOMING_HEALS_COLOR,
-            binding = playerHealthBindings.incomingHealColor,
-            refreshIntent = "HEALTH",
-        },
-        {
-            type = "slider",
-            key = "incomingHealAlpha",
-            label = BFUF.L.OPTION_INCOMING_HEALS_ALPHA,
-            binding = playerHealthBindings.incomingHealAlpha,
-            refreshIntent = "HEALTH",
-            min = 0,
-            max = 1,
-            step = 0.05,
-        },
-        {
-            type = "dropdown",
-            key = "incomingHealPosition",
-            label = BFUF.L.OPTION_INCOMING_HEALS_POSITION,
-            binding = playerHealthBindings.incomingHealPosition,
-            refreshIntent = "HEALTH",
-            values = {
-                { value = "left", label = BFUF.L.VALUE_LEFT },
-                { value = "right", label = BFUF.L.VALUE_RIGHT },
-            },
-        },
-        {
-            type = "dropdown",
-            key = "incomingHealTexture",
-            label = BFUF.L.OPTION_INCOMING_HEALS_TEXTURE,
-            binding = playerHealthBindings.incomingHealTexture,
             refreshIntent = "HEALTH",
             values = BFUF.Media:GetTextureList(),
         },

@@ -1897,7 +1897,6 @@ function SettingsModule:ShowElementFrameChoices(elementKey, title)
             { key = "text", title = BFUF.L.SETTINGS_HEALTH_TEXT, pageId = "elements.health.player" },
             { key = "absorb", title = BFUF.L.SETTINGS_HEALTH_ABSORB, pageId = "elements.health.absorb" },
             { key = "healAbsorb", title = BFUF.L.SETTINGS_HEALTH_HEAL_ABSORB, pageId = "elements.health.healAbsorb" },
-            { key = "incomingHeals", title = BFUF.L.SETTINGS_HEALTH_INCOMING_HEALS, pageId = "elements.health.incomingHeals" },
         },
     }
 
