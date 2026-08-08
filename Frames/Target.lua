@@ -366,10 +366,7 @@ function Target:Create()
     root:RegisterEvent("UNIT_NAME_UPDATE")
     root:RegisterEvent("UNIT_PORTRAIT_UPDATE")
     root:RegisterEvent("UNIT_MODEL_CHANGED")
-    root:RegisterEvent("UNIT_CONNECTION")
     root:RegisterEvent("PORTRAITS_UPDATED")
-    root:RegisterEvent("PARTY_MEMBER_ENABLE")
-    root:RegisterEvent("PARTY_MEMBER_DISABLE")
     root:SetScript("OnEvent", function(_, event, unit)
         if event == "PLAYER_REGEN_ENABLED" and root.layoutPending then
             Target:UpdateLayout(root)
@@ -387,9 +384,7 @@ function Target:Create()
             return
         end
 
-        if event == "PORTRAITS_UPDATED"
-            or event == "PARTY_MEMBER_ENABLE"
-            or event == "PARTY_MEMBER_DISABLE" then
+        if event == "PORTRAITS_UPDATED" then
             Target:UpdatePortrait(root)
             return
         end
