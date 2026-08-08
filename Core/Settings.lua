@@ -1156,15 +1156,13 @@ end
 function SettingsModule:ShowPlayerTextObjectPage(pages, textKey, title)
     local controls = {}
     local displayModes = textKey == "name" and {
-        { key = "name", label = "TEXT_MODE_NAME" },
-        { key = "hidden", label = "TEXT_MODE_HIDDEN" },
+        { value = "name", label = BFUF.L.TEXT_MODE_NAME },
+        { value = "hidden", label = BFUF.L.TEXT_MODE_HIDDEN },
     } or {
-        { key = "current", label = "TEXT_MODE_CURRENT" },
-        { key = "currentMax", label = "TEXT_MODE_CURRENT_MAX" },
-        { key = "percent", label = "TEXT_MODE_PERCENT" },
-        { key = "currentPercent", label = "TEXT_MODE_CURRENT_PERCENT" },
-        { key = "missing", label = "TEXT_MODE_MISSING" },
-        { key = "hidden", label = "TEXT_MODE_HIDDEN" },
+        { value = "current", label = BFUF.L.TEXT_MODE_CURRENT },
+        { value = "currentMax", label = BFUF.L.TEXT_MODE_CURRENT_MAX },
+        { value = "percent", label = BFUF.L.TEXT_MODE_PERCENT },
+        { value = "hidden", label = BFUF.L.TEXT_MODE_HIDDEN },
     }
 
     local function updateText()
@@ -1245,18 +1243,17 @@ function SettingsModule:ShowPlayerTextObjectPage(pages, textKey, title)
         )
 
         if textKey ~= "level" then
-            for index, mode in ipairs(displayModes) do
-                local modeKey = mode.key
-                local row = math.floor((index - 1) / 3)
-                local column = (index - 1) % 3
-                local button = UI.ButtonRow:Create(page, BFUF.L[mode.label], -270, function()
-                    BFUF.DB:Get("Player").texts[textKey].mode = modeKey
+            controls.mode = UI.DropdownRow:Create(page, {
+                label = BFUF.L.OPTION_DISPLAY_MODE,
+                values = displayModes,
+                get = function()
+                    return BFUF.DB:Get("Player").texts[textKey].mode
+                end,
+                set = function(value)
+                    BFUF.DB:Get("Player").texts[textKey].mode = value
                     updateText()
-                end)
-                button:ClearAllPoints()
-                button:SetPoint("TOPLEFT", page, "TOPLEFT", column * 122, -270 - row * 30)
-                button:SetSize(114, 24)
-            end
+                end,
+            }, -270)
         end
     end, resetText)
 
@@ -1264,41 +1261,37 @@ function SettingsModule:ShowPlayerTextObjectPage(pages, textKey, title)
     self.playerTextControls[textKey] = controls
 end
 
--- Show the local navigation for the existing text objects.
-function SettingsModule:ShowPlayerTextPage(pages)
-    local page = pages:ShowPage(BFUF.L.SETTINGS_PLAYER_TEXT, nil, false)
+-- Show the contextual text navigation and preserve the current text controls.
+function SettingsModule:ShowPlayerTextPage()
+    local entries = {}
 
-    local navigation = UI.NavigationList:Create(page, 110)
-    navigation.frame:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -34)
-    navigation.frame:SetPoint("BOTTOMLEFT", page, "BOTTOMLEFT", 0, 0)
+    self.textPages:ForEach(function(definition)
+        table.insert(entries, {
+            key = definition.id,
+            label = definition.title,
+            onSelect = definition.builder,
+        })
+    end)
 
-    local divider = page:CreateTexture(nil, "ARTWORK")
-    divider:SetPoint("TOPLEFT", navigation.frame, "TOPRIGHT", 10, 0)
-    divider:SetPoint("BOTTOMLEFT", navigation.frame, "BOTTOMRIGHT", 10, 0)
-    divider:SetWidth(1)
-    divider:SetColorTexture(0.35, 0.35, 0.35, 0.8)
+    self.shell:SetContextEntries(entries)
+    self.shell.contextTabs:Select("player.text.name")
+end
 
-    local localHost = CreateFrame("Frame", nil, page)
-    localHost:SetPoint("TOPLEFT", divider, "TOPRIGHT", 12, 0)
-    localHost:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", 0, 0)
-    local textPages = UI.PagePanel:Create(localHost)
+-- Show the layer tabs for one text group without changing the text renderer.
+function SettingsModule:ShowPlayerTextLayers(textKey)
+    local registry = self.textLayerPages[textKey]
+    local entries = {}
 
-    local entries = {
-        { key = "name", label = BFUF.L.SECTION_TEXT_NAME },
-        { key = "health", label = BFUF.L.SECTION_TEXT_HEALTH },
-        { key = "power", label = BFUF.L.SECTION_TEXT_POWER },
-        { key = "level", label = BFUF.L.SECTION_TEXT_LEVEL },
-    }
+    registry:ForEach(function(definition)
+        table.insert(entries, {
+            key = definition.id,
+            label = definition.title,
+            onSelect = definition.builder,
+        })
+    end)
 
-    for _, entry in ipairs(entries) do
-        local currentEntry = entry
-        currentEntry.onSelect = function()
-            self:ShowPlayerTextObjectPage(textPages, currentEntry.key, currentEntry.label)
-        end
-        navigation:AddEntry(currentEntry)
-    end
-
-    navigation:Select("name")
+    self.shell:SetLayerEntries(entries)
+    self.shell.layerTabs:Select("player.text." .. textKey .. ".layer1")
 end
 
 -- Show the Player portrait page using the existing portrait profile fields.
@@ -1364,6 +1357,11 @@ function SettingsModule:RegisterPages()
 
     self.topLevelPages = PageRegistry:Create()
     self.playerPages = PageRegistry:Create()
+    self.textPages = PageRegistry:Create()
+    self.textLayerPages = {
+        health = PageRegistry:Create(),
+        power = PageRegistry:Create(),
+    }
 
     self.topLevelPages:Register({
         id = "general",
@@ -1504,6 +1502,71 @@ function SettingsModule:RegisterPages()
 
     for _, definition in ipairs(playerDefinitions) do
         self.playerPages:Register(definition)
+    end
+
+    local textDefinitions = {
+        {
+            id = "player.text.name",
+            title = BFUF.L.SECTION_TEXT_NAME,
+            builder = function()
+                self.shell:SetLayerEntries({})
+                self:ShowPlayerTextObjectPage(self.shell.pages, "name", BFUF.L.SECTION_TEXT_NAME)
+            end,
+        },
+        {
+            id = "player.text.health",
+            title = BFUF.L.SECTION_TEXT_HEALTH,
+            builder = function()
+                self:ShowPlayerTextLayers("health")
+            end,
+        },
+        {
+            id = "player.text.power",
+            title = BFUF.L.SECTION_TEXT_POWER,
+            builder = function()
+                self:ShowPlayerTextLayers("power")
+            end,
+        },
+        {
+            id = "player.text.level",
+            title = BFUF.L.SECTION_TEXT_LEVEL,
+            builder = function()
+                self.shell:SetLayerEntries({})
+                self:ShowPlayerTextObjectPage(self.shell.pages, "level", BFUF.L.SECTION_TEXT_LEVEL)
+            end,
+        },
+    }
+
+    for _, definition in ipairs(textDefinitions) do
+        self.textPages:Register(definition)
+    end
+
+    for textKey, registry in pairs(self.textLayerPages) do
+        registry:Register({
+            id = "player.text." .. textKey .. ".layer1",
+            title = BFUF.L.SETTINGS_TEXT_LAYER_1,
+            builder = function()
+                self:ShowPlayerTextObjectPage(
+                    self.shell.pages,
+                    textKey,
+                    textKey == "health" and BFUF.L.SECTION_TEXT_HEALTH or BFUF.L.SECTION_TEXT_POWER
+                )
+            end,
+        })
+        registry:Register({
+            id = "player.text." .. textKey .. ".layer2",
+            title = BFUF.L.SETTINGS_TEXT_LAYER_2,
+            builder = function()
+                self:ShowPlaceholderPage(BFUF.L.SETTINGS_TEXT_LAYER_2, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER)
+            end,
+        })
+        registry:Register({
+            id = "player.text." .. textKey .. ".layer3",
+            title = BFUF.L.SETTINGS_TEXT_LAYER_3,
+            builder = function()
+                self:ShowPlaceholderPage(BFUF.L.SETTINGS_TEXT_LAYER_3, BFUF.L.SETTINGS_DESCRIPTION_COMING_LATER)
+            end,
+        })
     end
 end
 
