@@ -12,6 +12,7 @@ local Portrait = {
 BFUF.Elements.Portrait = Portrait
 
 local FALLBACK_MODEL = "Interface\\Buttons\\TalkToMeQuestionMark.m2"
+local INITIAL_3D_RETRY_DELAY = 1
 
 local function describeValue(value)
     if issecretvalue and issecretvalue(value) then
@@ -51,6 +52,8 @@ function Portrait:Create(parent)
         self.model:Hide()
         self.activeRenderer = nil
         self.retryPending = false
+        self.retryAttempt = nil
+        self.retryReason = nil
         self.debugState.activeRenderer = self.activeRenderer
         self.debugState.retryPending = self.retryPending
     end
@@ -61,10 +64,12 @@ function Portrait:Create(parent)
         end
 
         self.initialRetryScheduled = true
-        C_Timer.After(0, function()
+        C_Timer.After(INITIAL_3D_RETRY_DELAY, function()
             self.initialRetryScheduled = false
 
             if self.mode == Portrait.Modes.THREE_D and self.retryPending then
+                self.retryAttempt = 2
+                self.retryReason = "PLAYER_ENTERING_WORLD"
                 self:Update("INITIAL_3D_RETRY")
             end
         end)
@@ -105,12 +110,22 @@ function Portrait:Create(parent)
     end
 
     function container:Update(event)
+        if event == "PLAYER_ENTERING_WORLD" then
+            self.retryAttempt = 1
+            self.retryReason = event
+        elseif event ~= "INITIAL_3D_RETRY" then
+            self.retryAttempt = nil
+            self.retryReason = nil
+        end
+
         local unit = self.unit
         self.debugState = {
             event = event or "DIRECT",
             unit = unit,
             mode = self.mode,
             retryPending = self.retryPending,
+            retryAttempt = self.retryAttempt,
+            retryReason = self.retryReason,
         }
         if self.mode == Portrait.Modes.HIDDEN then
             self:ClearRenderer()
@@ -181,6 +196,8 @@ function Portrait:Create(parent)
         self.texture:Show()
         self.activeRenderer = "2d"
         self.retryPending = false
+        self.retryAttempt = nil
+        self.retryReason = nil
         self.debugState.activeRenderer = self.activeRenderer
         self.debugState.retryPending = self.retryPending
     end
@@ -211,6 +228,8 @@ function Portrait:Create(parent)
                 .. " SetUnit result=" .. describeValue(state.setUnitResult)
                 .. " activeRenderer=" .. describeValue(state.activeRenderer)
                 .. " retryPending=" .. describeValue(state.retryPending)
+                .. " retryAttempt=" .. describeValue(state.retryAttempt)
+                .. " retryReason=" .. describeValue(state.retryReason)
                 .. " zoom=" .. describeValue(state.setPortraitZoom)
                 .. " position=" .. describeValue(state.setPosition)
                 .. " fallback=" .. describeValue(state.usedFallback)
