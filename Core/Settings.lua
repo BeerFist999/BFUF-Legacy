@@ -1112,44 +1112,20 @@ function SettingsModule:ShowPlayerIndicatorPage(pages, indicatorKey, title)
     self.playerIndicatorControls[indicatorKey] = controls
 end
 
--- Show the local navigation for the existing player indicators.
-function SettingsModule:ShowPlayerIndicatorsPage(pages)
-    local page = pages:ShowPage(BFUF.L.SETTINGS_PLAYER_INDICATORS, nil, false)
+-- Show the contextual navigation for the existing player indicators.
+function SettingsModule:ShowPlayerIndicatorsPage()
+    local entries = {}
 
-    local navigation = UI.NavigationList:Create(page, 120)
-    navigation.frame:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -34)
-    navigation.frame:SetPoint("BOTTOMLEFT", page, "BOTTOMLEFT", 0, 0)
+    self.indicatorPages:ForEach(function(definition)
+        table.insert(entries, {
+            key = definition.id,
+            label = definition.title,
+            onSelect = definition.builder,
+        })
+    end)
 
-    local divider = page:CreateTexture(nil, "ARTWORK")
-    divider:SetPoint("TOPLEFT", navigation.frame, "TOPRIGHT", 10, 0)
-    divider:SetPoint("BOTTOMLEFT", navigation.frame, "BOTTOMRIGHT", 10, 0)
-    divider:SetWidth(1)
-    divider:SetColorTexture(0.35, 0.35, 0.35, 0.8)
-
-    local localHost = CreateFrame("Frame", nil, page)
-    localHost:SetPoint("TOPLEFT", divider, "TOPRIGHT", 12, 0)
-    localHost:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", 0, 0)
-    local indicatorPages = UI.PagePanel:Create(localHost)
-
-    local entries = {
-        { key = "combat", label = BFUF.L.INDICATOR_COMBAT },
-        { key = "resting", label = BFUF.L.INDICATOR_RESTING },
-        { key = "leader", label = BFUF.L.INDICATOR_LEADER },
-        { key = "assistant", label = BFUF.L.INDICATOR_ASSISTANT },
-        { key = "pvp", label = BFUF.L.INDICATOR_PVP },
-        { key = "afk", label = BFUF.L.INDICATOR_AFK },
-        { key = "dnd", label = BFUF.L.INDICATOR_DND },
-    }
-
-    for _, entry in ipairs(entries) do
-        local currentEntry = entry
-        currentEntry.onSelect = function()
-            self:ShowPlayerIndicatorPage(indicatorPages, currentEntry.key, currentEntry.label)
-        end
-        navigation:AddEntry(currentEntry)
-    end
-
-    navigation:Select("combat")
+    self.shell:SetContextEntries(entries)
+    self.shell.contextTabs:Select("player.indicators.combat")
 end
 
 -- Show one existing text object without changing its renderer or display model.
@@ -1358,6 +1334,7 @@ function SettingsModule:RegisterPages()
     self.topLevelPages = PageRegistry:Create()
     self.playerPages = PageRegistry:Create()
     self.textPages = PageRegistry:Create()
+    self.indicatorPages = PageRegistry:Create()
     self.textLayerPages = {
         health = PageRegistry:Create(),
         power = PageRegistry:Create(),
@@ -1502,6 +1479,28 @@ function SettingsModule:RegisterPages()
 
     for _, definition in ipairs(playerDefinitions) do
         self.playerPages:Register(definition)
+    end
+
+    local indicators = {
+        { key = "combat", title = BFUF.L.INDICATOR_COMBAT },
+        { key = "resting", title = BFUF.L.INDICATOR_RESTING },
+        { key = "leader", title = BFUF.L.INDICATOR_LEADER },
+        { key = "assistant", title = BFUF.L.INDICATOR_ASSISTANT },
+        { key = "pvp", title = BFUF.L.INDICATOR_PVP },
+        { key = "afk", title = BFUF.L.INDICATOR_AFK },
+        { key = "dnd", title = BFUF.L.INDICATOR_DND },
+    }
+
+    for _, indicator in ipairs(indicators) do
+        local indicatorKey = indicator.key
+        local indicatorTitle = indicator.title
+        self.indicatorPages:Register({
+            id = "player.indicators." .. indicatorKey,
+            title = indicatorTitle,
+            builder = function()
+                self:ShowPlayerIndicatorPage(self.shell.pages, indicatorKey, indicatorTitle)
+            end,
+        })
     end
 
     local textDefinitions = {
