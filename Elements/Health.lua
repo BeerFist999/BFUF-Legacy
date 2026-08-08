@@ -5,15 +5,34 @@ BFUF.Elements = BFUF.Elements or {}
 local Health = {}
 BFUF.Elements.Health = Health
 
-local function applyColor(statusBar)
+local DEFAULT_SETTINGS = {
+    colorMode = "custom",
+    customColor = { r = 1, g = 1, b = 1 },
+    showAbsorb = true,
+    showHealAbsorb = true,
+}
+
+local function getSettings(statusBar)
+    if statusBar.settings then
+        return statusBar.settings
+    end
+
+    local context = statusBar.context
+    if context and context.getSettings then
+        return context.getSettings() or DEFAULT_SETTINGS
+    end
+
+    return DEFAULT_SETTINGS
+end
+
+local function applyColor(statusBar, settings)
     if statusBar.colorResolver then
         local red, green, blue = statusBar.colorResolver(statusBar.unit)
         statusBar:SetStatusBarColor(red, green, blue)
         return
     end
 
-    local settings = BFUF.DB:Get("Player").health
-    local color = settings.customColor
+    local color = settings.customColor or DEFAULT_SETTINGS.customColor
 
     if settings.colorMode == "class" then
         local _, class = UnitClass(statusBar.unit or "player")
@@ -24,9 +43,10 @@ local function applyColor(statusBar)
 end
 
 -- Create the health bar and its independent absorb overlays.
-function Health:Create(parent)
+function Health:Create(parent, context)
     local statusBar = CreateFrame("StatusBar", nil, parent)
     statusBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+    statusBar.context = context or {}
 
     local absorbBar = CreateFrame("StatusBar", nil, statusBar)
     absorbBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
@@ -42,17 +62,25 @@ function Health:Create(parent)
         self.unit = unit
     end
 
+    -- Preserve frame-specific color policy, including Target/Boss reaction colors.
     function statusBar:SetColorResolver(resolver)
         self.colorResolver = resolver
     end
 
-    function statusBar:UpdateStyle()
-        applyColor(self)
-        self:UpdateOverlays()
+    -- Apply a profile-neutral settings table supplied by the frame context.
+    function statusBar:ApplySettings(settings)
+        self.settings = settings
+        self:UpdateStyle()
     end
 
-    function statusBar:UpdateOverlays()
-        local settings = BFUF.DB:Get("Player").health
+    function statusBar:UpdateStyle()
+        local settings = getSettings(self)
+        applyColor(self, settings)
+        self:UpdateOverlays(settings)
+    end
+
+    function statusBar:UpdateOverlays(settings)
+        settings = settings or getSettings(self)
         local unit = self.unit
 
         if not unit then
@@ -81,6 +109,22 @@ function Health:Create(parent)
         self:SetMinMaxValues(0, UnitHealthMax(unit))
         self:SetValue(UnitHealth(unit))
         self:UpdateStyle()
+    end
+
+    -- Health has no independent visibility setting today. Keep this lifecycle
+    -- method for frame-owned visibility without introducing new behavior.
+    function statusBar:SetVisible(visible)
+        self:SetShown(visible ~= false)
+    end
+
+    function statusBar:Destroy()
+        self.absorbBar:Hide()
+        self.healAbsorbBar:Hide()
+        self:Hide()
+        self.context = nil
+        self.settings = nil
+        self.unit = nil
+        self.colorResolver = nil
     end
 
     return statusBar

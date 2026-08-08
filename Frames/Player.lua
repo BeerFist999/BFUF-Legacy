@@ -168,7 +168,14 @@ function Player:Create()
         end,
     })
     root.portrait:SetUnit("player")
-    root.healthBar = BFUF.Elements.Health:Create(root.barsContainer)
+    root.healthBar = BFUF.Elements.Health:Create(root.barsContainer, {
+        frame = root,
+        unit = "player",
+        unitType = "Player",
+        getSettings = function()
+            return BFUF.DB:Get("Player").health
+        end,
+    })
     root.healthBar:SetUnit("player")
     root.healthBar.background = root.healthBar:CreateTexture(nil, "BACKGROUND")
     root.healthBar.background:SetColorTexture(0, 0, 0, 0.2)

@@ -439,7 +439,16 @@ local function createBossFrame(index)
     })
     root.portrait:SetUnit(unit)
 
-    root.healthBar = BFUF.Elements.Health:Create(root.barsContainer)
+    root.healthBar = BFUF.Elements.Health:Create(root.barsContainer, {
+        frame = root,
+        unit = unit,
+        unitType = "Boss",
+        getSettings = function()
+            -- Boss frames retain the existing shared health policy until a
+            -- separate Boss health-settings sprint introduces its own profile.
+            return BFUF.DB:Get("Player").health
+        end,
+    })
     root.healthBar:SetUnit(unit)
     root.healthBar:SetColorResolver(BFUF.Utils.GetUnitHealthColor)
     root.healthBar.background = root.healthBar:CreateTexture(nil, "BACKGROUND")
