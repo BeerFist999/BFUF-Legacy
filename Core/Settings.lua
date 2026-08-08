@@ -1637,18 +1637,28 @@ end
 -- Show the Boss Frames foundation controls without changing Player or Target settings.
 function SettingsModule:ShowBossFramePage()
     local context = { unit = "boss" }
+    local controls = {}
+
+    local function refreshPositionUnlock()
+        if controls.previewUnlocked then
+            controls.previewUnlocked:Refresh()
+        end
+    end
+
     local bindings = {
         enabled = BindingFactory:CreateProfileBinding({
             path = "Boss.enabled",
             label = BFUF.L.OPTION_ENABLE_BOSS_FRAMES,
             refreshIntent = "BOSS_LAYOUT",
             context = context,
+            afterSet = refreshPositionUnlock,
         }),
         preview = BindingFactory:CreateProfileBinding({
             path = "Boss.preview",
             label = BFUF.L.OPTION_PREVIEW_BOSS_FRAMES,
             refreshIntent = "BOSS_LAYOUT",
             context = context,
+            afterSet = refreshPositionUnlock,
         }),
         previewUnlocked = BindingFactory:CreateProfileBinding({
             path = "Boss.previewUnlocked",
@@ -1656,7 +1666,8 @@ function SettingsModule:ShowBossFramePage()
             refreshIntent = "BOSS_LAYOUT",
             context = context,
             disabled = function()
-                return not BFUF.DB:Get("Boss").preview
+                local boss = BFUF.DB:Get("Boss")
+                return boss.enabled == false or boss.preview ~= true
             end,
         }),
         showHealthText = BindingFactory:CreateProfileBinding({
@@ -1711,7 +1722,7 @@ function SettingsModule:ShowBossFramePage()
         UI.SectionPanel:Create(page, BFUF.L.SETTINGS_BOSS_FRAMES, -36)
         UI.CheckboxRow:Create(page, bindings.enabled, -66)
         UI.CheckboxRow:Create(page, bindings.preview, -94)
-        UI.CheckboxRow:Create(page, bindings.previewUnlocked, -122)
+        controls.previewUnlocked = UI.CheckboxRow:Create(page, bindings.previewUnlocked, -122)
         UI.CheckboxRow:Create(page, bindings.showHealthText, -150)
         UI.CheckboxRow:Create(page, bindings.showPowerText, -178)
         UI.SliderRow:Create(page, bindings.count, -216, 1, 5, 1)

@@ -405,6 +405,12 @@ local function createBossFrame(index)
     })
     root.powerText:SetPoint("RIGHT", root.powerBar, "RIGHT", -4, 0)
 
+    -- UnitWatch can show a newly available boss without a subsequent unit event.
+    -- Refresh only after the visible secure root has its unit data available.
+    root:HookScript("OnShow", function(frame)
+        Boss:Update(frame)
+    end)
+
     root:RegisterEvent("PLAYER_ENTERING_WORLD")
     root:RegisterEvent("PLAYER_REGEN_ENABLED")
     root:RegisterEvent("PLAYER_REGEN_DISABLED")
@@ -457,5 +463,13 @@ function Boss:Create()
     end
 
     self:UpdateLayout()
+
+    -- Populate any boss units that already exist when the frame group is created.
+    for _, root in ipairs(frames) do
+        if root.enabled then
+            self:Update(root)
+        end
+    end
+
     return frames
 end
