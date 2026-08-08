@@ -87,6 +87,95 @@ function Target:UpdateVisibility(root)
     root:SetShown(root.visible)
 end
 
+-- Apply only Target geometry from its own profile fields.
+function Target:UpdateLayout(root)
+    root = root or BFUF.Framework.Registry:GetFrame("target")
+    if not root then
+        return
+    end
+
+    if InCombatLockdown() then
+        root.layoutPending = true
+        return
+    end
+
+    local settings = BFUF.DB:Get("Target")
+    local anchor = settings.positionAnchor or {
+        point = "CENTER",
+        relativePoint = "CENTER",
+        offsetX = settings.positionX,
+        offsetY = settings.positionY,
+    }
+
+    root:ClearAllPoints()
+    root:SetPoint(anchor.point, UIParent, anchor.relativePoint, anchor.offsetX, anchor.offsetY)
+    root:SetSize(settings.width, settings.height)
+    root:SetScale(settings.scale)
+    root.position = anchor
+    root.layoutPending = nil
+end
+
+function Target:IsLayoutUnlocked()
+    local root = BFUF.Framework.Registry:GetFrame("target")
+    return root and root.layoutUnlocked or false
+end
+
+function Target:RefreshLayoutControls()
+    if BFUF.Core.Settings and BFUF.Core.Settings.RefreshFrameLayoutControls then
+        BFUF.Core.Settings:RefreshFrameLayoutControls("Target")
+    end
+end
+
+-- Store the native frame anchor without manual cursor calculations.
+function Target:SavePosition(root)
+    local point, _, relativePoint, offsetX, offsetY = root:GetPoint()
+    local settings = BFUF.DB:Get("Target")
+
+    settings.positionAnchor = {
+        point = point,
+        relativePoint = relativePoint,
+        offsetX = offsetX,
+        offsetY = offsetY,
+    }
+    settings.positionX = offsetX
+    settings.positionY = offsetY
+    self:RefreshLayoutControls()
+end
+
+function Target:SetLayoutUnlocked(unlocked)
+    local root = BFUF.Framework.Registry:GetFrame("target")
+    if not root or InCombatLockdown() then
+        return
+    end
+
+    root.layoutUnlocked = unlocked
+    root:EnableMouse(unlocked)
+    root.interaction:EnableMouse(not unlocked)
+end
+
+-- Attach Blizzard's native movement lifecycle to the Target root.
+function Target:AttachDrag(root)
+    root:SetMovable(true)
+    root:SetClampedToScreen(true)
+    root:RegisterForDrag("LeftButton")
+
+    root:SetScript("OnDragStart", function(frame)
+        if frame.layoutUnlocked and not InCombatLockdown() then
+            frame:StartMoving()
+        end
+    end)
+
+    root:SetScript("OnDragStop", function(frame)
+        if not frame.layoutUnlocked then
+            return
+        end
+
+        frame:StopMovingOrSizing()
+        Target:SavePosition(frame)
+        Target:UpdateLayout(frame)
+    end)
+end
+
 -- Refresh all visual elements after a target-related event.
 function Target:Update(root)
     root = root or BFUF.Framework.Registry:GetFrame("target")
@@ -113,14 +202,7 @@ function Target:Create()
     end
 
     root = BFUF.Framework.Factory:CreateUnitFrame("target")
-    root:SetSize(TARGET_WIDTH, TARGET_HEIGHT)
-    root:SetPoint("CENTER", UIParent, "CENTER", 320, 0)
-    root.position = {
-        point = "CENTER",
-        relativePoint = "CENTER",
-        offsetX = 320,
-        offsetY = 0,
-    }
+    root.layoutUnlocked = false
 
     local rootLevel = root:GetFrameLevel()
     root.background = root:CreateTexture(nil, "BACKGROUND", nil, 0)
@@ -155,6 +237,13 @@ function Target:Create()
     root.auraContainer:SetPoint("TOPRIGHT", root, "BOTTOMRIGHT", 0, -4)
     root.auraContainer:SetHeight(1)
     root.auraContainer:SetFrameLevel(rootLevel + 5)
+
+    root.interaction = CreateFrame("Button", nil, root, "SecureUnitButtonTemplate")
+    root.interaction:SetAllPoints(root)
+    root.interaction:RegisterForClicks("AnyUp")
+    root.interaction:SetAttribute("unit", "target")
+    root.interaction:SetAttribute("*type1", "target")
+    root.interaction:SetAttribute("*type2", "togglemenu")
 
     root.portrait = BFUF.Elements.Portrait:Create(root.portraitContainer)
     root.portrait:SetAllPoints(root.portraitContainer)
@@ -209,6 +298,7 @@ function Target:Create()
     root.powerText:SetPoint("RIGHT", root.powerBar, "RIGHT", -4, 0)
 
     root:RegisterEvent("PLAYER_ENTERING_WORLD")
+    root:RegisterEvent("PLAYER_REGEN_ENABLED")
     root:RegisterEvent("PLAYER_TARGET_CHANGED")
     root:RegisterEvent("UNIT_HEALTH")
     root:RegisterEvent("UNIT_MAXHEALTH")
@@ -218,6 +308,11 @@ function Target:Create()
     root:RegisterEvent("UNIT_NAME_UPDATE")
     root:RegisterEvent("UNIT_PORTRAIT_UPDATE")
     root:SetScript("OnEvent", function(_, event, unit)
+        if event == "PLAYER_REGEN_ENABLED" and root.layoutPending then
+            Target:UpdateLayout(root)
+            return
+        end
+
         if event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_TARGET_CHANGED" then
             Target:Update(root)
             return
@@ -229,6 +324,9 @@ function Target:Create()
     end)
 
     BFUF.Framework.Registry:RegisterFrame("target", root)
+    self:AttachDrag(root)
+    self:UpdateLayout(root)
+    self:SetLayoutUnlocked(false)
     self:Update(root)
     return root
 end
