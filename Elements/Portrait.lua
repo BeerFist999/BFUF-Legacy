@@ -43,6 +43,7 @@ function Portrait:Create(parent)
     container.debugState = {}
     container.retryPending = false
     container.initialRetryScheduled = false
+    container.initialRetryCompleted = false
 
     function container:ClearRenderer()
         self.debugState.clearRenderer = true
@@ -58,18 +59,19 @@ function Portrait:Create(parent)
         self.debugState.retryPending = self.retryPending
     end
 
-    function container:ScheduleInitialRetry()
-        if self.initialRetryScheduled or not C_Timer or not C_Timer.After then
+    function container:ScheduleInitialRetry(reason)
+        if self.initialRetryScheduled or self.initialRetryCompleted or not C_Timer or not C_Timer.After then
             return
         end
 
         self.initialRetryScheduled = true
         C_Timer.After(INITIAL_3D_RETRY_DELAY, function()
             self.initialRetryScheduled = false
+            self.initialRetryCompleted = true
 
             if self.mode == Portrait.Modes.THREE_D and self.retryPending then
                 self.retryAttempt = 2
-                self.retryReason = "PLAYER_ENTERING_WORLD"
+                self.retryReason = reason
                 self:Update("INITIAL_3D_RETRY")
             end
         end)
@@ -106,14 +108,15 @@ function Portrait:Create(parent)
         end
 
         self.mode = mode
+        if mode == Portrait.Modes.THREE_D then
+            self.initialRetryCompleted = false
+        end
+
         self:Update("MODE_CHANGED")
     end
 
     function container:Update(event)
-        if event == "PLAYER_ENTERING_WORLD" then
-            self.retryAttempt = 1
-            self.retryReason = event
-        elseif event ~= "INITIAL_3D_RETRY" then
+        if event ~= "INITIAL_3D_RETRY" then
             self.retryAttempt = nil
             self.retryReason = nil
         end
@@ -168,13 +171,13 @@ function Portrait:Create(parent)
                 self.texture:Show()
                 self.activeRenderer = "2d-fallback"
                 self.retryPending = true
+                self.retryAttempt = 1
+                self.retryReason = event or "INITIALIZE"
                 self.debugState.activeRenderer = self.activeRenderer
                 self.debugState.retryPending = self.retryPending
-
-                if event == "PLAYER_ENTERING_WORLD" then
-                    self:ScheduleInitialRetry()
-                end
-
+                self.debugState.retryAttempt = self.retryAttempt
+                self.debugState.retryReason = self.retryReason
+                self:ScheduleInitialRetry(self.retryReason)
                 return
             end
 
