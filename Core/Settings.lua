@@ -1650,6 +1650,15 @@ function SettingsModule:ShowBossFramePage()
             refreshIntent = "BOSS_LAYOUT",
             context = context,
         }),
+        previewUnlocked = BindingFactory:CreateProfileBinding({
+            path = "Boss.previewUnlocked",
+            label = BFUF.L.OPTION_UNLOCK_BOSS_POSITION,
+            refreshIntent = "BOSS_LAYOUT",
+            context = context,
+            disabled = function()
+                return not BFUF.DB:Get("Boss").preview
+            end,
+        }),
         count = BindingFactory:CreateProfileBinding({
             path = "Boss.count",
             label = BFUF.L.OPTION_BOSS_FRAME_COUNT,
@@ -1690,11 +1699,12 @@ function SettingsModule:ShowBossFramePage()
         UI.SectionPanel:Create(page, BFUF.L.SETTINGS_BOSS_FRAMES, -36)
         UI.CheckboxRow:Create(page, bindings.enabled, -66)
         UI.CheckboxRow:Create(page, bindings.preview, -94)
-        UI.SliderRow:Create(page, bindings.count, -122, 1, 5, 1)
-        UI.SliderRow:Create(page, bindings.width, -180, 120, 600, 1)
-        UI.SliderRow:Create(page, bindings.height, -238, 20, 200, 1)
-        UI.SliderRow:Create(page, bindings.spacing, -296, 0, 100, 1)
-        UI.DropdownRow:Create(page, bindings.growth, -354)
+        UI.CheckboxRow:Create(page, bindings.previewUnlocked, -122)
+        UI.SliderRow:Create(page, bindings.count, -150, 1, 5, 1)
+        UI.SliderRow:Create(page, bindings.width, -208, 120, 600, 1)
+        UI.SliderRow:Create(page, bindings.height, -266, 20, 200, 1)
+        UI.SliderRow:Create(page, bindings.spacing, -324, 0, 100, 1)
+        UI.DropdownRow:Create(page, bindings.growth, -382)
     end, function()
         BindingFactory:Reset(bindings)
     end)

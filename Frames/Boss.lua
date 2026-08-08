@@ -112,7 +112,7 @@ local function applyPreviewGeometry(frame, previous, settings, index)
     frame:SetScale(settings.scale or 1)
 
     if index == 1 then
-        frame:SetPoint("CENTER", UIParent, "CENTER", settings.positionX or 0, settings.positionY or 0)
+        frame:SetAllPoints(frame:GetParent())
     elseif settings.growth == "UP" then
         frame:SetPoint("BOTTOMLEFT", previous, "TOPLEFT", 0, settings.spacing or 0)
     else
@@ -159,29 +159,89 @@ local function applyPreviewGeometry(frame, previous, settings, index)
 end
 
 function Boss:HidePreview()
-    if self.previewFrames then
-        for _, frame in ipairs(self.previewFrames) do
-            frame:Hide()
-        end
+    if self.previewAnchor then
+        self.previewAnchor:Hide()
     end
+end
+
+function Boss:SavePreviewPosition()
+    if not self.previewAnchor then
+        return
+    end
+
+    local point, _, relativePoint, x, y = self.previewAnchor:GetPoint()
+    local position = self:EnsurePosition()
+    position.point = point
+    position.relativePoint = relativePoint
+    position.x = x
+    position.y = y
+    self:UpdateLayout()
+end
+
+function Boss:CreatePreviewAnchor()
+    if self.previewAnchor then
+        return self.previewAnchor
+    end
+
+    local anchor = CreateFrame("Frame", nil, UIParent)
+    anchor:SetMovable(true)
+    anchor:RegisterForDrag("LeftButton")
+    anchor:SetClampedToScreen(true)
+
+    anchor:SetScript("OnDragStart", function(frame)
+        if frame.unlocked and not InCombatLockdown() then
+            frame.dragging = true
+            frame:StartMoving()
+        end
+    end)
+
+    anchor:SetScript("OnDragStop", function(frame)
+        if not frame.dragging then
+            return
+        end
+
+        frame:StopMovingOrSizing()
+        frame.dragging = false
+        Boss:SavePreviewPosition()
+    end)
+
+    self.previewAnchor = anchor
+    return anchor
 end
 
 function Boss:UpdatePreview(settings)
     settings = settings or self:EnsureSettings()
+    settings.position = settings.position or self:EnsurePosition()
 
     if not settings.preview or InCombatLockdown() then
         self:HidePreview()
         return
     end
 
+    local anchor = self:CreatePreviewAnchor()
     self.previewFrames = self.previewFrames or {}
     local previous
     local count = math.max(1, math.min(MAX_BOSS_FRAMES, settings.count or MAX_BOSS_FRAMES))
 
+    anchor:SetSize(settings.width, settings.height)
+    anchor:SetShown(true)
+    anchor:EnableMouse(settings.previewUnlocked == true)
+
+    if not anchor.dragging then
+        anchor:ClearAllPoints()
+        anchor:SetPoint(
+            settings.position.point,
+            UIParent,
+            settings.position.relativePoint,
+            settings.position.x,
+            settings.position.y
+        )
+    end
+
     for index = 1, MAX_BOSS_FRAMES do
         local frame = self.previewFrames[index]
         if not frame then
-            frame = createPreviewFrame(UIParent)
+            frame = createPreviewFrame(anchor)
             self.previewFrames[index] = frame
         end
 
@@ -206,6 +266,22 @@ function Boss:EnsureSettings()
     return settings
 end
 
+function Boss:EnsurePosition()
+    local storage = BFUF.DB:Get("BossFrames")
+    storage.position = storage.position or {}
+
+    local position = storage.position
+    local legacy = BFUF.DB:Get("Boss")
+    local defaults = BFUF.Defaults.profile.BossFrames.position
+
+    position.point = position.point or defaults.point
+    position.relativePoint = position.relativePoint or defaults.relativePoint
+    position.x = position.x or legacy.positionX or defaults.x
+    position.y = position.y or legacy.positionY or defaults.y
+
+    return position
+end
+
 function Boss:UpdateTexts(root)
     local unit = root.unit
     root.nameText:SetText(UnitName(unit))
@@ -226,6 +302,7 @@ end
 
 function Boss:UpdateLayout()
     local settings = self:EnsureSettings()
+    settings.position = self:EnsurePosition()
     local previous
 
     for index = 1, MAX_BOSS_FRAMES do

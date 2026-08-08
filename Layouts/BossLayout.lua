@@ -48,7 +48,14 @@ local function applyRootAnchor(root, previous, settings)
     root:ClearAllPoints()
 
     if root.index == 1 then
-        root:SetPoint("CENTER", UIParent, "CENTER", settings.positionX or 0, settings.positionY or 0)
+        local position = settings.position or {}
+        root:SetPoint(
+            position.point or "CENTER",
+            UIParent,
+            position.relativePoint or "CENTER",
+            position.x or settings.positionX or 0,
+            position.y or settings.positionY or 0
+        )
     elseif settings.growth == "UP" then
         root:SetPoint("BOTTOMLEFT", previous, "TOPLEFT", 0, settings.spacing or 0)
     else

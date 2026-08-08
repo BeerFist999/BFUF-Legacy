@@ -141,11 +141,21 @@ BFUF.Defaults = {
             spacing = 8,
             growth = "DOWN",
             preview = false,
+            previewUnlocked = false,
             show = true,
 
             portrait = {
                 enabled = true,
                 width = UNIT_FRAME_DEFAULTS.portraitWidth,
+            },
+        },
+
+        BossFrames = {
+            position = {
+                point = "CENTER",
+                relativePoint = "CENTER",
+                x = UNIT_FRAME_DEFAULTS.positions.boss.x,
+                y = UNIT_FRAME_DEFAULTS.positions.boss.y,
             },
         },
 
