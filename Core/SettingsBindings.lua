@@ -9,6 +9,8 @@ SettingsInfrastructure.BindingFactory = BindingFactory
 local RefreshDispatcher = {
     batchDepth = 0,
     pending = {},
+    deferred = {},
+    deferredScheduled = false,
 }
 SettingsInfrastructure.RefreshDispatcher = RefreshDispatcher
 
@@ -143,17 +145,43 @@ function RefreshDispatcher:Dispatch(intent, context)
     return true
 end
 
-function RefreshDispatcher:Request(intent, context)
+function RefreshDispatcher:FlushDeferred()
+    self.deferredScheduled = false
+
+    local deferred = self.deferred
+    self.deferred = {}
+
+    for _, request in pairs(deferred) do
+        self:Dispatch(request.intent, request.context)
+    end
+end
+
+function RefreshDispatcher:Request(intent, context, defer)
     if not intent or intent == "NONE" then
         return
     end
 
+    local unit = context and context.unit or "global"
     if self.batchDepth > 0 then
-        local unit = context and context.unit or "global"
         self.pending[intent .. ":" .. unit] = {
             intent = intent,
             context = context,
         }
+        return
+    end
+
+    if defer then
+        self.deferred[intent .. ":" .. unit] = {
+            intent = intent,
+            context = context,
+        }
+
+        if not self.deferredScheduled then
+            self.deferredScheduled = true
+            C_Timer.After(0, function()
+                RefreshDispatcher:FlushDeferred()
+            end)
+        end
         return
     end
 
@@ -195,6 +223,7 @@ function BindingFactory:Create(definition)
         context = definition.context,
         values = definition.values,
         disabled = definition.disabled,
+        deferRefresh = definition.deferRefresh == true,
     }
 
     binding.get = function()
@@ -206,7 +235,7 @@ function BindingFactory:Create(definition)
         if definition.afterSet then
             definition.afterSet(value)
         end
-        RefreshDispatcher:Request(binding.refreshIntent, binding.context)
+        RefreshDispatcher:Request(binding.refreshIntent, binding.context, binding.deferRefresh)
     end
 
     binding.default = function()
@@ -251,6 +280,36 @@ function BindingFactory:CreateProfileBinding(definition)
         end,
         default = defaultProvider,
         afterSet = definition.afterSet,
+        deferRefresh = definition.deferRefresh,
+    })
+end
+
+-- Create a position binding that clears the native drag anchor in the same write.
+function BindingFactory:CreatePositionBinding(definition)
+    assert(definition.profileKey, "Position binding must have a profile key")
+    assert(definition.key, "Position binding must have a key")
+
+    local profileKey = definition.profileKey
+    local positionKey = definition.key
+
+    return self:Create({
+        key = profileKey .. "." .. positionKey,
+        label = definition.label,
+        disabled = definition.disabled,
+        refreshIntent = definition.refreshIntent,
+        context = definition.context,
+        deferRefresh = true,
+        get = function()
+            return BFUF.DB:Get(profileKey)[positionKey]
+        end,
+        set = function(value)
+            local profile = BFUF.DB:Get(profileKey)
+            profile[positionKey] = value
+            profile.positionAnchor = nil
+        end,
+        default = function()
+            return BFUF.Defaults.profile[profileKey][positionKey]
+        end,
     })
 end
 

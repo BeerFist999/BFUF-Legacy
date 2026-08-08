@@ -1544,26 +1544,24 @@ function SettingsModule:ShowBasicFrameLayoutPage(profileKey, frameModule, title,
 
     self.frameLayoutControls = self.frameLayoutControls or {}
     local controls = {}
-    local anchorBinding = BindingFactory:CreateProfileBinding({
-        path = profileKey .. ".positionAnchor",
-        refreshIntent = "NONE",
-        context = context,
-    })
     local bindings = {}
 
     for _, option in ipairs(options) do
         local optionKey = option.key
-        bindings[optionKey] = BindingFactory:CreateProfileBinding({
-            path = profileKey .. "." .. optionKey,
+        local definition = {
             label = BFUF.L[option.label],
             refreshIntent = intent,
             context = context,
-            afterSet = function()
-                if optionKey == "positionX" or optionKey == "positionY" then
-                    anchorBinding.set(nil)
-                end
-            end,
-        })
+        }
+
+        if optionKey == "positionX" or optionKey == "positionY" then
+            definition.profileKey = profileKey
+            definition.key = optionKey
+            bindings[optionKey] = BindingFactory:CreatePositionBinding(definition)
+        else
+            definition.path = profileKey .. "." .. optionKey
+            bindings[optionKey] = BindingFactory:CreateProfileBinding(definition)
+        end
     end
 
     local function refreshControls()
