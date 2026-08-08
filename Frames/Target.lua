@@ -4,9 +4,6 @@ BFUF.Frames = BFUF.Frames or {}
 local Target = {}
 BFUF.Frames.Target = Target
 
-local TARGET_WIDTH = 260
-local TARGET_HEIGHT = 58
-local PORTRAIT_SIZE = 54
 local CONTENT_PADDING = 2
 local BAR_GAP = 2
 local POWER_HEIGHT = 10
@@ -235,6 +232,7 @@ function Target:Create()
     root.highFrame = CreateFrame("Frame", nil, root)
     root.highFrame:SetAllPoints(root.barsContainer)
     root.highFrame:SetFrameLevel(rootLevel + 4)
+    root.highFrame:SetClipsChildren(true)
     root.textContainer = root.highFrame
 
     root.indicatorContainer = CreateFrame("Frame", nil, root)
@@ -283,7 +281,8 @@ function Target:Create()
         justifyV = "MIDDLE",
         size = 12,
     })
-    root.nameText:SetPoint("LEFT", root.healthBar, "LEFT", 4, 0)
+    root.nameText:SetWordWrap(false)
+    root.nameText:SetMaxLines(1)
 
     root.healthText = BFUF.Elements.Text:Create(root.highFrame, {
         justifyH = "RIGHT",
@@ -291,6 +290,11 @@ function Target:Create()
         size = 12,
     })
     root.healthText:SetPoint("RIGHT", root.healthBar, "RIGHT", -4, 0)
+
+    -- The name uses the dynamically available space between the health bar edge
+    -- and its value text, so it cannot overlap the portrait or health values.
+    root.nameText:SetPoint("LEFT", root.healthBar, "LEFT", 4, 0)
+    root.nameText:SetPoint("RIGHT", root.healthText, "LEFT", -6, 0)
 
     root.levelText = BFUF.Elements.Text:Create(root.highFrame, {
         justifyH = "LEFT",
