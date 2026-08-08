@@ -5,6 +5,9 @@ BFUF.Elements = BFUF.Elements or {}
 local Health = {}
 BFUF.Elements.Health = Health
 
+-- Deferred until a public, secret-safe prediction-segment API is available.
+local INCOMING_HEALS_ENABLED = false
+
 local DEFAULT_SETTINGS = {
     colorMode = "custom",
     customColor = { r = 1, g = 1, b = 1 },
@@ -154,18 +157,20 @@ function Health:Create(parent, context)
         local maxHealth = UnitHealthMax(unit)
         self.absorbBar:SetShown(settings.showAbsorb)
         self.healAbsorbBar:SetShown(settings.showHealAbsorb)
-        self.incomingHealBar:SetShown(settings.incomingHeal)
+        self.incomingHealBar:SetShown(INCOMING_HEALS_ENABLED and settings.incomingHeal)
         self.absorbBar:SetMinMaxValues(0, maxHealth)
         self.healAbsorbBar:SetMinMaxValues(0, maxHealth)
         self.incomingHealBar:SetMinMaxValues(0, maxHealth)
         self.absorbBar:SetValue(UnitGetTotalAbsorbs(unit))
         self.healAbsorbBar:SetValue(UnitGetTotalHealAbsorbs(unit))
 
-        if settings.incomingHeal then
-            -- Blizzard returns nil when no prediction is available. Coalesce
-            -- only that absence to zero before passing the value to StatusBar.
+        if INCOMING_HEALS_ENABLED and settings.incomingHeal then
+            -- Deferred path: retain the Blizzard-compatible nil handling for
+            -- the future prediction-segment renderer.
             self.incomingHealBar:SetValue(UnitGetIncomingHeals(unit) or 0)
         else
+            -- Do not read the API while the feature is deferred. Existing
+            -- profile values remain stored but cannot enable rendering.
             self.incomingHealBar:SetValue(0)
         end
     end
