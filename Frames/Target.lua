@@ -364,6 +364,8 @@ function Target:Create()
     root:RegisterEvent("PLAYER_TARGET_CHANGED")
     root:RegisterEvent("UNIT_HEALTH")
     root:RegisterEvent("UNIT_MAXHEALTH")
+    root:RegisterEvent("UNIT_ABSORB_AMOUNT_CHANGED")
+    root:RegisterEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED")
     root:RegisterEvent("UNIT_POWER_UPDATE")
     root:RegisterEvent("UNIT_MAXPOWER")
     root:RegisterEvent("UNIT_DISPLAYPOWER")
@@ -381,6 +383,13 @@ function Target:Create()
 
         if event == "PLAYER_TARGET_CHANGED" then
             Target:Update(root)
+            return
+        end
+
+        if event == "UNIT_ABSORB_AMOUNT_CHANGED" or event == "UNIT_HEAL_ABSORB_AMOUNT_CHANGED" then
+            if unit == "target" then
+                root.healthBar:UpdateOverlays()
+            end
             return
         end
 

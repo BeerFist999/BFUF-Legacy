@@ -224,6 +224,8 @@ function Player:Create()
     root:RegisterEvent("PLAYER_REGEN_ENABLED")
     root:RegisterEvent("UNIT_HEALTH")
     root:RegisterEvent("UNIT_MAXHEALTH")
+    root:RegisterEvent("UNIT_ABSORB_AMOUNT_CHANGED")
+    root:RegisterEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED")
     root:RegisterEvent("UNIT_POWER_UPDATE")
     root:RegisterEvent("UNIT_MAXPOWER")
     root:RegisterEvent("UNIT_DISPLAYPOWER")
@@ -234,6 +236,12 @@ function Player:Create()
             return
         end
         if event == "PLAYER_ENTERING_WORLD" then refresh(); return end
+        if event == "UNIT_ABSORB_AMOUNT_CHANGED" or event == "UNIT_HEAL_ABSORB_AMOUNT_CHANGED" then
+            if unit == "player" then
+                root.healthBar:UpdateOverlays()
+            end
+            return
+        end
         if unit == "player" then refresh() end
     end)
 
