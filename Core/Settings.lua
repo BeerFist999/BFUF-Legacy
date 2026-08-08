@@ -1901,22 +1901,120 @@ function SettingsModule:ShowPlayerPage()
     self.shell.frameTabs:Select("player.general")
 end
 
--- Register the shell and preserve legacy pages until each replacement has been validated.
-function SettingsModule:Initialize()
-    if self.category then
+-- Create the independent BFUF settings host used outside Blizzard Settings.
+function SettingsModule:CreateStandaloneWindow()
+    if self.window then
+        return self.window
+    end
+
+    local window = CreateFrame("Frame", "BFUFSettingsWindow", UIParent)
+    window:SetSize(980, 680)
+    window:SetPoint("CENTER")
+    window:SetFrameStrata("DIALOG")
+    window:SetToplevel(true)
+    window:SetClampedToScreen(true)
+    window:SetMovable(true)
+    window:EnableMouse(true)
+    window:RegisterForDrag("LeftButton")
+    window:SetUserPlaced(true)
+    window:Hide()
+
+    local background = window:CreateTexture(nil, "BACKGROUND")
+    background:SetAllPoints()
+    background:SetColorTexture(0.045, 0.045, 0.055, 0.98)
+
+    local border = window:CreateTexture(nil, "BORDER")
+    border:SetPoint("TOPLEFT", window, "TOPLEFT", 0, 0)
+    border:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", 0, 0)
+    border:SetColorTexture(0.22, 0.22, 0.28, 1)
+
+    local content = CreateFrame("Frame", nil, window)
+    content:SetPoint("TOPLEFT", window, "TOPLEFT", 1, -38)
+    content:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", -1, 1)
+
+    local header = CreateFrame("Frame", nil, window)
+    header:SetPoint("TOPLEFT", window, "TOPLEFT", 1, -1)
+    header:SetPoint("TOPRIGHT", window, "TOPRIGHT", -1, -1)
+    header:SetHeight(36)
+
+    local headerBackground = header:CreateTexture(nil, "BACKGROUND")
+    headerBackground:SetAllPoints()
+    headerBackground:SetColorTexture(0.09, 0.09, 0.12, 1)
+
+    local title = header:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
+    title:SetPoint("LEFT", header, "LEFT", 14, 0)
+    title:SetText(BFUF.L.ADDON_NAME)
+
+    local close = CreateFrame("Button", nil, header, "UIPanelCloseButton")
+    close:SetPoint("RIGHT", header, "RIGHT", -2, 0)
+    close:SetScript("OnClick", function()
+        window:Hide()
+    end)
+
+    header:EnableMouse(true)
+    header:RegisterForDrag("LeftButton")
+    header:SetScript("OnDragStart", function()
+        window:StartMoving()
+    end)
+    header:SetScript("OnDragStop", function()
+        window:StopMovingOrSizing()
+        window:SetUserPlaced(true)
+    end)
+
+    self.window = window
+    self.shell = UI.SettingsShell:Create(content)
+    return window
+end
+
+-- Open the standalone host from either slash commands or the Blizzard proxy category.
+function SettingsModule:OpenStandalone()
+    self:Initialize()
+    self.window:Show()
+    self.window:Raise()
+
+    local selectedPage = self.shell.navigation.selectedKey or "general"
+    self.shell.navigation:Select(selectedPage)
+end
+
+-- Redirect the legacy Blizzard Settings category to the standalone window.
+function SettingsModule:OpenFromBlizzardSettings()
+    if self.openingFromBlizzardSettings then
         return
     end
 
-    local rootFrame = CreateFrame("Frame")
-    rootFrame:SetSize(820, 540)
-    self.category = Settings.RegisterCanvasLayoutCategory(rootFrame, BFUF.L.ADDON_NAME)
+    self.openingFromBlizzardSettings = true
+    C_Timer.After(0, function()
+        self.openingFromBlizzardSettings = false
+        self:OpenStandalone()
+
+        if SettingsPanel and SettingsPanel:IsShown() then
+            HideUIPanel(SettingsPanel)
+        end
+    end)
+end
+
+-- Register the shell and preserve legacy pages until each replacement has been validated.
+function SettingsModule:Initialize()
+    if self.window then
+        return
+    end
+
+    local proxyFrame = CreateFrame("Frame")
+    proxyFrame:SetSize(1, 1)
+    self.category = Settings.RegisterCanvasLayoutCategory(proxyFrame, BFUF.L.ADDON_NAME)
     Settings.RegisterAddOnCategory(self.category)
 
-    self.shell = UI.SettingsShell:Create(rootFrame)
-    rootFrame:SetScript("OnHide", function()
-        self.shell.pages:ClearCache()
+    if self.category.SetOnRefresh then
+        self.category:SetOnRefresh(function()
+            self:OpenFromBlizzardSettings()
+        end)
+    end
+
+    proxyFrame:SetScript("OnShow", function()
+        self:OpenFromBlizzardSettings()
     end)
 
+    self:CreateStandaloneWindow()
     self:RegisterShellPages()
 
     local entries = {}
@@ -1941,12 +2039,7 @@ function SettingsModule:Initialize()
     }
 end
 
--- Open the root BFUF category in Blizzard Settings.
+-- Open the standalone BFUF Settings window.
 function SettingsModule:Open()
-    self:Initialize()
-
-    local selectedPage = self.shell.navigation.selectedKey or "general"
-    self.shell.navigation:Select(selectedPage)
-
-    Settings.OpenToCategory(self.category:GetID())
+    self:OpenStandalone()
 end
