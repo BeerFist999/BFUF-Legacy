@@ -415,7 +415,8 @@ function UI.TabBar:Create(parent)
         totalWidth = totalWidth + math.max(#self.entryOrder - 1, 0) * self.tabSpacing
 
         local hasOverflow = totalWidth > availableWidth
-        local visibleWidth = hasOverflow and availableWidth - self.overflowWidth - self.tabSpacing or availableWidth
+        local overflowWidth = math.max(1, math.min(self.overflowWidth, availableWidth))
+        local visibleWidth = hasOverflow and math.max(0, availableWidth - overflowWidth - self.tabSpacing) or availableWidth
         local usedWidth = 0
 
         for _, entry in ipairs(self.entryOrder) do
@@ -438,6 +439,7 @@ function UI.TabBar:Create(parent)
         self.overflowButton:ClearAllPoints()
         self.overflowButton:SetShown(hasOverflow)
         if hasOverflow then
+            self.overflowButton:SetSize(overflowWidth, 24)
             self.overflowButton:SetPoint("RIGHT", self.frame, "RIGHT", 0, 0)
         end
     end
