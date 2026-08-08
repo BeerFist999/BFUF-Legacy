@@ -1568,7 +1568,14 @@ function SettingsModule:ShowBasicFrameLayoutPage(profileKey, frameModule, title,
                         return BFUF.DB:Get(profileKey)[optionKey]
                     end,
                     set = function(value)
-                        BFUF.DB:Get(profileKey)[optionKey] = value
+                        local profile = BFUF.DB:Get(profileKey)
+                        profile[optionKey] = value
+
+                        -- Manual X/Y input takes precedence over a native drag anchor.
+                        if optionKey == "positionX" or optionKey == "positionY" then
+                            profile.positionAnchor = nil
+                        end
+
                         frameModule:UpdateLayout()
                     end,
                 },
@@ -1596,13 +1603,67 @@ function SettingsModule:ShowBasicFrameLayoutPage(profileKey, frameModule, title,
     self.frameLayoutControls[profileKey] = controls
 end
 
+-- Show the small Target portrait page without changing the Settings shell.
+function SettingsModule:ShowTargetPortraitPage()
+    local function updatePortrait()
+        BFUF.Frames.Target:UpdateLayout()
+        BFUF.Frames.Target:Update()
+    end
+
+    local function resetPortrait()
+        local portrait = BFUF.DB:Get("Target").portrait
+        local defaults = BFUF.Defaults.profile.Target.portrait
+        portrait.mode = defaults.mode
+        portrait.width = defaults.width
+        updatePortrait()
+    end
+
+    self.shell.pages:ShowPage(BFUF.L.SETTINGS_PLAYER_PORTRAIT, nil, true, function(page)
+        UI.SectionPanel:Create(page, BFUF.L.SECTION_PORTRAIT, -36)
+
+        UI.DropdownRow:Create(page, {
+            label = BFUF.L.OPTION_DISPLAY_MODE,
+            get = function()
+                return BFUF.DB:Get("Target").portrait.mode
+            end,
+            set = function(value)
+                BFUF.DB:Get("Target").portrait.mode = value
+                updatePortrait()
+            end,
+            values = {
+                { value = BFUF.Elements.Portrait.Modes.HIDDEN, label = BFUF.L.OPTION_PORTRAIT_HIDDEN },
+                { value = BFUF.Elements.Portrait.Modes.TWO_D, label = BFUF.L.OPTION_PORTRAIT_2D },
+                { value = BFUF.Elements.Portrait.Modes.THREE_D, label = BFUF.L.OPTION_PORTRAIT_3D },
+            },
+        }, -66)
+
+        UI.SliderRow:Create(
+            page,
+            {
+                label = BFUF.L.OPTION_PORTRAIT_WIDTH,
+                get = function()
+                    return BFUF.DB:Get("Target").portrait.width
+                end,
+                set = function(value)
+                    BFUF.DB:Get("Target").portrait.width = value
+                    updatePortrait()
+                end,
+            },
+            -112,
+            20,
+            160,
+            1
+        )
+    end, resetPortrait)
+end
+
 -- Build the second-level navigation for a frame module.
 function SettingsModule:ShowShellFrame(frameKey, title, isFuture)
     local hasBasicLayout = frameKey == "player" or frameKey == "target"
     local pageDefinitions = {
         { key = "general", title = BFUF.L.SETTINGS_PLAYER_GENERAL, disabled = isFuture == true },
         { key = "bars", title = BFUF.L.SETTINGS_PLAYER_BARS, disabled = true },
-        { key = "portrait", title = BFUF.L.SETTINGS_PLAYER_PORTRAIT, disabled = true },
+        { key = "portrait", title = BFUF.L.SETTINGS_PLAYER_PORTRAIT, disabled = frameKey ~= "target" },
         { key = "text", title = BFUF.L.SETTINGS_PLAYER_TEXT, disabled = true },
         { key = "indicators", title = BFUF.L.SETTINGS_PLAYER_INDICATORS, disabled = true },
         { key = "resources", title = BFUF.L.SETTINGS_PLAYER_RESOURCES, disabled = true },
@@ -1635,6 +1696,11 @@ function SettingsModule:ShowShellFrame(frameKey, title, isFuture)
                             BFUF.L.BUTTON_UNLOCK_TARGET_FRAME
                         )
                     end
+                    return
+                end
+
+                if definition.key == "portrait" and frameKey == "target" then
+                    self:ShowTargetPortraitPage()
                     return
                 end
 
