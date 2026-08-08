@@ -1515,16 +1515,98 @@ function SettingsModule:ShowShellPage(id, title, description)
     })
 end
 
+-- Refresh the basic layout controls of a frame page after drag or reset.
+function SettingsModule:RefreshFrameLayoutControls(profileKey)
+    local controls = self.frameLayoutControls and self.frameLayoutControls[profileKey]
+    if not controls then
+        return
+    end
+
+    for _, control in pairs(controls) do
+        control:Refresh()
+    end
+end
+
+-- Build the temporary shared layout page used by Player and Target.
+function SettingsModule:ShowBasicFrameLayoutPage(profileKey, frameModule, title, lockLabel, unlockLabel)
+    local options = {
+        { key = "width", label = "OPTION_FRAME_WIDTH", minValue = 120, maxValue = 600, step = 1 },
+        { key = "height", label = "OPTION_FRAME_HEIGHT", minValue = 20, maxValue = 200, step = 1 },
+        { key = "scale", label = "OPTION_FRAME_SCALE", minValue = 0.5, maxValue = 2, step = 0.05 },
+        { key = "positionX", label = "OPTION_POSITION_X", minValue = -1000, maxValue = 1000, step = 1 },
+        { key = "positionY", label = "OPTION_POSITION_Y", minValue = -1000, maxValue = 1000, step = 1 },
+    }
+
+    self.frameLayoutControls = self.frameLayoutControls or {}
+    local controls = {}
+
+    local function refreshControls()
+        self:RefreshFrameLayoutControls(profileKey)
+    end
+
+    local function resetPosition()
+        local profile = BFUF.DB:Get(profileKey)
+        local defaults = BFUF.Defaults.profile[profileKey]
+
+        profile.positionX = defaults.positionX
+        profile.positionY = defaults.positionY
+        profile.positionAnchor = nil
+        frameModule:UpdateLayout()
+        refreshControls()
+    end
+
+    self.shell.pages:ShowPage(title, nil, true, function(page)
+        UI.SectionPanel:Create(page, BFUF.L.SECTION_LAYOUT, -36)
+
+        for index, option in ipairs(options) do
+            local optionKey = option.key
+            controls[optionKey] = UI.SliderRow:Create(
+                page,
+                {
+                    label = BFUF.L[option.label],
+                    get = function()
+                        return BFUF.DB:Get(profileKey)[optionKey]
+                    end,
+                    set = function(value)
+                        BFUF.DB:Get(profileKey)[optionKey] = value
+                        frameModule:UpdateLayout()
+                    end,
+                },
+                -66 - (index - 1) * 58,
+                option.minValue,
+                option.maxValue,
+                option.step
+            )
+        end
+
+        local lockButton
+        lockButton = UI.ButtonRow:Create(page, "", -372, function()
+            frameModule:SetLayoutUnlocked(not frameModule:IsLayoutUnlocked())
+            lockButton:SetText(
+                frameModule:IsLayoutUnlocked() and lockLabel or unlockLabel
+            )
+        end)
+        lockButton:SetText(
+            frameModule:IsLayoutUnlocked() and lockLabel or unlockLabel
+        )
+
+        UI.ButtonRow:Create(page, BFUF.L.BUTTON_RESET_POSITION, -404, resetPosition)
+    end, resetPosition)
+
+    self.frameLayoutControls[profileKey] = controls
+end
+
 -- Build the second-level navigation for a frame module.
 function SettingsModule:ShowShellFrame(frameKey, title, isFuture)
+    local hasBasicLayout = frameKey == "player" or frameKey == "target"
     local pageDefinitions = {
-        { key = "general", title = BFUF.L.SETTINGS_PLAYER_GENERAL },
-        { key = "bars", title = BFUF.L.SETTINGS_PLAYER_BARS },
-        { key = "portrait", title = BFUF.L.SETTINGS_PLAYER_PORTRAIT },
-        { key = "text", title = BFUF.L.SETTINGS_PLAYER_TEXT },
-        { key = "indicators", title = BFUF.L.SETTINGS_PLAYER_INDICATORS },
-        { key = "resources", title = BFUF.L.SETTINGS_PLAYER_RESOURCES },
-        { key = "auras", title = BFUF.L.SETTINGS_PLAYER_AURAS },
+        { key = "general", title = BFUF.L.SETTINGS_PLAYER_GENERAL, disabled = isFuture == true },
+        { key = "bars", title = BFUF.L.SETTINGS_PLAYER_BARS, disabled = true },
+        { key = "portrait", title = BFUF.L.SETTINGS_PLAYER_PORTRAIT, disabled = true },
+        { key = "text", title = BFUF.L.SETTINGS_PLAYER_TEXT, disabled = true },
+        { key = "indicators", title = BFUF.L.SETTINGS_PLAYER_INDICATORS, disabled = true },
+        { key = "resources", title = BFUF.L.SETTINGS_PLAYER_RESOURCES, disabled = true },
+        { key = "auras", title = BFUF.L.SETTINGS_PLAYER_AURAS, disabled = true },
     }
 
     local entries = {}
@@ -1533,8 +1615,29 @@ function SettingsModule:ShowShellFrame(frameKey, title, isFuture)
         table.insert(entries, {
             key = pageId,
             label = definition.title,
-            disabled = isFuture == true,
+            disabled = definition.disabled,
             onSelect = function()
+                if definition.key == "general" and hasBasicLayout then
+                    if frameKey == "player" then
+                        self:ShowBasicFrameLayoutPage(
+                            "Player",
+                            BFUF.Frames.Player,
+                            definition.title,
+                            BFUF.L.BUTTON_LOCK_PLAYER_FRAME,
+                            BFUF.L.BUTTON_UNLOCK_PLAYER_FRAME
+                        )
+                    else
+                        self:ShowBasicFrameLayoutPage(
+                            "Target",
+                            BFUF.Frames.Target,
+                            definition.title,
+                            BFUF.L.BUTTON_LOCK_TARGET_FRAME,
+                            BFUF.L.BUTTON_UNLOCK_TARGET_FRAME
+                        )
+                    end
+                    return
+                end
+
                 self:ShowShellPage(pageId, definition.title)
             end,
         })
@@ -1556,7 +1659,6 @@ function SettingsModule:RegisterShellPages()
 
     self.shellPages = PageRegistry:Create()
     local futureFrames = {
-        { key = "target", title = BFUF.L.SETTINGS_PAGE_TARGET },
         { key = "targetTarget", title = BFUF.L.SETTINGS_PAGE_TARGET_TARGET },
         { key = "focus", title = BFUF.L.SETTINGS_PAGE_FOCUS },
         { key = "focusTarget", title = BFUF.L.SETTINGS_PAGE_FOCUS_TARGET },
@@ -1580,6 +1682,15 @@ function SettingsModule:RegisterShellPages()
         title = BFUF.L.SETTINGS_PAGE_PLAYER,
         builder = function()
             self:ShowShellFrame("player", BFUF.L.SETTINGS_PAGE_PLAYER, false)
+        end,
+        refresh = function()
+        end,
+    })
+    self.shellPages:Register({
+        id = "target",
+        title = BFUF.L.SETTINGS_PAGE_TARGET,
+        builder = function()
+            self:ShowShellFrame("target", BFUF.L.SETTINGS_PAGE_TARGET, false)
         end,
         refresh = function()
         end,
