@@ -1,7 +1,24 @@
 local addonName, BFUF = ...
 
+-- Shared defaults keep the base dimensions of every unit frame consistent.
+local UNIT_FRAME_DEFAULTS = {
+    width = 324,
+    height = 55,
+    scale = 1,
+    portraitWidth = 54,
+
+    positions = {
+        player = { x = 0, y = 0 },
+        target = { x = 320, y = 0 },
+        targetTarget = { x = 0, y = -100 },
+        boss = { x = 0, y = 120 },
+    },
+}
+
 -- Default values are stored in AceDB's profile scope.
 BFUF.Defaults = {
+    UnitFrame = UNIT_FRAME_DEFAULTS,
+
     profile = {
         General = {
             debugMode = false,
@@ -10,15 +27,15 @@ BFUF.Defaults = {
         },
 
         Player = {
-            width = 240,
-            height = 50,
-            scale = 1,
-            positionX = 0,
-            positionY = 0,
+            width = UNIT_FRAME_DEFAULTS.width,
+            height = UNIT_FRAME_DEFAULTS.height,
+            scale = UNIT_FRAME_DEFAULTS.scale,
+            positionX = UNIT_FRAME_DEFAULTS.positions.player.x,
+            positionY = UNIT_FRAME_DEFAULTS.positions.player.y,
 
             portrait = {
                 mode = "2d",
-                width = 44,
+                width = UNIT_FRAME_DEFAULTS.portraitWidth,
             },
 
             health = {
@@ -92,32 +109,36 @@ BFUF.Defaults = {
 
         Target = {
             enabled = true,
-            width = 260,
-            height = 58,
-            scale = 1,
-            positionX = 320,
-            positionY = 0,
+            width = UNIT_FRAME_DEFAULTS.width,
+            height = UNIT_FRAME_DEFAULTS.height,
+            scale = UNIT_FRAME_DEFAULTS.scale,
+            positionX = UNIT_FRAME_DEFAULTS.positions.target.x,
+            positionY = UNIT_FRAME_DEFAULTS.positions.target.y,
             show = true,
 
             portrait = {
                 mode = "2d",
-                width = 54,
+                width = UNIT_FRAME_DEFAULTS.portraitWidth,
             },
         },
 
         TargetTarget = {
             enabled = true,
-            width = 160,
-            height = 32,
-            scale = 1,
+            width = UNIT_FRAME_DEFAULTS.width,
+            height = UNIT_FRAME_DEFAULTS.height,
+            scale = UNIT_FRAME_DEFAULTS.scale,
+            positionX = UNIT_FRAME_DEFAULTS.positions.targetTarget.x,
+            positionY = UNIT_FRAME_DEFAULTS.positions.targetTarget.y,
             show = true,
         },
 
         Boss = {
             enabled = true,
-            width = 200,
-            height = 36,
-            scale = 1,
+            width = UNIT_FRAME_DEFAULTS.width,
+            height = UNIT_FRAME_DEFAULTS.height,
+            scale = UNIT_FRAME_DEFAULTS.scale,
+            positionX = UNIT_FRAME_DEFAULTS.positions.boss.x,
+            positionY = UNIT_FRAME_DEFAULTS.positions.boss.y,
             show = true,
         },
 
