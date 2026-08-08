@@ -82,6 +82,7 @@ BFUF.Localization:RegisterLocale("ruRU", {
     SETTINGS_PAGE_PROFILES = "Профили",
     SETTINGS_PAGE_ABOUT = "О дополнении",
     SETTINGS_PLAYER_GENERAL = "Общие",
+    SETTINGS_PLAYER_BARS = "Полосы",
     SETTINGS_PLAYER_PORTRAIT = "Портрет",
     SETTINGS_PLAYER_HEALTH = "Здоровье",
     SETTINGS_PLAYER_POWER = "Ресурс",
