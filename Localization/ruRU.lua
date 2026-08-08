@@ -26,6 +26,7 @@ BFUF.Localization:RegisterLocale("ruRU", {
     BUTTON_UNLOCK_TARGET_FRAME = "Разблокировать рамку цели",
     BUTTON_LOCK_TARGET_FRAME = "Заблокировать рамку цели",
     BUTTON_RESET_POSITION = "Сбросить позицию",
+    BUTTON_RESET_DEFAULTS = "По умолчанию",
     SECTION_PORTRAIT = "Портрет",
     OPTION_PORTRAIT_HIDDEN = "Скрыт",
     OPTION_PORTRAIT_2D = "2D портрет",
